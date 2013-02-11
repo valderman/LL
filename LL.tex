@@ -116,9 +116,9 @@ We have a judgement $Γ ⊢ t$; with only hypotheses and no conclusion. Remarks:
 \and
   \inferrule[∀]{Γ,x:A[B/α] ⊢ b \\ B\text{~valid} }{Γ,z:∀α.A ⊢ \Let x = z∙B \In b }
 \\
-  \inferrule[?]{!Γ,x:A ⊢ a}{!Γ,x:?A ⊢ \mathsf{thaw~}x \In a }
+  \inferrule[?]{!Γ,x:A ⊢ a}{!Γ,x:?A ⊢ \mathsf{offer~}x \In a }
 \and
-  \inferrule[!]{Γ,x:A ⊢ a}{Γ,x:!A ⊢ \mathsf{freeze~}x \In a }
+  \inferrule[!]{Γ,x:A ⊢ a}{Γ,x:!A ⊢ \mathsf{demand~}x \In a }
 \\
   \inferrule[Weaken]{Γ ⊢ a}{Γ,x:!A ⊢ \mathsf{free~}x \In a }
 \and
@@ -209,7 +209,7 @@ The translation of each type to a memory layout is: ($·$ indicates sequence, $|
   \layout{A⊗B} = \layout{A \pa B}  &= \layout A · \layout B\\
    \layout{A ⊕ B} = \layout{A \& B} &= \text{1 bit of info + 1 bit indicating that the data is ready} · (\layout A \mid \layout B)\\
   \layout{α} = \layout{\p{α}} &=  (never executed) \\
-  \layout{!A} = \layout{?A} &= \text{pointer to}~\layout{A} \\
+  \layout{!\p A} = \layout{?A} &= \text{pointer to a closure with $A$ as last variable + ready flag; aka. a thunk} \\
   \layout{T} &= \epsilon & T ∈ \braces{⊤,⊥,0,1}
 \end{align*}
 Note that $\layout A = \layout{\p A}$, but is used differently, see below.
@@ -233,23 +233,14 @@ Operational behaviour of the rules:
 \item Cut: similar to $\pa$ but connects the two closures directly together.
 \item Ax: If the pointers are equal, do nothing and terminate. If not
   switch to the closure which does the copy.
-\item ?,!: change the env. to point directy to the data in the heap.
-\item Weaken: free memory in the heap
-\item Contract: allocate a $\layout A$ in the heap, and copy the data
-  from $x$.  
-
-  Note about wasting memory: 
-
-  'Contract' may not do an actual copy, but just copy the pointer, if
-  it is guaranteed that the type $A$ only provides, not accepts, data
-  (or if copy-on-write is available). 
-
-  This could be useful to implement a lazy-evaluated language, but one
-  can expect that in ``low-level'' programs, the programmer will use
-  'contract' only when actual copies are needed.
+\item ?: place the closure in the pointed zone, mark as ready; terminate.
+\item !: wait for ready, spawn a closure from the pointed zone, link
+  it with $x$ and continue.
+\item Contract: copy the pointer to the thunk.
+\item Weaken: discard the pointer.
 \end{itemize}
-Note that the structural/! computation rules are easy in the AM
-compared to the cut-elim.
+Note that the structural computation rules are easy in the AM compared
+to the cut-elim.
 
 
 \section{Cut and update the world}
