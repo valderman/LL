@@ -120,9 +120,9 @@ We have a judgement $Γ ⊢ t$; with only hypotheses and no conclusion. Remarks:
 \and
   \inferrule[!]{Γ,x:A ⊢ a}{Γ,x:!A ⊢ \mathsf{demand~}x \In a }
 \\
-  \inferrule[Weaken]{Γ ⊢ a}{Γ,x:!A ⊢ \mathsf{free~}x \In a }
+  \inferrule[Weaken]{Γ ⊢ a}{Γ,x:!A ⊢ \mathsf{ignore~}x \In a }
 \and
-  \inferrule[Contract]{Γ,x:!A,y:!A ⊢ a}{Γ,x:!A ⊢ \Let y = \mathsf{copy~}_Ax \In a }
+  \inferrule[Contract]{Γ,x:!A,y:!A ⊢ a}{Γ,x:!A ⊢ \Let y = \mathsf{alias~}x \In a }
 \end{mathpar}
 
 Explanation of the rules:
@@ -190,6 +190,12 @@ Expanding the definition of negation:
 
 \subsection{Abstract machine}
 \newcommand\layout[1]{[#1]}
+
+Problems of the reduction rules:
+\begin{itemize}
+\item they are synchronous (eg. Top/Bottom are eliminated \emph{at the same time})
+\item they force arbitrary sequentialisation. (eg. Par/Tensor is asymetric)
+\end{itemize}
 
 The idea of the AM is to delay cut-elimination in order to get a more
 efficient execution (as in eg. Krivine's abstract machine). (One might
