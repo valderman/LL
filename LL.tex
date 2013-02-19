@@ -49,6 +49,8 @@
 \def\loll{\multimap}
 \def\pa{\ensuremath{\parr}}
 
+TODO: make the environment of types explicit. $Θ$
+
 \section{Core LL}
 
 \subsection{Types}
@@ -113,7 +115,7 @@ We have a judgement $Γ ⊢ t$; with only hypotheses and no conclusion. Remarks:
 \and
 \inferrule[0]{ }{Γ,x:0 ⊢ \mathsf{dump~}Γ\mathsf{~into~} x} 
 \\
-  \inferrule[∃]{Γ,y:A ⊢ b}{Γ,z:∃α.A ⊢ \Let ⟨α,y⟩ = z \In b }
+  \inferrule[∃]{Θ,α;Γ,y:A ⊢ b}{Θ;Γ,z:∃α.A ⊢ \Let ⟨α,y⟩ = z \In b }
 \and
   \inferrule[∀]{Γ,x:A[B/α] ⊢ b \\ B\text{~valid} }{Γ,z:∀α.A ⊢ \Let x = z∙B \In b }
 \\
@@ -220,9 +222,9 @@ environment: each variable is connected.
 The translation of each type to a memory layout is: ($·$ indicates sequence)
 \begin{align*}
   \layout{A⊗B} = \layout{A \pa B}  &= \layout A · \layout B\\
-   \layout{A ⊕ B} = \layout{A \& B} &= \text{tag (1 bit) + 1 pointer (optionally null if the data is not ready)} \\
+  \layout{A ⊕ B} = \layout{A \& B} &= \text{1 bit of info + 1 bit indicating that the data is ready} · (\layout A \mid \layout B)\\
   \layout{α} = \layout{\p{α}} &= ρ[α] \\
-  \layout{!\p A} = \layout{?A} &= \text{pointer to a closure (with $A$ as last variable) + ready flag; aka. a thunk} \\
+  \layout{!\p A} = \layout{?A} &= \text{pointer to a closure (with $A$ as last variable) + ready flag + reference count; aka. a thunk} \\
   \layout{T} &= \epsilon & T ∈ \braces{⊤,⊥,0,1}
 \end{align*}
 Note that $\layout A = \layout{\p A}$, but the data is used differently, see below.
@@ -234,64 +236,31 @@ Operational behaviour of the rules:
 \item 1: continue
 \item ⊥: terminate (delete the closure)
 \item ⊕: wait for the data to be ready; then chose a branch according
-  to the tag. Free the pointer and the tag.
+  to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.
 \item \&-L: Allocate $\layout A$ and initialise it. Write the tag and the pointer. Continue.
 \item $x:(A ⊗ B)$: add an entry in the context for $y:B$, at location
   $x+\layout A$ (No communication occurs!)
 \item $A \pa B$: split the environment and spawn a new closure. (No communication either)
-\item Cut/Quantifiers: the $∀$-side environment contains a pointer to
-  a closure capable of copying data of the new type.
+\item $∀$ the code contains a representation of the concrete type $B$,
+  that can be copied to the environment (in the type variables part).
+\item $∃$: continue 
 \item Cut: similar to $\pa$ but connects the two closures directly together.
 \item Ax: Copy the data between the closures. For type variables, use
-  the closure to that avail from the environment.
-  
-\item ?: place the closure in the pointed zone, mark as ready; terminate.
-\item !: wait for ready, spawn a closure from the pointed zone, link
-  it with $x$ and continue.
-\item Contract: copy the pointer to the thunk. 
-\item Weaken: discard the pointer.
+  the type representation from the environment.
+\item ?: place a pointer to the closure $a$ in the zone pointed by
+  $x:?A$, mark as ready; terminate.
+\item !: wait for ready. Allocate and initialise memory of $\layout A$, spawn a
+  closure from the zone pointed by $x:!A$, link it with $x$ and
+  continue. Decrement reference count.
+\item Contract: copy the pointer to the thunk, increment reference
+  count.  Note this is easy in the AM compared to the cut-elim.
+\item Weaken: discard the pointer, decrement reference count.
 \end{itemize}
-Note that the structural computation rules are easy in the AM compared
-to the cut-elim.
 
-TODO: Should we do reference-counting?
+Don't forget about recursively decrementing counts upon deallocation.
 
-
-\subsection{Abstract machine (variant 2)}
-
-\begin{align*}
-  \layout{A⊗B} = \layout{A \pa B}  &= \layout A · \layout B\\
-   \layout{A ⊕ B} = \layout{A \& B} &= \text{1 bit of info + 1 bit indicating that the data is ready} · (\layout A \mid \layout B)\\
-  \layout{α} = \layout{\p{α}} &=  (never executed) \\
-  \layout{!\p A} = \layout{?A} &= \text{pointer to a closure with $A$ as last variable + ready flag; aka. a thunk} \\
-  \layout{T} &= \epsilon & T ∈ \braces{⊤,⊥,0,1}
-\end{align*}
-
-\begin{itemize}
-\item 0: crash
-\item 1: continue
-\item ⊥: terminate (delete the closure)
-\item ⊕: wait for the data to be ready; then chose a branch according
-  to the bit of data. (The memory for the 1 bit + semaphore could be
-  freed here, but probably this should wait for a weaken rule to be
-  run).
-\item \&: write a bit of data (which becomes ready), and continue.
-\item $x:(A ⊗ B)$: add an entry in the context for $y:B$, at location
-  $x+\layout A$ (No communication occurs!)
-\item $A \pa B$: split the environment and spawn a new closure. (No communication either)
-\item Cut/Quantifiers: transmit a closure capable of copying data of
-  the new type.
-\item Cut: similar to $\pa$ but connects the two closures directly together.
-\item Ax: If the pointers are equal, do nothing and terminate. If not
-  switch to the closure which does the copy.
-\item ?: place the closure in the pointed zone, mark as ready; terminate.
-\item !: wait for ready, spawn a closure from the pointed zone, link
-  it with $x$ and continue.
-\item Contract: copy the pointer to the thunk.
-\item Weaken: discard the pointer.
-\end{itemize}
-Note that the structural computation rules are easy in the AM compared
-to the cut-elim.
+TODO:
+ How to represent the heap?
 
 
 \section{Cut and update the world}

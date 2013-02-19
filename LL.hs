@@ -16,6 +16,9 @@ data Type = Type :⊕: Type
           | Forall Name Type
           | Exists Name Type
                                
+subst0 = error "todo"            
+wk = error "todo"
+
 -- | Sequents                              
 data Seq = Exchange [Int] Seq -- Permute variables
          | Ax -- Exactly 2 vars
@@ -30,6 +33,9 @@ data Seq = Exchange [Int] Seq -- Permute variables
          | SZero Int
          | SBot
          | What
+           
+         | TApp Int Type Seq
+         | TUnpack Int Seq
 
 neg (x :⊗: y) = x :⊸: neg y
 neg (x :⊸: y) = x :⊗: neg y
@@ -90,6 +96,10 @@ pSeq ts vs s0 = case s0 of
   (SOne x t ) -> "let ◇ = " <> w <> " in " $$ pSeq ts (v0++v1) t
     where (v0,(w,One):v1) = splitAt x vs
   (Exchange p t) -> pSeq ts [vs !! i | i <- p] t        
+  (TApp x tyB s) -> "let " <> w <> " = " <> w <> "∙" <> pType 0 ts tyB <> " in " $$ pSeq ts (v0++(w,subst0 tyB tyA):v1) s
+    where (v0,(w,Forall _ tyA):v1) = splitAt x vs
+  (TUnpack x s) -> "let ⟨" <> tw <> "," <> w <> "⟩ = " <> w <> " in " $$ pSeq (w:ts) (map wk v0++(w,tyA):map wk v1) s
+    where (v0,(w,Exists tw tyA):v1) = splitAt x vs
   What -> braces $ pCtx ts vs
  where vv = vax ts vs
        
@@ -130,3 +140,5 @@ bool = One :⊕: One
 s1 = Deriv [] [("x",bool), ("y",neg (bool :⊗: bool))] $
        Plus 0 (SOne 0 $ Par 0 (Amp True  0 SBot) (Amp True  0 SBot)) 
               (SOne 0 $ Par 0 (Amp False 0 SBot) (Amp False 0 SBot)) 
+
+test = Deriv [] [("x",neg t0)] What
