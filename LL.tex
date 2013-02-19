@@ -187,6 +187,13 @@ Expanding the definition of negation:
 \ConnectB {\newchan {}} {x:∀α.A} {\Let t = x ∙ B \In a} {y:∃α.\p A} {\Let ⟨α,u⟩ = y \In b }  & ~⟶~ \ConnectB {\newchan {}} {t:A[B/α]} {a} {u:\p{A[B/α]}} {b} 
 \end{align*}
 
+\begin{mathpar}
+\ConnectB{!A} x {\mathsf{offer~}x \In a} y {\mathsf{demand~}y \In b} ~⟶~  \ConnectB{A} x {a} y {b}
+\end{mathpar}
+
+\begin{mathpar}
+\ConnectB{!A} x {\mathsf{ignore~}x \In a} y {\mathsf{offer~}y \In b} ~⟶~  a
+\end{mathpar}
 
 \subsection{Abstract machine}
 \newcommand\layout[1]{[#1]}
