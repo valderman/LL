@@ -16,8 +16,7 @@ data Type = Type :⊕: Type
           | Forall Name Type
           | Exists Name Type
                                
-subst0 = error "todo"            
-wk = error "todo"
+subst0 x = x:map var [0..]
 
 -- | Sequents                              
 data Seq = Exchange [Int] Seq -- Permute variables
@@ -37,6 +36,47 @@ data Seq = Exchange [Int] Seq -- Permute variables
          | TApp Int Type Seq
          | TUnpack Int Seq
 
+class Substitute a where
+  (∙) :: Subst -> a -> a
+         
+instance Substitute Type where
+  (∙) = apply
+        
+instance Substitute Name where
+  _ ∙ x = x
+
+instance (Substitute a, Substitute b) => Substitute (a,b) where
+  f ∙ (x,y) = (f∙x, f∙y)
+
+instance (Substitute a) => Substitute [a] where
+  f ∙ xs = map (f ∙) xs
+             
+               
+type Subst = [Type]
+var = TVar True
+
+wk :: Subst
+wk = map var [1..]
+
+if_ True f = id
+if_ False f = f
+
+apply :: Subst -> Type -> Type
+apply f t = case t of
+  x :⊕: y -> s x :⊕: s y
+  x :&: y -> s x :&: s y
+  x :⊸: y -> s x :⊸: s y
+  x :⊗: y -> s x :⊗: s y
+  Zero -> Zero
+  One -> One
+  Top -> Top
+  Bot -> Bot
+  TVar pol x -> if_ pol neg (f!!x)
+  Forall w t -> Forall w (s' t)
+  Exists w t -> Forall w (s' t)
+ where s = apply f
+       s' = apply (var 0 : wk ∙ f)
+  
 neg (x :⊗: y) = x :⊸: neg y
 neg (x :⊸: y) = x :⊗: neg y
 neg (x :⊕: y) = neg x :&: neg y
@@ -96,9 +136,9 @@ pSeq ts vs s0 = case s0 of
   (SOne x t ) -> "let ◇ = " <> w <> " in " $$ pSeq ts (v0++v1) t
     where (v0,(w,One):v1) = splitAt x vs
   (Exchange p t) -> pSeq ts [vs !! i | i <- p] t        
-  (TApp x tyB s) -> "let " <> w <> " = " <> w <> "∙" <> pType 0 ts tyB <> " in " $$ pSeq ts (v0++(w,subst0 tyB tyA):v1) s
+  (TApp x tyB s) -> "let " <> w <> " = " <> w <> "∙" <> pType 0 ts tyB <> " in " $$ pSeq ts (v0++(w,subst0 tyB ∙ tyA):v1) s
     where (v0,(w,Forall _ tyA):v1) = splitAt x vs
-  (TUnpack x s) -> "let ⟨" <> tw <> "," <> w <> "⟩ = " <> w <> " in " $$ pSeq (w:ts) (map wk v0++(w,tyA):map wk v1) s
+  (TUnpack x s) -> "let ⟨" <> tw <> "," <> w <> "⟩ = " <> w <> " in " $$ pSeq (tw:ts) ((wk ∙ v0)++(w,tyA):(wk ∙ v1)) s
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
   What -> braces $ pCtx ts vs
  where vv = vax ts vs
@@ -119,7 +159,7 @@ data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], deri
 instance Show Deriv where
   show (Deriv ts vs s) = render $ (pCtx ts vs <> " ⊢") $$ pSeq ts vs s
 
-t0 = Forall "a" $ Forall "b" $ (a :⊗: b) :⊸: (b :⊗: a)
+t0 = Forall "α" $ Forall "β" $ (a :⊗: b) :⊸: (b :⊗: a)
   where a = TVar True 1
         b = TVar True 0
         
@@ -141,4 +181,10 @@ s1 = Deriv [] [("x",bool), ("y",neg (bool :⊗: bool))] $
        Plus 0 (SOne 0 $ Par 0 (Amp True  0 SBot) (Amp True  0 SBot)) 
               (SOne 0 $ Par 0 (Amp False 0 SBot) (Amp False 0 SBot)) 
 
-test = Deriv [] [("x",neg t0)] What
+test = Deriv [] [("x",neg t0)]  $
+       TUnpack 0 $
+       TUnpack 0 $
+       Cross "x" "y" 0 $ 
+       Cross "v" "w" 0 $ 
+       Exchange [1,2,0] $ 
+       Par 1 Ax Ax
