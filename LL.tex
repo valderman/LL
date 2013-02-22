@@ -225,6 +225,7 @@ The translation of each type to a memory layout is: ($·$ indicates sequence)
   \layout{A ⊕ B} = \layout{A \& B} &= \text{1 bit of info + 1 bit indicating that the data is ready} · (\layout A \mid \layout B)\\
   \layout{α} = \layout{\p{α}} &= ρ[α] \\
   \layout{!\p A} = \layout{?A} &= \text{pointer to a closure (with $A$ as last variable) + ready flag + reference count; aka. a thunk} \\
+  \layout{∀α.A} = \layout{∃α.A} &= \text{cell} + \layout{A} \\
   \layout{T} &= \epsilon & T ∈ \braces{⊤,⊥,0,1}
 \end{align*}
 Note that $\layout A = \layout{\p A}$, but the data is used differently, see below.
@@ -241,11 +242,10 @@ Operational behaviour of the rules:
 \item $x:(A ⊗ B)$: add an entry in the context for $y:B$, at location
   $x+\layout A$ (No communication occurs!)
 \item $A \pa B$: split the environment and spawn a new closure. (No communication either)
-\item $∀$ the code contains a representation of the concrete type $B$,
-  that can be copied to the environment (in the type variables part).
-\item $∃$: continue 
+\item $∀$. Write the representation of the concrete type $B$ (found in the code) to the 1st cell.
+\item $∃$. Split the variables as in $⊗$.
 \item Cut: similar to $\pa$ but connects the two closures directly together.
-\item Ax: Copy the data between the closures. For type variables, use
+\item Ax: Copy the data between the closures. For type variables, wait for the type to be ready, use
   the type representation from the environment.
 \item ?: place a pointer to the closure $a$ in the zone pointed by
   $x:?A$, mark as ready; terminate.
