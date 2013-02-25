@@ -198,6 +198,12 @@ Expanding the definition of negation:
 \ConnectB{!A} x {\mathsf{ignore~}x \In a} y {\mathsf{offer~}y \In b} ~⟶~  a
 \end{mathpar}
 
+\begin{mathpar}
+\ConnectB{!A} x {\Let y = \mathsf{alias~}x \In a} z {\mathsf{offer~}z \In b} ~⟶~ \ConnectB{!A} x {\ConnectB{!A} y {a} z {\mathsf{offer~}z \In b}} z {\mathsf{offer~}z \In b}
+%\ConnectB{!A} x {a} z {\mathsf{offer~}z \In b}
+%\ConnectB{!A} y {a} z {\mathsf{offer~}z \In b}
+\end{mathpar}
+
 \subsection{Abstract machine}
 
 Problems of the reduction rules:
