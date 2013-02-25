@@ -72,7 +72,7 @@ neutral in parens
 
 \subsection{An ISWIM syntax for linear-logic sequents}
 
-We have a judgement $Γ ⊢ t$; with only hypotheses and no conclusion. Remarks:
+We have a judgement $Θ;Γ ⊢ t$; with only hypotheses and no conclusion. Remarks:
 \begin{itemize}
 \item In fact, it is as if there were a single $⊥$ conclusion: $Γ ⊢ t
   : ⊥$.  Essentially the programs are written in CPS.  Because the
@@ -91,41 +91,41 @@ We have a judgement $Γ ⊢ t$; with only hypotheses and no conclusion. Remarks:
 
 
 \begin{mathpar}
-\inferrule[Ax]{ }{ x : \p A, y : A ⊢ x ↔ y}
+\inferrule[Ax]{ }{Θ; x : \p A, y : A ⊢ x ↔ y}
 \and
-\inferrule[Cut]{Γ, x:\p A ⊢ a \\ y:A, Δ ⊢ b }{Γ,Δ ⊢ \ConnectS {\newchan A} x a y b}
+\inferrule[Cut]{Θ; Γ, x:\p A ⊢ a \\ y:A, Δ ⊢ b }{Θ; Γ,Δ ⊢ \ConnectS {\newchan A} x a y b}
 \\
-\inferrule[⊗]{Γ, x : A, y : B, Δ ⊢ a}{Γ, z : A ⊗ B, Δ ⊢ \Let ⟨x,y⟩=z \In a}
+\inferrule[⊗]{Θ; Γ, x : A, y : B, Δ ⊢ a}{Θ; Γ, z : A ⊗ B, Δ ⊢ \Let ⟨x,y⟩=z \In a}
 \and 
-\inferrule[\pa]{Γ, x:A ⊢ a\\ y:B, Δ ⊢ b}{ Γ, z:A\pa B, Δ ⊢ \ConnectS z x a y b}
+\inferrule[\pa]{Θ; Γ, x:A ⊢ a\\ Θ; y:B, Δ ⊢ b}{Θ; Γ, z:A\pa B, Δ ⊢ \ConnectS z x a y b}
 \\
 \begin{array}{c}
-\inferrule[\&-l]{Γ,x:A ⊢ a} { Γ,z:A~\&~B ⊢ \Let x = \Fst z \In a}\\
+\inferrule[\&-l]{Θ; Γ,x:A ⊢ a} {Θ; Γ,z:A~\&~B ⊢ \Let x = \Fst z \In a}\\
 \\ 
-\inferrule[\&-r]{Γ,y:B ⊢ b} { Γ,z:A~\&~B ⊢ \Let y = \Snd z \In b}\\
+\inferrule[\&-r]{Θ; Γ,y:B ⊢ b} {Θ; Γ,z:A~\&~B ⊢ \Let y = \Snd z \In b}\\
 \end{array}
 \and
-\inferrule[⊕]{Γ,x:A ⊢ a \\ Γ,y:B ⊢ b} { Γ,z:A⊕B ⊢ \Case z \Of \{ \Inl x ↦ a ; \Inr y ↦ b  \} }
+\inferrule[⊕]{Θ;Γ,x:A ⊢ a \\ Γ,y:B ⊢ b} {Θ; Γ,z:A⊕B ⊢ \Case z \Of \{ \Inl x ↦ a ; \Inr y ↦ b  \} }
 \\
-\inferrule[1]{Γ ⊢ a}{Γ, x:1 ⊢ \Let ⋄ = x \In a} 
+\inferrule[1]{Θ;Γ ⊢ a}{Θ;Γ, x:1 ⊢ \Let ⋄ = x \In a} 
 \and
-\inferrule[⊥]{ }{x:⊥ ⊢ x} 
+\inferrule[⊥]{ }{Θ;x:⊥ ⊢ x} 
 \\
 \text{no rule for ⊤}
 \and
-\inferrule[0]{ }{Γ,x:0 ⊢ \mathsf{dump~}Γ\mathsf{~into~} x} 
+\inferrule[0]{ }{Θ;Γ,x:0 ⊢ \mathsf{dump~}Γ\mathsf{~into~} x} 
 \\
   \inferrule[∃]{Θ,α;Γ,y:A ⊢ b}{Θ;Γ,z:∃α.A ⊢ \Let ⟨α,y⟩ = z \In b }
 \and
-  \inferrule[∀]{Γ,x:A[B/α] ⊢ b \\ B\text{~valid} }{Γ,z:∀α.A ⊢ \Let x = z∙B \In b }
+  \inferrule[∀]{Θ;Γ,x:A[B/α] ⊢ b \\ Θ ⊢ B}{Θ;Γ,z:∀α.A ⊢ \Let x = z∙B \In b }
 \\
-  \inferrule[?]{!Γ,x:A ⊢ a}{!Γ,x:?A ⊢ \mathsf{offer~}x \In a }
+  \inferrule[?]{Θ;!Γ,x:A ⊢ a}{Θ;!Γ,x:?A ⊢ \mathsf{offer~}x \In a }
 \and
-  \inferrule[!]{Γ,x:A ⊢ a}{Γ,x:!A ⊢ \mathsf{demand~}x \In a }
+  \inferrule[!]{Θ;Γ,x:A ⊢ a}{Θ;Γ,x:!A ⊢ \mathsf{demand~}x \In a }
 \\
-  \inferrule[Weaken]{Γ ⊢ a}{Γ,x:!A ⊢ \mathsf{ignore~}x \In a }
+  \inferrule[Weaken]{Θ;Γ ⊢ a}{Θ;Γ,x:!A ⊢ \mathsf{ignore~}x \In a }
 \and
-  \inferrule[Contract]{Γ,x:!A,y:!A ⊢ a}{Γ,x:!A ⊢ \Let y = \mathsf{alias~}x \In a }
+  \inferrule[Contract]{Θ;Γ,x:!A,y:!A ⊢ a}{Θ;Γ,x:!A ⊢ \Let y = \mathsf{alias~}x \In a }
 \end{mathpar}
 
 Explanation of the rules:
@@ -242,11 +242,18 @@ Operational behaviour of the rules:
 \item $x:(A ⊗ B)$: add an entry in the context for $y:B$, at location
   $x+\layout A$ (No communication occurs!)
 \item $A \pa B$: split the environment and spawn a new closure. (No communication either)
-\item $∀$. Write the representation of the concrete type $B$ (found in the code) to the 1st cell.
-\item $∃$. Split the variables as in $⊗$.
+\item $∀$. Write the (pointer to) representation of the concrete type $B$ (found in the code) to the 1st cell.
+\item $∃$. Wait for the type representation to be ready. Copy the
+  (pointer to) the representation to the type environment. Free the
+  type variable from the memory. Rename the linear variable (as in
+  $⊗$). NOTE: It is tempting to avoid the sync. point here, however
+  because the type variable will be copied around, this rule must be
+  responsible for freeing the memory (or we need garbage collection;
+  yuck).
 \item Cut: similar to $\pa$ but connects the two closures directly together.
-\item Ax: Copy the data between the closures. For type variables, wait for the type to be ready, use
-  the type representation from the environment.
+\item Ax: Copy the data between the closures. For type variables, wait
+  for the type to be ready, use the type representation from the
+  environment. Release then the used (pointer to) type representation.
 \item ?: place a pointer to the closure $a$ in the zone pointed by
   $x:?A$, mark as ready; terminate.
 \item !: wait for ready. Allocate and initialise memory of $\layout A$, spawn a
