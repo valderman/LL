@@ -204,6 +204,12 @@ Expanding the definition of negation:
 %\ConnectB{!A} y {a} z {\mathsf{offer~}z \In b}
 \end{mathpar}
 
+Alternate rule for Contract
+
+\begin{mathpar}
+\ConnectB{!A} x {\Let y = \mathsf{alias~}x \In a} z {\mathsf{offer~}z \In b} ~⟶~ \ConnectB{!A} x {\mathsf{demand~}x \In a[x/y]} z {\mathsf{offer~}z \In b}
+\end{mathpar}
+
 \subsection{Abstract machine}
 
 Problems of the reduction rules:
