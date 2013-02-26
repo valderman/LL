@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE GADTs #-}
 
 import Data.Monoid
 import Text.PrettyPrint.HughesPJ hiding ((<>))
@@ -15,7 +17,9 @@ data Type = Type :⊕: Type
           | TVar Bool Int
           | Forall Name Type
           | Exists Name Type
-                               
+          | Bang Type
+          | Quest Type
+
 subst0 x = x:map var [0..]
 
 -- | Sequents                              
@@ -35,6 +39,58 @@ data Seq = Exchange [Int] Seq -- Permute variables
            
          | TApp Int Type Seq
          | TUnpack Int Seq
+
+         | Offer Int Seq
+         | Demand Int Seq
+         | Ignore Int Seq
+         | Alias Int Name Seq
+
+data Cell where
+  Freed :: Cell
+  Tag   :: Bool -> Cell
+  New   :: Cell
+  Delay :: Int -> Closure -> Cell
+  Q     :: Type -> CellRef -> Cell
+
+type CellRef = Int
+
+type TypeEnv = [Type]
+
+type Env = [CellRef]
+
+type Closure = (Seq,Env,TypeEnv)
+
+type Heap = [Cell]
+
+type System = ([Closure],Heap)
+
+runClosure :: Heap -> Closure -> Maybe (Heap,Closure)
+runClosure h (Plus v a b,e,te)
+  | Tag c <- h!!(e!!v) = Just (replace (e!!v) Freed h,
+                             (if c then a else b,increment v e,te))
+runClosure h (Cross _ _ v a,e,te)
+  = Just (h,(a,el++[x,x+sizeOf te (error "Game Over!")] ++ er,te))
+  where (el,x:er) = splitAt v e
+
+replace n v h = let (l,_:r) = splitAt n h
+                in l ++ v : r
+
+increment n e = let (l,x:r) = splitAt n e
+                in l ++ succ x : r
+
+sizeOf :: TypeEnv -> Type -> Int
+sizeOf e (t1 :⊕: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
+sizeOf e (t1 :⊗: t2) = sizeOf e t1 + sizeOf e t2
+sizeOf e (t1 :⊸: t2) = sizeOf e t1 + sizeOf e t2
+sizeOf e (t1 :&: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
+sizeOf e (TVar _ v) = sizeOf e (e!!v)
+sizeOf e (Forall _ _) = 1
+sizeOf e (Exists _ _) = 1
+sizeOf e (Bang _)     = 1
+sizeOf e (Quest _)    = 1
+sizeOf e _ = 0
+
+-- Substitution
 
 class Substitute a where
   (∙) :: Subst -> a -> a
@@ -74,6 +130,8 @@ apply f t = case t of
   TVar pol x -> if_ pol neg (f!!x)
   Forall w t -> Forall w (s' t)
   Exists w t -> Forall w (s' t)
+  Bang t -> Bang (s t)
+  Quest t -> Quest (s t)
  where s = apply f
        s' = apply (var 0 : wk ∙ f)
   
@@ -88,6 +146,8 @@ neg One = Bot
 neg (Exists v t) = Forall v (neg t)
 neg (Forall v t) = Exists v (neg t)
 neg (TVar b x) = TVar (not b) x
+neg (Bang t) = Quest (neg t)
+neg (Quest t) = Bang (neg t)
 
 prn p k = if p > k then parens else id
 
@@ -104,6 +164,8 @@ pType p vs Top = "⊤"
 pType p vs Bot = "⊥"
 pType p vs (TVar True x) = vs!!x 
 pType p vs (TVar False x) = "~" <> (vs!!x)
+pType p vs (Bang t) = prn p 4 $ "!" <> pType 4 vs t
+pType p vs (Quest t) = prn p 4 $ "?" <> pType 4 vs t
 
 instance Show Type where
   show x = render $ pType 0 ["v" <> int i | i <- [0..]] x
@@ -140,6 +202,14 @@ pSeq ts vs s0 = case s0 of
     where (v0,(w,Forall _ tyA):v1) = splitAt x vs
   (TUnpack x s) -> "let ⟨" <> tw <> "," <> w <> "⟩ = " <> w <> " in " $$ pSeq (tw:ts) ((wk ∙ v0)++(w,tyA):(wk ∙ v1)) s
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
+  (Offer x s) -> "offer " <> w <> " : " <> pType 0 ts tyA $$ pSeq ts (v0++(w,tyA):v1) s
+    where (v0,(w,Quest tyA):v1) = splitAt x vs
+  (Demand x s) -> "demand " <> w <> " : " <> pType 0 ts tyA $$ pSeq ts (v0++(w,tyA):v1) s
+    where (v0,(w,Bang tyA):v1) = splitAt x vs
+  (Ignore x s) -> "ignore " <> w <> " : " <> pType 0 ts tyA $$ pSeq ts (v0++v1) s
+    where (v0,(w,Bang tyA):v1) = splitAt x vs
+  (Alias x w' s) -> "let " <> w' <> " = alias " <> w <> " : " <> pType 0 ts tyA $$ pSeq ts (v0++(w,Bang tyA):(w',Bang tyA):v1) s
+    where (v0,(w,Bang tyA):v1) = splitAt x vs
   What -> braces $ pCtx ts vs
  where vv = vax ts vs
        
@@ -188,3 +258,9 @@ test = Deriv [] [("x",neg t0)]  $
        Cross "v" "w" 0 $ 
        Exchange [1,2,0] $ 
        Par 1 Ax Ax
+
+expTest = Deriv ["a"] [("x",neg (Bang (TVar True 0) :⊸: (Bang (TVar True 0) :⊗: Bang (TVar True 0) )))] $
+          Cross "y" "z" 0 $
+          Alias 0 "w" $
+          Exchange [0,2,1] $
+          Par 1 Ax Ax
