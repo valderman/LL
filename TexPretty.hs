@@ -13,14 +13,23 @@ import Data.String
 
 second f (a,b) = (a,f b)
 
+par = cmd "pa" mempty
+amp = cmd "vspace" "1em" <> cmd "&" mempty
+
+smallcaps :: TeX -> TeX
+smallcaps x = braces (cmd "sc" mempty <> x)
+
+isEmpty :: TeX -> Bool
+isEmpty x = x == mempty
+
 texSeq :: [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> Derivation
 texSeq ts vs s0 = case s0 of
   Ax -> rul "Ax" []
-  (Cut v vt x s t) -> rul "Cut" [texSeq ts ((v,neg vt):v0) s,texSeq ts ((v,vt):v1) t]
+  (Cut v vt x s t) -> rul (smallcaps "Cut") [texSeq ts ((v,neg vt):v0) s,texSeq ts ((v,vt):v1) t]
     where (v0,v1) = splitAt x vs
   (Cross v v' x t) -> rul "⊗" [texSeq ts (v0++(v,vt):(v',vt'):v1) t]
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par x s t) -> rul "par" [texSeq ts (v0++[(w,neg vt)]) s,texSeq ts ((w,vt'):v1) t]
+  (Par x s t) -> rul par [texSeq ts (v0++[(w,neg vt)]) s,texSeq ts ((w,vt'):v1) t]
     where (v0,(w,(vt :⊸: vt')):v1) = splitAt x vs
   (Plus x s t) -> rul "⊕" [texSeq ts (v0++(w,vt ):v1) s,texSeq ts (v0++(w,vt'):v1) t]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
@@ -46,19 +55,20 @@ texSeq ts vs s0 = case s0 of
     where (v0,(w,Bang tyA):v1) = splitAt x vs
   (Alias x w' s) -> rul "Contract" [texSeq ts (v0++(w,Bang tyA):(w',Bang tyA):v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  What -> rul "What?" []
+  What -> Node (Rule () None mempty mempty (texCtx ts vs <> "⊢"))  []
  where vv = vax ts vs
-       rul :: String -> [Derivation] -> Derivation
-       rul n subs = Node (Rule () Simple mempty (tex n) (texCtx ts vs)) (map (defaultLink ::>) subs)
+       rul :: TeX -> [Derivation] -> Derivation
+       rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢")) (map (defaultLink ::>) subs)
        
-vax ts vs x = if x < length vs then let (v,t) = vs!!x in v <> " : " <> texType 0 ts t
+vax ts vs x = if x < length vs then let (v,t) = vs!!x in 
+                                      (if isEmpty v then mempty else v <> " : ") <> texType 0 ts t
                                else "v" <> tex (show (x-length vs))
      
        
 prn p k = if p > k then paren else id
        
 texCtx :: [TeX] -> [(TeX,Type TeX)] ->  TeX
-texCtx ts vs = mconcat $ intercalate [tex ","] [[v <> " : " <> (texType 0 ts t) | (v,t) <- vs]]
+texCtx ts vs = mconcat $ intersperse (text ",") [v <> " : " <> (texType 0 ts t) | (v,t) <- vs]              
     
 texType :: Int -> [TeX] -> Type TeX -> TeX
 texType p vs (Forall v t) = prn p 0 $ "∀" <> v <> ". "  <> texType 0 (v:vs) t
@@ -66,7 +76,7 @@ texType p vs (Exists v t) = prn p 0 $ "∃" <> v <> ". "  <> texType 0 (v:vs) t
 texType p vs (x :⊸: y) = prn p 0 $ texType 1 vs x <> " ⊸ " <> texType 0 vs y
 texType p vs (x :⊕: y) = prn p 1 $ texType 2 vs x <> " ⊕ " <> texType 1 vs y
 texType p vs (x :⊗: y) = prn p 2 $ texType 2 vs x <> " ⊗ " <> texType 2 vs y
-texType p vs (x :&: y) = prn p 3 $ texType 3 vs x <> " & " <> texType 3 vs y
+texType p vs (x :&: y) = prn p 3 $ texType 3 vs x <> amp <> texType 3 vs y
 texType p vs Zero = "0"
 texType p vs One = "1"
 texType p vs Top = "⊤"
