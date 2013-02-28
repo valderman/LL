@@ -14,7 +14,7 @@ prn p k = if p > k then parens else id
 pType :: Int -> [Name] -> Type Name -> Doc
 pType p vs (Forall v t) = prn p 0 $ "∀" <> v <> ". "  <> pType 0 (v:vs) t
 pType p vs (Exists v t) = prn p 0 $ "∃" <> v <> ". "  <> pType 0 (v:vs) t
-pType p vs (x :⊸: y) = prn p 0 $ pType 1 vs x <> " ⊸ " <> pType 0 vs y
+pType p vs (x :|: y) = prn p 0 $ pType 1 vs x <> " | " <> pType 0 vs y
 pType p vs (x :⊕: y) = prn p 1 $ pType 2 vs x <> " ⊕ " <> pType 1 vs y
 pType p vs (x :⊗: y) = prn p 2 $ pType 2 vs x <> " ⊗ " <> pType 2 vs y
 pType p vs (x :&: y) = prn p 3 $ pType 3 vs x <> " & " <> pType 3 vs y
@@ -40,9 +40,9 @@ pSeq ts vs s0 = case s0 of
   (Cross v v' x t) -> "let " <> v <> "," <> v' <> " = " <> w <> " in " $$ 
                       pSeq ts (v0++(v,vt):(v',vt'):v1) t
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par x s t) -> "connect {"<> vcat [w <> " : " <>  pType 0 ts (neg vt) <> " in " <> pSeq ts (v0++[(w,neg vt)]) s <> ";",
-                                     w <> " : " <>  pType 0 ts      vt' <> " in " <> pSeq ts ((w,vt'):v1) t] <>"}"
-    where (v0,(w,(vt :⊸: vt')):v1) = splitAt x vs
+  (Par x s t) -> "connect {"<> vcat [w <> " : " <>  pType 0 ts vt <> " in " <> pSeq ts (v0++[(w,vt)]) s <> ";",
+                                     w <> " : " <>  pType 0 ts vt' <> " in " <> pSeq ts ((w,vt'):v1) t] <>"}"
+    where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
   (Plus x s t) -> "case " <> w <> " of {" <> 
                   vcat ["inl " <> w <> " ↦ " <> pSeq ts (v0++(w,vt ):v1) s<> ";", 
                         "inr " <> w <> " ↦ " <> pSeq ts (v0++(w,vt'):v1) t] <> "}"
@@ -68,7 +68,7 @@ pSeq ts vs s0 = case s0 of
     where (v0,(w,Bang tyA):v1) = splitAt x vs
   (Ignore x s) -> "ignore " <> w <> " : " <> pType 0 ts tyA $$ pSeq ts (v0++v1) s
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Alias x w' s) -> "let " <> w' <> " = alias " <> w <> " : " <> pType 0 ts tyA $$ pSeq ts (v0++(w,Bang tyA):(w',Bang tyA):v1) s
+  (Alias x w' s) -> "let " <> w' <> " = alias " <> w <> " : " <> pType 0 ts tyA $$ pSeq ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
     where (v0,(w,Bang tyA):v1) = splitAt x vs
   What -> braces $ pCtx ts vs
  where vv = vax ts vs

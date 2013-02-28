@@ -14,7 +14,7 @@ type Name = Doc
 -- | Types
 data Type nm = Type nm :⊕: Type nm
              | Type nm :⊗: Type nm
-             | Type nm :⊸: Type nm
+             | Type nm :|: Type nm
              | Type nm :&: Type  nm
              | Zero | One | Top | Bot
              | TVar Bool Int
@@ -33,7 +33,7 @@ data (Seq nm) = Exchange [Int] (Seq nm) -- Permute variables
          | Cross nm nm Int (Seq nm)
          | Par Int (Seq nm) (Seq nm) -- splits at given pos.
          | Plus Int (Seq nm) (Seq nm)
-         | Amp Bool Int (Seq nm)
+         | With Bool Int (Seq nm)
            
          | SOne Int (Seq nm)
          | SZero Int
@@ -84,7 +84,7 @@ increment n e = let (l,x:r) = splitAt n e
 sizeOf :: TypeEnv -> Type () -> Int
 sizeOf e (t1 :⊕: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
 sizeOf e (t1 :⊗: t2) = sizeOf e t1 + sizeOf e t2
-sizeOf e (t1 :⊸: t2) = sizeOf e t1 + sizeOf e t2
+sizeOf e (t1 :|: t2) = sizeOf e t1 + sizeOf e t2
 sizeOf e (t1 :&: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
 sizeOf e (TVar _ v) = sizeOf e (e!!v)
 sizeOf e (Forall _ _) = 1
@@ -135,7 +135,7 @@ apply :: Subst nm -> Type nm -> Type nm
 apply f t = case t of
   x :⊕: y -> s x :⊕: s y
   x :&: y -> s x :&: s y
-  x :⊸: y -> s x :⊸: s y
+  x :|: y -> s x :|: s y
   x :⊗: y -> s x :⊗: s y
   Zero -> Zero
   One -> One
@@ -156,7 +156,7 @@ applyS f t = case t of
   Cross w w' x a -> Cross w w' x (s a)         
   Par x a b -> Par x (s a) (s b)
   Plus x a b -> Plus x (s a) (s b)
-  Amp c x a -> Amp c x (s a)
+  With c x a -> With c x (s a)
   SOne x a -> SOne x (s a) 
   TApp x ty a -> TApp x (f ∙ ty) (s a)
   TUnpack x a -> TUnpack x (s' a)
@@ -169,8 +169,8 @@ applyS f t = case t of
        s' = applyS (var 0 : wk ∙ f)
        
 neg :: Type nm -> Type nm       
-neg (x :⊗: y) = x :⊸: neg y
-neg (x :⊸: y) = x :⊗: neg y
+neg (x :⊗: y) = neg x :|: neg y
+neg (x :|: y) = neg x :⊗: neg y
 neg (x :⊕: y) = neg x :&: neg y
 neg (x :&: y) = neg x :⊕: neg y
 neg Zero = Top
@@ -184,39 +184,62 @@ neg (Bang t) = Quest (neg t)
 neg (Quest t) = Bang (neg t)
 
 
-eval :: Deriv nm -> Deriv nm
+eval :: Monoid nm => Deriv nm -> Deriv nm
 eval (Deriv ts vs (Cut w ty γ a b)) = Deriv ts vs $ cut (length vs) w ty γ a b
 
+cut' _ = Cut
+
+remove0 π = [x-1 | x <- π, x > 0]
+
 -- Hereditary cut
-cut :: Int -> -- ^ size of the context
+cut :: Monoid nm => 
+       Int -> -- ^ size of the context
        nm -> 
        Type nm -> 
        Int -> -- ^ where to cut it
        (Seq nm) -> (Seq nm) -> (Seq nm)
-cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
-cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
+-- FIXME: in the absence of "What" cut can be eliminated so these recursive calls terminate. Otherwise, we have a problem.
+-- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
+-- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 cut 2 w ty 1 Ax a = a
 cut n _ (ta :⊗: tb) 
-           γ (Exchange π (Par δ a b)) (Cross w w' 0 c) = exchange (π++[length π..n-1]) $ cut n w ta δ a (cut (n-δ+1) w' tb (γ-δ) b c)
+           γδ (Exchange π (Par γ a b)) (Cross w w' 0 c) = exchange (remove0 π++[length π-1..n-1]) $ cut n w ta γ 
+                                                          a  
+                                                          (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut (n-γ+1) w' tb δ b c )
+   where δ = γδ - γ
 cut n w (ta :⊕: tb) 
-           γ (Amp c 0 a) (Plus 0 s t) = cut n w (if c then ta else tb) γ a (if c then s else t)
+           γ (With c 0 a) (Plus 0 s t) = cut n w (if c then ta else tb) γ a (if c then s else t)
 cut n w (Exists v ty) 
            γ (TApp 0 t a) (TUnpack 0 b) = cut n w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
 cut n w (Bang ty) 
            γ (Offer 0 a) (Demand 0 b) = cut n w ty γ a b
-cut n w ty γ (Offer 0 a) (Ignore 0 b) = b
-cut n w ty γ (Offer 0 b) (Alias 0 w' a) = cut n w ty γ (Offer 0 b) (cut (n+1) w' ty γ (Offer 0 b) a)
+cut n w ty γ (Offer 0 a) (Ignore 0 b) = ignore γ b
+cut n w ty γ (Offer 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut (n+γ) w ty γ (Offer 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut (n+1) w' ty γ (Offer 0 b) a)))
+  -- cut n w ty γ (Offer 0 b) (cut (n+1) w' ty γ (Offer 0 b) a)
 cut n w ty γ SBot (SOne 0 a) = a
-cut n w ty γ What a = Cut w ty γ What a
-cut n w ty γ a What = Cut w ty γ a What
-cut n w ty γ a b = exchange ([γ..n-1] ++ [0..γ]) (cut n w (neg ty) (n-γ) b a)
+cut n w ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ]) (cut n w (neg ty) (n-γ) b a)
+cut n w ty γ a b = Cut w ty γ a b
+
+ignore 0 a = a
+ignore n a = Ignore 0 (ignore (n-1) a)
+
+alias [] a = a
+alias (x:xs) a = Alias x mempty $ alias xs a
+
+isPos Ax = True
+isPos (Exchange _ (Par _ _ _)) = True
+isPos (With _ _ _) = True
+isPos (Offer _ _) = True
+isPos (TApp _ _ _) = True
+isPos SBot = True
+isPos _ = False
 
 -- Hereditary exchange
 exchange π t = case t of
   Ax -> Ax
   (Cross w w' x c) -> Cross w w' (π!!x) (s' x c)
   Exchange ρ a -> exchange (map (π!!) ρ) a
-  (Amp c x a) -> Amp c (π!!x) (s a) 
+  (With c x a) -> With c (π!!x) (s a) 
   (Plus x a b) -> Plus (π!!x) (s a) (s b)
   (TApp x t a) -> TApp (π!!x) t (s a)
   (TUnpack x a) -> TUnpack (π!!x) (s a)
