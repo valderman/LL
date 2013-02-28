@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE GADTs #-}
 
 module TexPretty where
 
@@ -13,19 +14,22 @@ import Data.String
 
 second f (a,b) = (a,f b)
 
-par = cmd "pa" mempty
-amp = cmd "vspace" "1em" <> cmd "&" mempty
+par = cmd "parr" mempty
+amp = cmd "hspace" "1pt" <> cmd "&" mempty <> cmd "hspace" "1pt" 
 
 smallcaps :: TeX -> TeX
 smallcaps x = braces (cmd "sc" mempty <> x)
 
 isEmpty :: TeX -> Bool
-isEmpty x = x == mempty
+isEmpty (Tex x) = null x 
+isEmpty _ = False
+
+rulText = cmd "text" . smallcaps 
 
 texSeq :: [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> Derivation
 texSeq ts vs s0 = case s0 of
   Ax -> rul "Ax" []
-  (Cut v vt x s t) -> rul (smallcaps "Cut") [texSeq ts ((v,neg vt):v0) s,texSeq ts ((v,vt):v1) t]
+  (Cut v vt x s t) -> rul (rulText "Cut") [texSeq ts ((v,neg vt):v0) s,texSeq ts ((v,vt):v1) t]
     where (v0,v1) = splitAt x vs
   (Cross v v' x t) -> rul "⊗" [texSeq ts (v0++(v,vt):(v',vt'):v1) t]
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
@@ -33,7 +37,7 @@ texSeq ts vs s0 = case s0 of
     where (v0,(w,(vt :⊸: vt')):v1) = splitAt x vs
   (Plus x s t) -> rul "⊕" [texSeq ts (v0++(w,vt ):v1) s,texSeq ts (v0++(w,vt'):v1) t]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
-  (Amp b x t) -> rul "amp" [texSeq ts (v0++(w,wt):v1) t]
+  (Amp b x t) -> rul amp [texSeq ts (v0++(w,wt):v1) t]
      where (c,wt) = case b of True -> ("fst",vt); False -> ("snd",vt')
            (v0,(w,(vt :&: vt')):v1) = splitAt x vs
   SBot -> rul "⊥" []
@@ -51,24 +55,26 @@ texSeq ts vs s0 = case s0 of
     where (v0,(w,Quest tyA):v1) = splitAt x vs
   (Demand x s) -> rul "!" [texSeq ts (v0++(w,tyA):v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Ignore x s) -> rul "Weaken" [texSeq ts (v0++v1) s]
+  (Ignore x s) -> rul (rulText "Weaken") [texSeq ts (v0++v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Alias x w' s) -> rul "Contract" [texSeq ts (v0++(w,Bang tyA):(w',Bang tyA):v1) s]
+  (Alias x w' s) -> rul (rulText "Contract") [texSeq ts (v0++(w,Bang tyA):(w',Bang tyA):v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
   What -> Node (Rule () None mempty mempty (texCtx ts vs <> "⊢"))  []
  where vv = vax ts vs
        rul :: TeX -> [Derivation] -> Derivation
        rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢")) (map (defaultLink ::>) subs)
        
-vax ts vs x = if x < length vs then let (v,t) = vs!!x in 
-                                      (if isEmpty v then mempty else v <> " : ") <> texType 0 ts t
-                               else "v" <> tex (show (x-length vs))
+vax ts vs x | x < length vs = v <> " : " <> texType 0 ts t
+  where (v,t) = vs!!x 
+vax ts vs x | otherwise = "v" <> tex (show (x-length vs))
      
+texVar (Tex []) t = t
+texVar v t = v <> ":" <> t
        
 prn p k = if p > k then paren else id
        
 texCtx :: [TeX] -> [(TeX,Type TeX)] ->  TeX
-texCtx ts vs = mconcat $ intersperse (text ",") [v <> " : " <> (texType 0 ts t) | (v,t) <- vs]              
+texCtx ts vs = mconcat $ intersperse (text ",") [texVar v (texType 0 ts t) | (v,t) <- reverse vs]
     
 texType :: Int -> [TeX] -> Type TeX -> TeX
 texType p vs (Forall v t) = prn p 0 $ "∀" <> v <> ". "  <> texType 0 (v:vs) t
@@ -82,7 +88,7 @@ texType p vs One = "1"
 texType p vs Top = "⊤"
 texType p vs Bot = "⊥"
 texType p vs (TVar True x) = vs!!x 
-texType p vs (TVar False x) = "~" <> (vs!!x)
+texType p vs (TVar False x) = (vs!!x) <> tex "^" <> braces "⊥"
 texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
 

@@ -183,6 +183,10 @@ neg (TVar b x) = TVar (not b) x
 neg (Bang t) = Quest (neg t)
 neg (Quest t) = Bang (neg t)
 
+
+eval :: Deriv nm -> Deriv nm
+eval (Deriv ts vs (Cut w ty γ a b)) = Deriv ts vs $ cut (length vs) w ty γ a b
+
 -- Hereditary cut
 cut :: Int -> -- ^ size of the context
        nm -> 
