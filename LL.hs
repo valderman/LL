@@ -26,6 +26,7 @@ subst0 x = x:map var [0..]
 data Seq = Exchange [Int] Seq -- Permute variables
          | Ax -- Exactly 2 vars
          | Cut Name Type Int Seq Seq -- new vars in position 0
+           -- TODO: remove the Type field
            
          | Cross Name Name Int Seq
          | Par Int Seq Seq -- splits at given pos.
@@ -98,6 +99,9 @@ class Substitute a where
 instance Substitute Type where
   (∙) = apply
         
+instance Substitute Seq where
+  (∙) = applyS
+        
 instance Substitute Name where
   _ ∙ x = x
 
@@ -109,6 +113,7 @@ instance (Substitute a) => Substitute [a] where
              
                
 type Subst = [Type]
+
 var = TVar True
 
 wk :: Subst
@@ -135,6 +140,25 @@ apply f t = case t of
  where s = apply f
        s' = apply (var 0 : wk ∙ f)
   
+applyS :: Subst -> Seq -> Seq
+applyS f t = case t of
+  (Exchange π a) -> Exchange π (s a)
+  Cut w ty x a b -> Cut w (f ∙ ty) x (s a) (s b)
+  Cross w w' x a -> Cross w w' x (s a)         
+  Par x a b -> Par x (s a) (s b)
+  Plus x a b -> Plus x (s a) (s b)
+  Amp c x a -> Amp c x (s a)
+  SOne x a -> SOne x (s a) 
+  TApp x ty a -> TApp x (f ∙ ty) (s a)
+  TUnpack x a -> TUnpack x (s' a)
+  Offer x a -> Offer x (s a)
+  Demand x a -> Demand x (s a)
+  Ignore x a -> Ignore x (s a)
+  Alias x w a -> Alias x w (s a)
+  a -> a
+ where s = applyS f
+       s' = applyS (var 0 : wk ∙ f)
+       
 neg (x :⊗: y) = x :⊸: neg y
 neg (x :⊸: y) = x :⊗: neg y
 neg (x :⊕: y) = neg x :&: neg y
@@ -148,6 +172,46 @@ neg (Forall v t) = Exists v (neg t)
 neg (TVar b x) = TVar (not b) x
 neg (Bang t) = Quest (neg t)
 neg (Quest t) = Bang (neg t)
+
+-- Hereditary cut
+cut :: Int -> -- ^ size of the context
+       Int -> -- ^ where to cut it
+       Seq -> Seq -> Seq
+cut n γ (Cut _ _ δ a b) c = cut n γ (cut γ δ a b) c
+cut n γ a (Cut _ _ δ b c) = cut n γ a (cut (n-γ+1) δ b c)
+cut 2 1 Ax a = a
+cut n γ (Exchange π (Par δ a b)) (Cross _ _ 0 c) = exchange (π++[length π..n-1]) $ cut n δ a (cut (n-δ+1) (γ-δ) b c)
+cut n γ (Amp c 0 a) (Plus 0 s t) = cut n γ a (if c then s else t)
+cut n γ (TApp 0 t a) (TUnpack 0 b) = cut n γ a (subst0 t ∙ b)
+cut n γ (Offer 0 a) (Demand 0 b) = cut n γ a b
+cut n γ (Offer 0 a) (Ignore 0 b) = b
+cut n γ (Offer 0 b) (Alias 0 _ a) = cut n γ (Offer 0 b) (cut (n+1) γ (Offer 0 b) a)
+cut n γ SBot (SOne 0 a) = a
+cut n γ a b = exchange ([γ..n-1] ++ [0..γ]) (cut n (n-γ) b a)
+
+-- Hereditary exchange
+exchange π t = case t of
+  Ax -> Ax
+  (Cut _ _ _ _ _) -> error "cannot exchange denormalised proofs"
+  (Cross w w' x c) -> Cross w w' (π!!x) (s' x c)
+  Exchange ρ a -> exchange (map (π!!) ρ) a
+  (Par δ a b) -> Exchange π (Par δ a b)
+  (Amp c x a) -> Amp c (π!!x) (s a) 
+  (Plus x a b) -> Plus (π!!x) (s a) (s b)
+  (TApp x t a) -> TApp (π!!x) t (s a)
+  (TUnpack x a) -> TUnpack (π!!x) (s a)
+  (Offer x a) -> Offer (π!!x) (s a)
+  (Demand x a) -> Demand (π!!x) (s a)
+  (Alias x w a) -> Alias (π!!x) w (s' x a)
+  (Ignore x a) -> Ignore (π!!x) (del x a)
+ where s = exchange π
+       s' x = exchange (l++x:r)
+              where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else x) π
+       del x = exchange (l++r)
+              where (l,_:r) = splitAt x $ map (\y -> if y > x then y-1 else x) π
+
+------------------------------------
+-- Pretty printing
 
 prn p k = if p > k then parens else id
 
