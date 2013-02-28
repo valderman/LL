@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
+
+module LL where
 
 import Data.Monoid
 import Text.PrettyPrint.HughesPJ hiding ((<>))
@@ -9,57 +12,56 @@ import Data.String
 type Name = Doc
 
 -- | Types
-data Type = Type :⊕: Type
-          | Type :⊗: Type
-          | Type :⊸: Type
-          | Type :&: Type 
-          | Zero | One | Top | Bot
-          | TVar Bool Int
-          | Forall Name Type
-          | Exists Name Type
-          | Bang Type
-          | Quest Type
+data Type nm = Type nm :⊕: Type nm
+             | Type nm :⊗: Type nm
+             | Type nm :⊸: Type nm
+             | Type nm :&: Type  nm
+             | Zero | One | Top | Bot
+             | TVar Bool Int
+             | Forall nm (Type nm)
+             | Exists nm (Type nm)
+             | Bang (Type nm)
+             | Quest (Type nm)
 
 subst0 x = x:map var [0..]
 
 -- | Sequents                              
-data Seq = Exchange [Int] Seq -- Permute variables
+data (Seq nm) = Exchange [Int] (Seq nm) -- Permute variables
          | Ax -- Exactly 2 vars
-         | Cut Name Type Int Seq Seq -- new vars in position 0
-           -- TODO: remove the Type field
+         | Cut nm (Type nm) Int (Seq nm) (Seq nm) -- new vars in position 0
            
-         | Cross Name Name Int Seq
-         | Par Int Seq Seq -- splits at given pos.
-         | Plus Int Seq Seq
-         | Amp Bool Int Seq
+         | Cross nm nm Int (Seq nm)
+         | Par Int (Seq nm) (Seq nm) -- splits at given pos.
+         | Plus Int (Seq nm) (Seq nm)
+         | Amp Bool Int (Seq nm)
            
-         | SOne Int Seq
+         | SOne Int (Seq nm)
          | SZero Int
          | SBot
          | What
            
-         | TApp Int Type Seq
-         | TUnpack Int Seq
+         | TApp Int (Type nm) (Seq nm)
+         | TUnpack Int (Seq nm)
 
-         | Offer Int Seq
-         | Demand Int Seq
-         | Ignore Int Seq
-         | Alias Int Name Seq
+         | Offer Int (Seq nm)
+         | Demand Int (Seq nm)
+         | Ignore Int (Seq nm)
+         | Alias Int nm (Seq nm)
 
 data Cell where
   Freed :: Cell
   Tag   :: Bool -> Cell
   New   :: Cell
   Delay :: Int -> Closure -> Cell
-  Q     :: Type -> CellRef -> Cell
+  Q     :: (Type nm) -> CellRef -> Cell
 
 type CellRef = Int
 
-type TypeEnv = [Type]
+type TypeEnv = [Type ()]
 
 type Env = [CellRef]
 
-type Closure = (Seq,Env,TypeEnv)
+type Closure = (Seq (),Env,TypeEnv)
 
 type Heap = [Cell]
 
@@ -79,7 +81,7 @@ replace n v h = let (l,_:r) = splitAt n h
 increment n e = let (l,x:r) = splitAt n e
                 in l ++ succ x : r
 
-sizeOf :: TypeEnv -> Type -> Int
+sizeOf :: TypeEnv -> Type () -> Int
 sizeOf e (t1 :⊕: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
 sizeOf e (t1 :⊗: t2) = sizeOf e t1 + sizeOf e t2
 sizeOf e (t1 :⊸: t2) = sizeOf e t1 + sizeOf e t2
@@ -94,35 +96,42 @@ sizeOf e _ = 0
 -- Substitution
 
 class Substitute a where
-  (∙) :: Subst -> a -> a
+  type Nm a
+  (∙) :: Subst (Nm a) -> a -> a
          
-instance Substitute Type where
+instance Substitute (Type nm)  where
+  type Nm (Type nm) = nm
   (∙) = apply
         
-instance Substitute Seq where
+instance Substitute (Seq nm) where
+  type Nm (Seq nm) = nm
   (∙) = applyS
         
-instance Substitute Name where
-  _ ∙ x = x
-
-instance (Substitute a, Substitute b) => Substitute (a,b) where
+instance Substitute Name where -- yuck
+  type Nm Doc = Doc
+  s ∙ x = x
+       
+        
+instance (Substitute a, Substitute b,Nm a ~ Nm b) => Substitute (a,b) where
+  type Nm (a,b) = Nm a
   f ∙ (x,y) = (f∙x, f∙y)
 
 instance (Substitute a) => Substitute [a] where
+  type Nm [a] = Nm a
   f ∙ xs = map (f ∙) xs
              
                
-type Subst = [Type]
+type Subst nm = [Type nm]
 
 var = TVar True
 
-wk :: Subst
+wk :: Subst nm
 wk = map var [1..]
 
 if_ True f = id
 if_ False f = f
 
-apply :: Subst -> Type -> Type
+apply :: Subst nm -> Type nm -> Type nm
 apply f t = case t of
   x :⊕: y -> s x :⊕: s y
   x :&: y -> s x :&: s y
@@ -140,7 +149,7 @@ apply f t = case t of
  where s = apply f
        s' = apply (var 0 : wk ∙ f)
   
-applyS :: Subst -> Seq -> Seq
+applyS :: Subst nm -> (Seq nm) -> (Seq nm)
 applyS f t = case t of
   (Exchange π a) -> Exchange π (s a)
   Cut w ty x a b -> Cut w (f ∙ ty) x (s a) (s b)
@@ -159,6 +168,7 @@ applyS f t = case t of
  where s = applyS f
        s' = applyS (var 0 : wk ∙ f)
        
+neg :: Type nm -> Type nm       
 neg (x :⊗: y) = x :⊸: neg y
 neg (x :⊸: y) = x :⊗: neg y
 neg (x :⊕: y) = neg x :&: neg y
@@ -175,27 +185,33 @@ neg (Quest t) = Bang (neg t)
 
 -- Hereditary cut
 cut :: Int -> -- ^ size of the context
+       nm -> 
+       Type nm -> 
        Int -> -- ^ where to cut it
-       Seq -> Seq -> Seq
-cut n γ (Cut _ _ δ a b) c = cut n γ (cut γ δ a b) c
-cut n γ a (Cut _ _ δ b c) = cut n γ a (cut (n-γ+1) δ b c)
-cut 2 1 Ax a = a
-cut n γ (Exchange π (Par δ a b)) (Cross _ _ 0 c) = exchange (π++[length π..n-1]) $ cut n δ a (cut (n-δ+1) (γ-δ) b c)
-cut n γ (Amp c 0 a) (Plus 0 s t) = cut n γ a (if c then s else t)
-cut n γ (TApp 0 t a) (TUnpack 0 b) = cut n γ a (subst0 t ∙ b)
-cut n γ (Offer 0 a) (Demand 0 b) = cut n γ a b
-cut n γ (Offer 0 a) (Ignore 0 b) = b
-cut n γ (Offer 0 b) (Alias 0 _ a) = cut n γ (Offer 0 b) (cut (n+1) γ (Offer 0 b) a)
-cut n γ SBot (SOne 0 a) = a
-cut n γ a b = exchange ([γ..n-1] ++ [0..γ]) (cut n (n-γ) b a)
+       (Seq nm) -> (Seq nm) -> (Seq nm)
+cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
+cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
+cut 2 w ty 1 Ax a = a
+cut n _ (ta :⊗: tb) 
+           γ (Exchange π (Par δ a b)) (Cross w w' 0 c) = exchange (π++[length π..n-1]) $ cut n w ta δ a (cut (n-δ+1) w' tb (γ-δ) b c)
+cut n w (ta :⊕: tb) 
+           γ (Amp c 0 a) (Plus 0 s t) = cut n w (if c then ta else tb) γ a (if c then s else t)
+cut n w (Exists v ty) 
+           γ (TApp 0 t a) (TUnpack 0 b) = cut n w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
+cut n w (Bang ty) 
+           γ (Offer 0 a) (Demand 0 b) = cut n w ty γ a b
+cut n w ty γ (Offer 0 a) (Ignore 0 b) = b
+cut n w ty γ (Offer 0 b) (Alias 0 w' a) = cut n w ty γ (Offer 0 b) (cut (n+1) w' ty γ (Offer 0 b) a)
+cut n w ty γ SBot (SOne 0 a) = a
+cut n w ty γ What a = Cut w ty γ What a
+cut n w ty γ a What = Cut w ty γ a What
+cut n w ty γ a b = exchange ([γ..n-1] ++ [0..γ]) (cut n w (neg ty) (n-γ) b a)
 
 -- Hereditary exchange
 exchange π t = case t of
   Ax -> Ax
-  (Cut _ _ _ _ _) -> error "cannot exchange denormalised proofs"
   (Cross w w' x c) -> Cross w w' (π!!x) (s' x c)
   Exchange ρ a -> exchange (map (π!!) ρ) a
-  (Par δ a b) -> Exchange π (Par δ a b)
   (Amp c x a) -> Amp c (π!!x) (s a) 
   (Plus x a b) -> Plus (π!!x) (s a) (s b)
   (TApp x t a) -> TApp (π!!x) t (s a)
@@ -204,6 +220,10 @@ exchange π t = case t of
   (Demand x a) -> Demand (π!!x) (s a)
   (Alias x w a) -> Alias (π!!x) w (s' x a)
   (Ignore x a) -> Ignore (π!!x) (del x a)
+  (SOne x a) -> SOne (π!!x) (s a)
+  (SZero x) -> SZero (π!!x)
+  SBot -> SBot
+  a -> Exchange π a
  where s = exchange π
        s' x = exchange (l++x:r)
               where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else x) π
@@ -215,7 +235,7 @@ exchange π t = case t of
 
 prn p k = if p > k then parens else id
 
-pType :: Int -> [Name] -> Type -> Doc
+pType :: Int -> [Name] -> Type Name -> Doc
 pType p vs (Forall v t) = prn p 0 $ "∀" <> v <> ". "  <> pType 0 (v:vs) t
 pType p vs (Exists v t) = prn p 0 $ "∃" <> v <> ". "  <> pType 0 (v:vs) t
 pType p vs (x :⊸: y) = prn p 0 $ pType 1 vs x <> " ⊸ " <> pType 0 vs y
@@ -231,10 +251,10 @@ pType p vs (TVar False x) = "~" <> (vs!!x)
 pType p vs (Bang t) = prn p 4 $ "!" <> pType 4 vs t
 pType p vs (Quest t) = prn p 4 $ "?" <> pType 4 vs t
 
-instance Show Type where
+instance Show (Type Name) where
   show x = render $ pType 0 ["v" <> int i | i <- [0..]] x
 
-pSeq :: [Name] -> [(Name,Type)] -> Seq -> Doc
+pSeq :: [Name] -> [(Name,Type Name)] -> Seq Doc -> Doc
 pSeq ts vs s0 = case s0 of
   Ax -> vv 0 <> " ↔ " <> vv 1
   (Cut v vt x s t) -> "connect new " <> v <> " in {" <> 
@@ -280,17 +300,17 @@ pSeq ts vs s0 = case s0 of
 vax ts vs x = if x < length vs then let (v,t) = vs!!x in v <> " : " <> pType 0 ts t
                                else "v" <> int (x-length vs)
 
-instance Show Seq where
+instance Show (Seq Doc) where
   show = render . pSeq [] []
 
-pCtx :: [Name] -> [(Name,Type)] ->  Doc
+pCtx :: [Name] -> [(Name,Type Name)] ->  Doc
 pCtx ts vs = sep $ punctuate comma $ [v <> " : " <> (pType 0 ts t) | (v,t) <- vs]
   
 ----------------------
 
-data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], derivSequent :: Seq}
+data Deriv nm = Deriv {derivTypeVars :: [nm], derivContext :: [(nm,Type nm)], derivSequent :: Seq nm}
 
-instance Show Deriv where
+instance Show (Deriv Name) where
   show (Deriv ts vs s) = render $ (pCtx ts vs <> " ⊢") $$ pSeq ts vs s
 
 t0 = Forall "α" $ Forall "β" $ (a :⊗: b) :⊸: (b :⊗: a)
