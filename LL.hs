@@ -38,7 +38,7 @@ data (Seq nm) = Exchange [Int] (Seq nm) -- Permute variables
          | SOne Int (Seq nm)
          | SZero Int
          | SBot
-         | What
+         | What nm
            
          | TApp Int (Type nm) (Seq nm)
          | TUnpack Int (Seq nm)

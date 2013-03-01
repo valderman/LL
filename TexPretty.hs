@@ -26,103 +26,117 @@ isEmpty _ = False
 
 rulText = cmd "text" . smallcaps 
 
-texSeq :: [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> Derivation
-texSeq ts vs s0 = case s0 of
+texSeq :: Bool -> [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> Derivation
+texSeq showProg ts vs s0 = case s0 of
   Ax -> rul "Ax" []
-  (Cut v vt x s t) -> rul (rulText "Cut") [texSeq ts ((v,neg vt):v0) s,texSeq ts ((v,vt):v1) t]
+  (Cut v vt x s t) -> rul (rulText "Cut") [fun ts ((v,neg vt):v0) s,fun ts ((v,vt):v1) t]
     where (v0,v1) = splitAt x vs
-  (Cross v v' x t) -> rul "⊗" [texSeq ts (v0++(v,vt):(v',vt'):v1) t]
+  (Cross v v' x t) -> rul "⊗" [fun ts (v0++(v,vt):(v',vt'):v1) t]
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par x s t) -> rul par [texSeq ts (v0++[(w,vt)]) s,texSeq ts ((w,vt'):v1) t]
+  (Par x s t) -> rul par [fun ts (v0++[(w,vt)]) s,fun ts ((w,vt'):v1) t]
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
-  (Plus x s t) -> rul "⊕" [texSeq ts (v0++(w,vt ):v1) s,texSeq ts (v0++(w,vt'):v1) t]
+  (Plus x s t) -> rul "⊕" [fun ts (v0++(w,vt ):v1) s,fun ts (v0++(w,vt'):v1) t]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
-  (With b x t) -> rul (amp<>tex"_"<>if b then "1" else "2") [texSeq ts (v0++(w,wt):v1) t]
+  (With b x t) -> rul (amp<>tex"_"<>if b then "1" else "2") [fun ts (v0++(w,wt):v1) t]
      where (c,wt) = case b of True -> ("fst",vt); False -> ("snd",vt')
            (v0,(w,(vt :&: vt')):v1) = splitAt x vs
   SBot -> rul "⊥" []
      where ((v,Bot):_) = vs
   (SZero x) -> rul "0" []
      where (v0,(w,Zero):v1) = splitAt x vs
-  (SOne x t ) -> rul "1" [texSeq ts (v0++v1) t]
+  (SOne x t ) -> rul "1" [fun ts (v0++v1) t]
     where (v0,(w,One):v1) = splitAt x vs
-  (Exchange p t) -> rul (rulText "Exch.") [texSeq ts [vs !! i | i <- p] t]
-  (TApp x tyB s) -> rul "∀" [texSeq ts (v0++(w,subst0 tyB ∙ tyA):v1) s]
+  (Exchange p t) -> rul (rulText "Exch.") [fun ts [vs !! i | i <- p] t]
+  (TApp x tyB s) -> rul "∀" [fun ts (v0++(w,subst0 tyB ∙ tyA):v1) s]
     where (v0,(w,Forall _ tyA):v1) = splitAt x vs
-  (TUnpack x s) -> rul "∃" [texSeq (tw:ts) (map (second (wk ∙)) v0++(w,tyA):map (second (wk ∙)) v1) s]
+  (TUnpack x s) -> rul "∃" [fun (tw:ts) (map (second (wk ∙)) v0++(w,tyA):map (second (wk ∙)) v1) s]
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
-  (Offer x s) -> rul "?" [texSeq ts (v0++(w,tyA):v1) s]
+  (Offer x s) -> rul "?" [fun ts (v0++(w,tyA):v1) s]
     where (v0,(w,Quest tyA):v1) = splitAt x vs
-  (Demand x s) -> rul "!" [texSeq ts (v0++(w,tyA):v1) s]
+  (Demand x s) -> rul "!" [fun ts (v0++(w,tyA):v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Ignore x s) -> rul (rulText "Weaken") [texSeq ts (v0++v1) s]
+  (Ignore x s) -> rul (rulText "Weaken") [fun ts (v0++v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Alias x w' s) -> rul (rulText "Contract") [texSeq ts ((w',Bang tyA):v0++(w,Bang tyA):v1) s]
+  (Alias x w' s) -> rul (rulText "Contract") [fun ts ((w',Bang tyA):v0++(w,Bang tyA):v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  What -> Node (Rule () None mempty mempty (texCtx ts vs <> "⊢"))  []
+  What x -> Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> x))  []
  where vv = vax ts vs
        rul :: TeX -> [Derivation] -> Derivation
-       rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢")) (map (defaultLink ::>) subs)
+       rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
+       fun = texSeq showProg
+       maybeProg = if showProg then block (texProg ts vs s0) else mempty
 
 
-{-
-keyword = cmd "mathsf" 
-let_ = keyword "let"
+keyword = mathsf
+let_ = keyword "let~"
+case_ = keyword "case~"
 new_ = keyword "new"
-in_ = keyword "in"
-[fst_,snd_] = map keyword ["fst","snd"]
-connect_ = keyword "connect"
+in_ = keyword "~in~"
+[fst_,snd_] = map keyword ["fst~","snd~"]
+connect_ = keyword "connect~"
 separator = cmd "hline" mempty
-block :: [[TeX]] -> TeX
-mapsto :: [TeX] -> TeX
-left_ :: cmd "Leftarrow" mempty
-right_ :: cmd "Rightarrow" mempty
 
-progTex :: [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> [TeX]
-progTex ts vs s0 = case s0 of
-  Ax -> One $ vv 0 <> cmd "leftrightarrow" mempty <> vv 1
-  (Cut v vt x s t) -> connect_ <>  block  
-                               [letNew v vt       : progTex ts ((v,neg vt):v0) s,                               
-                                letNew v (neg vt) : progTex ts ((v,vt):v1) t]
+
+blocks :: [[TeX]] -> TeX
+blocks [] = mempty
+blocks (x:xs) = block (block x: map (\y -> separator <> block y) xs)
+
+bblock = bigBraces . blocks
+
+mapsto :: [TeX] -> TeX
+mapsto xs = cmd "mapsto" (block xs)
+left_ = cmd "Leftarrow" mempty
+right_ = cmd "Rightarrow" mempty
+
+texProg :: [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> [TeX]
+texProg ts vs s0 = case s0 of
+  Ax -> [vv 0 <> cmd "leftrightarrow" mempty <> vv 1]
+  (Cut v vt x s t) -> [connect_ <>  bblock  
+                               [letNew v (neg vt) : texProg ts ((v,neg vt):v0) s,                               
+                                letNew v (    vt) : texProg ts ((v,vt):v1) t]]
     where (v0,v1) = splitAt x vs
   (Cross v v' x t) -> (let_ <> v <> "," <> v' <> " = " <> w <> in_) :
-                      progTex ts (v0++(v,vt):(v',vt'):v1) t
+                      texProg ts (v0++(v,vt):(v',vt'):v1) t
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par x s t) -> connect_ <> w <> block 
-                   [let' w vt  left_  : progTex ts (v0++[(w,vt)]),
-                    let' w vt' right_ : progTex ts ((w,vt'):v1) t]
+  (Par x s t) -> [connect_ <> w <> bblock 
+                   [let' w vt  left_  : texProg ts (v0++[(w,vt)]) s,
+                    let' w vt' right_ : texProg ts ((w,vt'):v1) t]]
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
-  (Plus x s t) -> case_ <> w <> of_ <> block [inl_ <> w <> mapsto (progTex ts (v0++(w,vt ):v1) s), 
-                                              inr_ <> w <> mapsto (progTex ts (v0++(w,vt'):v1) t)]
+  (Plus x s t) -> [case_ <> w <> keyword "~of" <> bigBraces (block
+                  [keyword "inl~" <> w <> mapsto (texProg ts (v0++(w,vt ):v1) s), 
+                   keyword "inr~" <> w <> mapsto (texProg ts (v0++(w,vt'):v1) t)])]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
-  (Amp b x t) -> let' w wt (c <> w) : progTex ts (v0++(w,wt):v1) t
+  (With b x t) -> let' w wt (c <> w) : texProg ts (v0++(w,wt):v1) t
      where (c,wt) = case b of True -> (fst_,vt); False -> (snd_,vt')
            (v0,(w,(vt :&: vt')):v1) = splitAt x vs
-  SBot -> v 
-     where ((v,Bot):_) = [vs]
-  (SZero x) -> [keyword "dump " <> pCtx ts (v0 ++ v1) <> in_ <> w]
+  SBot -> [v] 
+     where ((v,Bot):_) = vs
+  (SZero x) -> [keyword "dump~" <> texCtx ts (v0 ++ v1) <> in_ <> w]
      where (v0,(w,Zero):v1) = splitAt x vs
-  (SOne x t ) -> let' <> (cmd "diamond" mempty) One w : progTex ts (v0++v1) t
+  (SOne x t ) -> let'' (cmd "diamond" mempty) w : texProg ts (v0++v1) t
     where (v0,(w,One):v1) = splitAt x vs
-  (Exchange p t) -> progTex ts [vs !! i | i <- p] t        
-  (TApp x tyB s) -> let' w (w ∙ pType 0 ts tyB) : progTex ts (v0++(w,subst0 tyB ∙ tyA):v1) s
+  (Exchange p t) -> texProg ts [vs !! i | i <- p] t        
+  (TApp x tyB s) -> let'' w (w <> cmd0 "bullet" <> texType 0 ts tyB) : texProg ts (v0++(w,ty):v1) s
     where (v0,(w,Forall _ tyA):v1) = splitAt x vs
-  (TUnpack x s) -> let' (tw <> "," <> w) w : progTex (tw:ts) ((wk ∙ v0)++(w,tyA):(wk ∙ v1)) s
+          ty = subst0 tyB ∙ tyA
+  (TUnpack x s) -> let'' (tw <> "," <> w) w : texProg (tw:ts) (map (second (wk ∙)) v0++(w,tyA):map (second (wk ∙)) v1) s
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
-  (Offer x s) -> (keyword "offer" <> w <> " : " <> pType 0 ts tyA) : progTex ts (v0++(w,tyA):v1) s
+  (Offer x s) -> (keyword "offer~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++(w,tyA):v1) s
     where (v0,(w,Quest tyA):v1) = splitAt x vs
-  (Demand x s) -> (keyword "demand" <> w <> " : " <> pType 0 ts tyA) : progTex ts (v0++(w,tyA):v1) s
+  (Demand x s) -> (keyword "demand~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++(w,tyA):v1) s
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Ignore x s) -> (keyword "ignore " <> w <> " : " <> pType 0 ts tyA) : progTex ts (v0++v1) s
+  (Ignore x s) -> (keyword "ignore~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++v1) s
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Alias x w' s) -> let' w' (keyword "alias " <> w) <> progTex ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
+  (Alias x w' s) -> let' w' (Bang tyA) (keyword "alias~" <> w) : texProg ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
     where (v0,(w,Bang tyA):v1) = splitAt x vs
-  What -> "?"
+  What x -> [x]
  where vv = vax ts vs
-       let' w ty v = let_ <> w <> ":" <> pType 0 ts ty <> "=" <> v
-       letNew w ty = let' w ty <> new_ 
+       let' :: TeX -> Type TeX -> TeX -> TeX
+       let' w ty v = let_ <> w <> ":" <> texType 0 ts ty <> "=" <> v
+       let'' w v = let_ <> w <> "=" <> v
+       letNew w ty = let' w ty new_ 
        
--}
+
 vax ts vs x | x < length vs = v <> " : " <> texType 0 ts t
   where (v,t) = vs!!x 
 vax ts vs x | otherwise = "v" <> tex (show (x-length vs))
