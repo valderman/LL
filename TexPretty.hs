@@ -37,7 +37,7 @@ texSeq ts vs s0 = case s0 of
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
   (Plus x s t) -> rul "⊕" [texSeq ts (v0++(w,vt ):v1) s,texSeq ts (v0++(w,vt'):v1) t]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
-  (With b x t) -> rul amp [texSeq ts (v0++(w,wt):v1) t]
+  (With b x t) -> rul (amp<>tex"_"<>if b then "1" else "2") [texSeq ts (v0++(w,wt):v1) t]
      where (c,wt) = case b of True -> ("fst",vt); False -> ("snd",vt')
            (v0,(w,(vt :&: vt')):v1) = splitAt x vs
   SBot -> rul "⊥" []
