@@ -147,6 +147,16 @@ sizeOf e (Bang _)     = 1
 sizeOf e (Quest _)    = 1
 sizeOf e _ = 0
 
+stepSystem :: System -> Maybe System
+stepSystem ([],h) = Nothing
+stepSystem (cl:cls,h) | Just (h',cl') <- runClosure h cl = Just (cl'++cls,h')
+stepSystem (cl:cls,h) = do (cls',h') <- stepSystem (cls,h)
+                           return (cl:cls',h')
+
+runSystem :: System -> System
+runSystem s | Just s' <- stepSystem s = runSystem s'
+runSystem s = s
+
 -- Substitution
 
 class Substitute a where
