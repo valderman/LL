@@ -55,7 +55,7 @@ data Cell where
   Tag   :: Bool -> Cell
   New   :: Cell
   Delay :: Int -> Closure -> Cell
-  Q     :: (Type ()) -> Cell
+  Q     :: (Type ()) -> Int -> Cell
 
 type CellRef = Int
 
@@ -87,22 +87,26 @@ runClosure h (With t v a,e,te)
 runClosure h (SOne v a,e,te)
   = Just(h,[(a,el++er,te)])
     where (el,_:er) = splitAt v e
-runClosure h (SZero v,e,te)
-  = Just (h,[]) -- crash
 runClosure h (SBot,e,te)
   = Just (h,[])
 
 runClosure h (TApp v ty a,e,te)
-  = Just (replace (e!!v) (Q ty) h,[(a,e,te)])
+  = Just (replace (e!!v) (Q ty (length h)) h ++ replicate (sizeOf (ty:te) ty) New
+         ,[(a,e,te)])
   where (el,z:er) = splitAt v e
 runClosure h (TUnpack v a,e,te)
-  | Q ty <- h!!(e!!v) = Just (replace (e!!v) Freed h,
-                              [(a,e,ty:te)])
-
+  | Q ty p <- h!!w = Just (replace w Freed h,[(a,el++[p]++er,ty:te)])
+  where (el,w:er) = splitAt v e
 runClosure h (Exchange π a,e,te)
   = Just (h,[(a,map (π!!) e,te)])
-runClosure h (Ax ty,w:x:_,te)
-  = Just (copy te ty w x h,[])
+runClosure h (Ax (Bang ty),[w,x],te)
+  | d@(Delay n cl) <- h!!x = Just (replace w d (replace x Freed h),[])
+runClosure h (Ax (TVar True v),e,te)
+  = Just (h,[(copy'' (te!!v),e,te)])
+runClosure h (Ax (Forall _ ty),[w,x],te)
+  | q@(Q ty p) <- h!!x = Just (replace w q (replace x Freed h),[])
+runClosure h (Ax ty,[w,x],te)
+  = Just (h,[(copy'' ty,[w,x],te)])
 runClosure h (Cut _ ty v a b,e,te)
   = Just (h++replicate (sizeOf te ty) New,[(a,v:ea,te),(b,v:eb,te)])
   where (ea,eb) = splitAt v e
@@ -134,6 +138,21 @@ copy :: TypeEnv -> Type () -> Int -> Int -> Heap -> Heap
 copy te ty f t h = take t h ++ d ++ drop (t+size) h
   where d = take size (drop f h)
         size = sizeOf te ty
+
+copy' :: TypeEnv -> Type () -> Closure
+copy' = undefined
+
+copy'' :: Type () -> Seq ()
+copy'' (t1 :⊕: t2) = Plus 0 (copy'' t1) (copy'' t2)
+copy'' (t1 :⊗: t2) = Cross t1 () () 0 $
+                     Exchange [0,2,1] $
+                     Par t1 1 (copy'' t1) (copy'' t2)
+copy'' Zero = error "Impossible"
+copy'' One = SOne 0 SBot
+copy'' t@(TVar True _) = Ax t
+copy'' t@(Bang _) = Ax t
+copy'' t@(Forall _ _) = Ax t
+copy'' t = Exchange [1,0] $ copy'' (neg t)
 
 sizeOf :: TypeEnv -> Type () -> Int
 sizeOf e (t1 :⊕: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
