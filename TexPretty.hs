@@ -11,6 +11,7 @@ import MarXup.Latex
 import MarXup.DerivationTrees
 import Data.List
 import Data.String
+import Data.Monoid
 
 second f (a,b) = (a,f b)
 
@@ -28,12 +29,12 @@ rulText = cmd "text" . smallcaps
 
 texSeq :: Bool -> [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> Derivation
 texSeq showProg ts vs s0 = case s0 of
-  Ax -> rul "Ax" []
+  Ax _ -> rul "Ax" []
   (Cut v vt x s t) -> rul (rulText "Cut") [fun ts ((v,neg vt):v0) s,fun ts ((v,vt):v1) t]
     where (v0,v1) = splitAt x vs
-  (Cross v v' x t) -> rul "⊗" [fun ts (v0++(v,vt):(v',vt'):v1) t]
+  (Cross _ v v' x t) -> rul "⊗" [fun ts (v0++(v,vt):(v',vt'):v1) t]
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par x s t) -> rul par [fun ts (v0++[(w,vt)]) s,fun ts ((w,vt'):v1) t]
+  (Par _ x s t) -> rul par [fun ts (v0++[(w,vt)]) s,fun ts ((w,vt'):v1) t]
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
   (Plus x s t) -> rul "⊕" [fun ts (v0++(w,vt ):v1) s,fun ts (v0++(w,vt'):v1) t]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
@@ -53,7 +54,7 @@ texSeq showProg ts vs s0 = case s0 of
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
   (Offer x s) -> rul "?" [fun ts (v0++(w,tyA):v1) s]
     where (v0,(w,Quest tyA):v1) = splitAt x vs
-  (Demand x s) -> rul "!" [fun ts (v0++(w,tyA):v1) s]
+  (Demand _ x s) -> rul "!" [fun ts (v0++(w,tyA):v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
   (Ignore x s) -> rul (rulText "Weaken") [fun ts (v0++v1) s]
     where (v0,(w,Bang tyA):v1) = splitAt x vs
@@ -90,15 +91,15 @@ right_ = cmd "Rightarrow" mempty
 
 texProg :: [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> [TeX]
 texProg ts vs s0 = case s0 of
-  Ax -> [vv 0 <> cmd "leftrightarrow" mempty <> vv 1]
+  Ax _ -> [vv 0 <> cmd "leftrightarrow" mempty <> vv 1]
   (Cut v vt x s t) -> [connect_ <>  bblock  
                                [letNew v (neg vt) : texProg ts ((v,neg vt):v0) s,                               
                                 letNew v (    vt) : texProg ts ((v,vt):v1) t]]
     where (v0,v1) = splitAt x vs
-  (Cross v v' x t) -> (let_ <> v <> "," <> v' <> " = " <> w <> in_) :
+  (Cross _ v v' x t) -> (let_ <> v <> "," <> v' <> " = " <> w <> in_) :
                       texProg ts (v0++(v,vt):(v',vt'):v1) t
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par x s t) -> [connect_ <> w <> bblock 
+  (Par _ x s t) -> [connect_ <> w <> bblock 
                    [let' w vt  left_  : texProg ts (v0++[(w,vt)]) s,
                     let' w vt' right_ : texProg ts ((w,vt'):v1) t]]
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
@@ -123,7 +124,7 @@ texProg ts vs s0 = case s0 of
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
   (Offer x s) -> (keyword "offer~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++(w,tyA):v1) s
     where (v0,(w,Quest tyA):v1) = splitAt x vs
-  (Demand x s) -> (keyword "demand~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++(w,tyA):v1) s
+  (Demand _ x s) -> (keyword "demand~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++(w,tyA):v1) s
     where (v0,(w,Bang tyA):v1) = splitAt x vs
   (Ignore x s) -> (keyword "ignore~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++v1) s
     where (v0,(w,Bang tyA):v1) = splitAt x vs
