@@ -71,11 +71,9 @@ keyword = mathsf . tex
 let_ = keyword "let~"
 case_ = keyword "case~"
 in_ = keyword "~in~"
-[fst_,snd_] = map keyword ["fst~","snd~"]
 connect_ = keyword "connect~"
+[fst_,snd_] = map keyword ["fst~","snd~"]
 separator = cmd "hline" mempty
-
-hang x ys = env' "array" ["t"] (mkcols [x,ys])
 
 blocks :: [[TeX]] -> TeX
 blocks [] = mempty
@@ -83,28 +81,40 @@ blocks (x:xs) = block (block x: map (\y -> separator <> block y) xs)
 
 bblock = bigBraces . blocks
 
+xblock :: [TeX] -> TeX
+xblock  bod = do
+  env' "array" ["t"] $ do
+    braces (tex "l") 
+    mkrows $ bod
+  return ()
+
 mapsto :: [TeX] -> TeX
-mapsto xs = cmd "mapsto" (block xs)
-left_ = cmd "Leftarrow" mempty
-right_ = cmd "Rightarrow" mempty
+mapsto xs = cmd "mapsto" (xblock xs)
+-- left_ = cmd "Leftarrow" mempty
+-- right_ = cmd "Rightarrow" mempty
 
 indent = cmd "hspace" $ tex "1em"
+
+connect z x a y b = 
+  [xblock [connect_ <> z,
+          indent <> x <> mapsto a,
+          indent <> y <> mapsto b]]
 
 texProg :: [String] -> [(String,Type String)] -> Seq String -> [TeX]
 texProg ts vs s0 = case s0 of
   Ax _ -> [vv 0 <> cmd0 "leftrightarrow" <> vv 1]
-  (Cut v vt x s t) -> [connect_ <>  bblock  
-                               [letNew (texVar v) (neg vt) : texProg ts ((v,neg vt):v0) s,                               
-                                letNew (texVar v) (    vt) : texProg ts ((v,vt):v1) t]]
+  (Cut v vt x s t) -> connect (keyword "directly") 
+                               (texVarT' v (neg vt)) (texProg ts ((v,neg vt):v0) s)
+                               (texVarT' v (    vt)) (texProg ts ((v,vt):v1) t)
     where (v0,v1) = splitAt x vs
   (Cross _ v v' x t) -> (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) :
                       texProg ts (v0++(v,vt):(v',vt'):v1) t
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par _ x s t) -> [connect_ <> texVar w <> bblock 
-                   [let' (texVar w) vt  left_  : texProg ts (v0++[(w,vt)]) s,
-                    let' (texVar w) vt' right_ : texProg ts ((w,vt'):v1) t]]
+  (Par _ x s t) -> connect (texVar w) 
+                    (texVarT' w vt ) (texProg ts (v0++[(w,vt)]) s)
+                    (texVarT' w vt') (texProg ts ((w,vt'):v1) t)
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
-  (Plus x s t) -> [block [case_ <> texVar w <> keyword "~of",
+  (Plus x s t) -> [xblock [case_ <> texVar w <> keyword "~of",
                           indent <> keyword "inl~" <> texVar w <> mapsto (texProg ts (v0++(w,vt ):v1) s), 
                           indent <> keyword "inr~" <> texVar w <> mapsto (texProg ts (v0++(w,vt'):v1) t)]]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
@@ -138,6 +148,7 @@ texProg ts vs s0 = case s0 of
        let'  w ty v = let_ <> w <> ":" <> texType 0 ts ty <> "=" <> v
        let'' w    v = let_ <> w <> "=" <> v
        letNew w ty = let' w ty "new"
+       texVarT' v t = texVarT v (texType 0 ts t)
 
 vax ts vs x | x < length vs = texVar v <> " : " <> texType 0 ts t
   where (v,t) = vs!!x 
