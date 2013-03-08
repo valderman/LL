@@ -4,6 +4,7 @@ import MarXup.Latex
 import MarXup.Tex
 import MarXup.DerivationTrees
 import Control.Applicative
+import MarXup.MultiRef
 
 import TexPretty
 import LL
@@ -47,29 +48,34 @@ cutQuant = Deriv ["Γ","Δ","A","B"] [(mempty, Bang (var 0)), (mempty, var 1)] $
 
 cutUnit = Deriv ["Γ"] [(mempty, var 0)] $ Cut "x" One 0 SBot (SOne 0 whatA)
 
-deriv :: Deriv TeX -> Tex Label
+deriv :: Deriv String -> Tex Label
 deriv (Deriv tvs vs s) = derivationTree [] $ texSeq False tvs vs s
 
-program :: Deriv TeX -> Tex ()
+program :: Deriv String -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
 
+allReductions displayer = mapM_ redRule 
+   [(amp,cutWithPlus),
+    (math par,cutParCross),
+    ("!?", cutBang),
+    ("1⊥",cutUnit),
+    ("∀∃",cutQuant),
+    ("Contract",cutContract),
+    ("Weaken",cutIgnore)]
+
+  where redRule (name,input) = do
+          name
+          displayMath $ do 
+            displayer input
+            cmd0 "Longrightarrow"
+            displayer (eval input)
+          newline
+
 main = render $ latexDocument "article" ["11pt"] preamble $ @"
+@section{Cut-elimination rules}
+@allReductions(deriv)
 
-Reduction rules:
-
-@amp⊕ @deriv(cutWithPlus) --- @deriv(eval(cutWithPlus))
-
-@math{@par⊗} @deriv(cutParCross) --- @deriv(eval(cutParCross))
-
-!? @deriv(cutBang) --- @deriv(eval(cutBang))
-
-1⊥ @deriv(cutUnit) --- @deriv(eval(cutUnit))
-
-∀∃ @deriv(cutQuant) --- @deriv(eval(cutQuant))
-
-Contract @deriv(cutContract) --- @deriv(eval(cutContract))
- 
-Weaken @deriv(cutIgnore) --- @deriv(eval(cutIgnore))
-
+@section{Reduction rules}
+@allReductions(program)
 @"
