@@ -4,7 +4,7 @@
 
 module TexPretty where
 
-
+import Control.Lens
 import LL hiding (prn,vax)
 import MarXup.Tex
 import MarXup.Latex
@@ -12,13 +12,14 @@ import MarXup.DerivationTrees
 import Data.List
 import Data.String
 
-second f (a,b) = (a,f b)
+infix 1 `for`
+x `for` lens = over lens x
 
-par = cmd "parr" mempty
-amp = cmd "hspace" "1pt" <> cmd "&" mempty <> cmd "hspace" "1pt" 
+par = cmd0 "parr"
+amp = cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt" 
 
 smallcaps :: TeX -> TeX
-smallcaps x = braces (cmd "sc" mempty <> x)
+smallcaps x = braces (cmd0 "sc" <> x)
 
 isEmpty :: TeX -> Bool
 isEmpty (Tex x) = null x 
@@ -49,8 +50,9 @@ texSeq showProg ts vs s0 = case s0 of
   (Exchange p t) -> rul (rulText "Exch.") [fun ts [vs !! i | i <- p] t]
   (TApp x tyB s) -> rul "∀" [fun ts (v0++(w,subst0 tyB ∙ tyA):v1) s]
     where (v0,(w,Forall _ tyA):v1) = splitAt x vs
-  (TUnpack x s) -> rul "∃" [fun (tw:ts) (map (second (wk ∙)) v0++(w,tyA):map (second (wk ∙)) v1) s]
+  (TUnpack x s) -> rul "∃" [fun (tw:ts) (upd v0++(w,tyA):upd v1) s]
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
+          upd = (wk ∙) `for` mapped._2
   (Offer x s) -> rul "?" [fun ts (v0++(w,tyA):v1) s]
     where (v0,(w,Quest tyA):v1) = splitAt x vs
   (Demand x s) -> rul "!" [fun ts (v0++(w,tyA):v1) s]
@@ -76,6 +78,7 @@ in_ = keyword "~in~"
 connect_ = keyword "connect~"
 separator = cmd "hline" mempty
 
+hang x ys = env' "array" ["t"] (mkCols [x,ys])
 
 blocks :: [[TeX]] -> TeX
 blocks [] = mempty
@@ -88,9 +91,11 @@ mapsto xs = cmd "mapsto" (block xs)
 left_ = cmd "Leftarrow" mempty
 right_ = cmd "Rightarrow" mempty
 
+indent = cmd "hspace" $ tex "1em"
+
 texProg :: [TeX] -> [(TeX,Type TeX)] -> Seq TeX -> [TeX]
 texProg ts vs s0 = case s0 of
-  Ax -> [vv 0 <> cmd "leftrightarrow" mempty <> vv 1]
+  Ax -> [vv 0 <> cmd0 "leftrightarrow" <> vv 1]
   (Cut v vt x s t) -> [connect_ <>  bblock  
                                [letNew v (neg vt) : texProg ts ((v,neg vt):v0) s,                               
                                 letNew v (    vt) : texProg ts ((v,vt):v1) t]]
@@ -102,9 +107,9 @@ texProg ts vs s0 = case s0 of
                    [let' w vt  left_  : texProg ts (v0++[(w,vt)]) s,
                     let' w vt' right_ : texProg ts ((w,vt'):v1) t]]
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
-  (Plus x s t) -> [case_ <> w <> keyword "~of" <> bigBraces (block
-                  [keyword "inl~" <> w <> mapsto (texProg ts (v0++(w,vt ):v1) s), 
-                   keyword "inr~" <> w <> mapsto (texProg ts (v0++(w,vt'):v1) t)])]
+  (Plus x s t) -> [block [case_ <> w <> keyword "~of",
+                          indent <> keyword "inl~" <> w <> mapsto (texProg ts (v0++(w,vt ):v1) s), 
+                          indent <> keyword "inr~" <> w <> mapsto (texProg ts (v0++(w,vt'):v1) t)]]
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
   (With b x t) -> let' w wt (c <> w) : texProg ts (v0++(w,wt):v1) t
      where (c,wt) = case b of True -> (fst_,vt); False -> (snd_,vt')
@@ -113,14 +118,15 @@ texProg ts vs s0 = case s0 of
      where ((v,Bot):_) = vs
   (SZero x) -> [keyword "dump~" <> texCtx ts (v0 ++ v1) <> in_ <> w]
      where (v0,(w,Zero):v1) = splitAt x vs
-  (SOne x t ) -> let'' (cmd "diamond" mempty) w : texProg ts (v0++v1) t
+  (SOne x t ) -> let'' (cmd0 "diamond") w : texProg ts (v0++v1) t
     where (v0,(w,One):v1) = splitAt x vs
   (Exchange p t) -> texProg ts [vs !! i | i <- p] t        
   (TApp x tyB s) -> let'' w (w <> cmd0 "bullet" <> texType 0 ts tyB) : texProg ts (v0++(w,ty):v1) s
     where (v0,(w,Forall _ tyA):v1) = splitAt x vs
           ty = subst0 tyB ∙ tyA
-  (TUnpack x s) -> let'' (tw <> "," <> w) w : texProg (tw:ts) (map (second (wk ∙)) v0++(w,tyA):map (second (wk ∙)) v1) s
+  (TUnpack x s) -> let'' (tw <> "," <> w) w : texProg (tw:ts) (upd v0++(w,tyA):upd v1) s
     where (v0,(w,Exists tw tyA):v1) = splitAt x vs
+          upd = (wk ∙) `for` mapped._2
   (Offer x s) -> (keyword "offer~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++(w,tyA):v1) s
     where (v0,(w,Quest tyA):v1) = splitAt x vs
   (Demand x s) -> (keyword "demand~" <> w <> " : " <> texType 0 ts tyA) : texProg ts (v0++(w,tyA):v1) s

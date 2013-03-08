@@ -54,23 +54,20 @@ program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
 main = render $ latexDocument "article" ["11pt"] preamble $ @"
 
-@deriv(cutWithPlus) --- @deriv(eval(cutWithPlus))
+Reduction rules:
 
+@amp⊕ @deriv(cutWithPlus) --- @deriv(eval(cutWithPlus))
 
-@program(cutWithPlus) --- @program(eval(cutWithPlus))
+@math{@par⊗} @deriv(cutParCross) --- @deriv(eval(cutParCross))
 
-@program(cutParCross) --- @program(eval(cutParCross))
+!? @deriv(cutBang) --- @deriv(eval(cutBang))
 
-@program(cutBang) --- @program(eval(cutBang))
+1⊥ @deriv(cutUnit) --- @deriv(eval(cutUnit))
 
-@program(cutContract) --- @program(eval(cutContract))
+∀∃ @deriv(cutQuant) --- @deriv(eval(cutQuant))
 
-@program(cutIgnore) --- @program(eval(cutIgnore))
-
-@program(cutUnit) --- @program(eval(cutUnit))
-
-@program(cutQuant) --- @program(eval(cutQuant))
-
-Done.
+Contract @deriv(cutContract) --- @deriv(eval(cutContract))
+ 
+Weaken @deriv(cutIgnore) --- @deriv(eval(cutIgnore))
 
 @"
