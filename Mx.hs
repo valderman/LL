@@ -5,6 +5,7 @@ import MarXup.Tex
 import MarXup.DerivationTrees
 import Control.Applicative
 import MarXup.MultiRef
+import Reductions
 
 import TexPretty
 import LL
@@ -15,45 +16,13 @@ preamble = do
   usepackage [] "graphicx"
   cmd "input" (tex "unicodedefs")
   usepackage [] "amsmath"
-  usepackage [] "cmll"
-
-whatA = What "a"
-whatB = What "b"
-whatC = What "c"
-whatD = What "d"
-
-dum = Top
-
-cutWithPlus = Deriv ["Γ","Δ","A","B"] [(mempty,var 0), (mempty,var 1)] 
-              (Cut "x" (var 2 :⊕: var 3) 1 
-               (With True 0 (What "a")) 
-               (Plus 0 (What "b") (What "c")))
-              
-cutParCross = Deriv ["Γ","Δ","Θ","A","B"] [(mempty,var 0), (mempty,var 1), (mempty,var 2)]
-              (Cut "x" (var 3 :⊗: var 4) 2 
-               (Exchange [1,0,2] $ Par dum 1 whatA whatB)
-               (Cross dum "x" "y" 0 whatC))
-
-cutBang = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
-          Cut "x" (Bang (var 2)) 1 (Offer 0 whatA) (Demand dum 0 whatB)
-
-cutContract = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
-          Cut "x" (Bang (var 2)) 1 (Offer 0 whatA) (Alias 0 "y" whatB)
-
-cutIgnore = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
-            Cut "x" (Bang (var 2)) 1 (Offer 0 whatA) (Ignore 0 whatB)
-
-cutQuant = Deriv ["Γ","Δ","A","B"] [(mempty, Bang (var 0)), (mempty, var 1)] $
-           Cut "x" (Exists "α" (var 3)) 1 (TApp 0 (var 3) whatA) (TUnpack 0 whatB)
-
-cutUnit = Deriv ["Γ"] [(mempty, var 0)] $ Cut "x" One 0 SBot (SOne 0 whatA)
+  usepackage [] "cmll" -- for the operator "par"
 
 deriv :: Deriv String -> Tex Label
 deriv (Deriv tvs vs s) = derivationTree [] $ texSeq False tvs vs s
 
 program :: Deriv String -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
-
 
 allReductions displayer = mapM_ redRule 
    [(amp,cutWithPlus),
@@ -72,10 +41,39 @@ allReductions displayer = mapM_ redRule
             displayer (eval input)
           newline
 
+todo = cmd "marginpar"
+
 main = render $ latexDocument "article" ["11pt"] preamble $ @"
+
+@todo{Linear logic as a low-level logic}
+
+@todo{propositions as types, proofs as programs}
+
+We won't dwell on the general benefits of the parallel: this has been done countless times before, 
+remarkably by Girard in a paragraph which starts with the following provocative sentence.
+
+@env{quote}{
+There are still people saying that, in order to make computer
+science, one essentially needs a soldering iron; this opinion is
+shared by logicians who despise computer science and by engineers
+who despise theoreticians.
+}
+Very much in the spirit of this conference, this paper aims to build
+another bridge between logicians and engineers. 
+
+
+We provide an interpretation
+of linear logic as an programming language with ISWIM syntax, together with an
+abstract machine able to run programs written for it.
+
+@todo{π-calculus as a low-level programming language: not quite. We fill the niche}
+
 @section{Cut-elimination rules}
 @allReductions(deriv)
 
 @section{Reduction rules}
 @allReductions(program)
 @"
+
+
+

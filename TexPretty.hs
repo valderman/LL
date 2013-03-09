@@ -5,7 +5,7 @@
 module TexPretty where
 
 import Control.Lens
-import LL hiding (prn,vax)
+import LL 
 import MarXup.Tex
 import MarXup.Latex
 import MarXup.DerivationTrees

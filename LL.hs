@@ -6,10 +6,7 @@
 module LL where
 
 import Data.Monoid
-import Text.PrettyPrint.HughesPJ hiding ((<>))
 import Data.String
-
-type Name = Doc
 
 -- | Types
 data Type nm = Type nm :⊕: Type nm
@@ -22,6 +19,7 @@ data Type nm = Type nm :⊕: Type nm
              | Exists nm (Type nm)
              | Bang (Type nm)
              | Quest (Type nm)
+             | Meta Bool String [Type nm] -- A meta-variable types with types occuring in it.
 
 subst0 x = x:map var [0..]
 
@@ -30,14 +28,14 @@ data (Seq nm) = Exchange [Int] (Seq nm) -- Permute variables
          | Ax (Type nm) -- Exactly 2 vars
          | Cut nm (Type nm) Int (Seq nm) (Seq nm) -- new vars in position 0
            
-         | Cross (Type nm) nm nm Int (Seq nm)
+         | Cross (Type nm) nm nm Int (Seq nm) 
          | Par (Type nm) Int (Seq nm) (Seq nm) -- splits at given pos.
-         | Plus Int (Seq nm) (Seq nm)
-         | With Bool Int (Seq nm)
+         | Plus Int (Seq nm) (Seq nm) -- Rename to Case
+         | With Bool Int (Seq nm) -- Rename to Choose
            
-         | SOne Int (Seq nm)
-         | SZero Int
-         | SBot
+         | SOne Int (Seq nm) -- Rename to ...
+         | SZero Int         -- Rename to Crash/Loop
+         | SBot              -- Rename to Terminate
          | What nm
            
          | TApp Int (Type nm) (Seq nm)
@@ -50,6 +48,7 @@ data (Seq nm) = Exchange [Int] (Seq nm) -- Permute variables
 
 -- Abstract Machine
 
+-- | A Cell of the Heap
 data Cell where
   Freed :: Cell
   Tag   :: Bool -> Cell
@@ -176,8 +175,7 @@ runSystem :: System -> System
 runSystem s | Just s' <- stepSystem s = runSystem s'
 runSystem s = s
 
--- Substitution
-
+-- | Types which can be applied a 'Subst'
 class Substitute a where
   type Nm a
   (∙) :: Subst (Nm a) -> a -> a
@@ -190,11 +188,6 @@ instance Substitute (Seq nm) where
   type Nm (Seq nm) = nm
   (∙) = applyS
         
-instance Substitute Name where -- yuck
-  type Nm Doc = Doc
-  s ∙ x = x
-       
-        
 instance (Substitute a, Substitute b,Nm a ~ Nm b) => Substitute (a,b) where
   type Nm (a,b) = Nm a
   f ∙ (x,y) = (f∙x, f∙y)
@@ -203,9 +196,11 @@ instance (Substitute a) => Substitute [a] where
   type Nm [a] = Nm a
   f ∙ xs = map (f ∙) xs
              
-               
+
+-- | Type of substitutions               
 type Subst nm = [Type nm]
 
+meta = Meta True
 var = TVar True
 
 wk :: Subst nm
@@ -229,6 +224,7 @@ apply f t = case t of
   Exists w t -> Forall w (s' t)
   Bang t -> Bang (s t)
   Quest t -> Quest (s t)
+  Meta b x ns -> Meta b x (f ∙ ns)
  where s = apply f
        s' = apply (var 0 : wk ∙ f)
   
@@ -265,6 +261,7 @@ neg (Forall v t) = Exists v (neg t)
 neg (TVar b x) = TVar (not b) x
 neg (Bang t) = Quest (neg t)
 neg (Quest t) = Bang (neg t)
+neg (Meta b x xs) = Meta (not b) x xs
 
 
 eval :: Monoid nm => Deriv nm -> Deriv nm
