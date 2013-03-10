@@ -6,50 +6,51 @@
 module LL where
 
 import Data.Monoid
-import Data.String
+import Data.List (mapAccumL)
 
+type Name = String
 -- | Types
-data Type nm = Type nm :⊕: Type nm
-             | Type nm :⊗: Type nm
-             | Type nm :|: Type nm
-             | Type nm :&: Type  nm
+data Type = Type :⊕: Type
+             | Type :⊗: Type
+             | Type :|: Type
+             | Type :&: Type
              | Zero | One | Top | Bot
-             | TVar Bool Int
-             | Forall nm (Type nm)
-             | Exists nm (Type nm)
-             | Bang (Type nm)
-             | Quest (Type nm)
-             | Meta Bool String [Type nm] -- A meta-variable types with types occuring in it.
+             | TVar Bool Int -- False if the variable is negated.
+             | Forall Name (Type)
+             | Exists Name (Type)
+             | Bang (Type)
+             | Quest (Type)
+             | Meta Bool String [Type] --  A meta-variable, with types with types occuring in it.
 
 a ⊸ b = neg a :|: b
-dum = Meta True "dummy type" []
+dum = meta "dummy type" 
 
 
 subst0 x = x:map var [0..]
 
 type Permutation = [Int]
 -- | Sequents                              
-data (Seq nm) = Exchange Permutation (Seq nm) -- Permute variables
-         | Ax (Type nm) -- Exactly 2 vars
-         | Cut nm (Type nm) Int (Seq nm) (Seq nm) -- new vars in position 0
+data (Seq) = Exchange Permutation (Seq) -- Permute variables
+         | Ax (Type) -- Exactly 2 vars
+         | Cut Name (Type) Int (Seq) (Seq) -- new vars in position 0
            
-         | Cross (Type nm) nm nm Int (Seq nm) 
-         | Par (Type nm) Int (Seq nm) (Seq nm) -- splits at given pos.
-         | Plus Int (Seq nm) (Seq nm) -- Rename to Case
-         | With Bool Int (Seq nm) -- Rename to Choose
+         | Cross (Type) Name Name Int (Seq) 
+         | Par (Type) Int (Seq) (Seq) -- splits at given pos.
+         | Plus Int (Seq) (Seq) -- Rename to Case
+         | With Bool Int (Seq) -- Rename to Choose
            
-         | SOne Int (Seq nm) -- Rename to ...
+         | SOne Int (Seq) -- Rename to ...
          | SZero Int         -- Rename to Crash/Loop
          | SBot              -- Rename to Terminate
-         | What nm
+         | What Name
            
-         | TApp Int (Type nm) (Seq nm)
-         | TUnpack Int (Seq nm)
+         | TApp Int (Type) (Seq)
+         | TUnpack Int (Seq)
 
-         | Offer Int (Seq nm)
-         | Demand (Type nm) Int (Seq nm)
-         | Ignore Int (Seq nm)
-         | Alias Int nm (Seq nm)
+         | Offer Int (Seq)
+         | Demand (Type) Int (Seq)
+         | Ignore Int (Seq)
+         | Alias Int Name (Seq)
 
 -- Abstract Machine
 
@@ -59,39 +60,40 @@ data Cell ref where
   Tag   :: Bool -> Cell ref
   New   :: Cell ref
   Delay :: Int -> Closure ref -> Cell ref
-  Q     :: (Type ()) -> ref -> Cell ref
+  Q     :: Type -> ref -> Cell ref -- 1st arg should be a monotype
 
 type CellRef = Int
 
-type TypeEnv = [Type ()]
+type TypeEnv = [Type]
 
 type Env ref = [ref]
 
-type Closure ref = (Seq (),Env ref,TypeEnv)
+type Closure ref = (Seq,Env ref,TypeEnv)
 
 class IsRef ref where
-  shift :: Type () -> ref -> ref
+  shift :: Type -> ref -> ref
   next  :: ref -> ref
   
 class IsRef (Ref heap) => IsHeap heap where
   type Ref heap
-  -- type Size heap 
-  (!) :: heap -> Ref heap -> Cell (Ref heap)
+  (!) :: heap -> Ref heap -> Cell (Ref heap) 
   replace :: Ref heap -> Cell (Ref heap) -> heap -> heap
-  alloc :: Type () -> heap -> (heap,Ref heap)
+  alloc :: Type -> heap -> (heap,Ref heap)
+  emptyHeap :: heap
 
 type Heap = [Cell Int]
 
 instance IsRef Int where
   shift t = (sizeOf t +)
-  next t  = succ
+  next = succ
 instance IsHeap Heap where
   type Ref Heap = CellRef
 --  type Size Heap = Int
   (!) = (!!)
-  replace n v h = let (l,_:r) = splitAt n h
+  replace n v (h) = let (l,_:r) = splitAt n h
                 in l ++ v : r
-  alloc t h = (h ++ replicate (sizeOf t) New,length h)
+  alloc t (h) = (h ++ replicate (sizeOf t) New,length h)
+  emptyHeap = []
 
 type System h = ([Closure (Ref h)],h)
 
@@ -158,9 +160,9 @@ increment :: IsRef ref => Int -> Env ref -> Env ref
 increment n e = let (l,x:r) = splitAt n e
                 in l ++ next x : r
 
-copy'' :: Type () -> Seq ()
+copy'' :: Type -> Seq
 copy'' (t1 :⊕: t2) = Plus 0 (copy'' t1) (copy'' t2)
-copy'' (t1 :⊗: t2) = Cross t1 () () 0 $
+copy'' (t1 :⊗: t2) = Cross t1 "" "" 0 $
                      Exchange [0,2,1] $
                      Par t1 1 (copy'' t1) (copy'' t2)
 copy'' Zero = error "Impossible"
@@ -170,17 +172,16 @@ copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t
 copy'' t = Exchange [1,0] $ copy'' (neg t)
 
-sizeOf :: Type () -> Int
+sizeOf :: Type -> Int
 sizeOf (t1 :⊕: t2) = 1 + max (sizeOf t1) (sizeOf t2)
 sizeOf (t1 :⊗: t2) = sizeOf t1 + sizeOf t2
-sizeOf (t1 :|: t2) = sizeOf t1 + sizeOf t2
-sizeOf (t1 :&: t2) = 1 + max (sizeOf t1) (sizeOf t2)
-sizeOf (TVar _ v) = error "can only evaluate the size of monotypes"
+sizeOf (TVar _ v) = error "can only evaluate the size of closed types"
 sizeOf (Forall _ _) = 1
-sizeOf (Exists _ _) = 1
 sizeOf (Bang _)     = 1
-sizeOf (Quest _)    = 1
-sizeOf _ = 0
+sizeOf One     = 0
+sizeOf Zero     = 0
+sizeOf (Meta _ _ _) = error "cannot get size of meta-type"
+sizeOf x = sizeOf (neg x)
 
 stepSystem :: IsHeap h => System h -> Maybe (System h)
 stepSystem ([],h) = Nothing
@@ -194,39 +195,34 @@ runSystem s = s
 
 -- | Types which can be applied a 'Subst'
 class Substitute a where
-  type Nm a
-  (∙) :: Subst (Nm a) -> a -> a
+  (∙) :: Subst -> a -> a
          
-instance Substitute (Type nm)  where
-  type Nm (Type nm) = nm
+instance Substitute (Type)  where
   (∙) = apply
         
-instance Substitute (Seq nm) where
-  type Nm (Seq nm) = nm
+instance Substitute (Seq) where
   (∙) = applyS
         
-instance (Substitute a, Substitute b,Nm a ~ Nm b) => Substitute (a,b) where
-  type Nm (a,b) = Nm a
+instance (Substitute a, Substitute b) => Substitute (a,b) where
   f ∙ (x,y) = (f∙x, f∙y)
 
 instance (Substitute a) => Substitute [a] where
-  type Nm [a] = Nm a
   f ∙ xs = map (f ∙) xs
              
 
 -- | Type of substitutions               
-type Subst nm = [Type nm]
+type Subst = [Type]
 
-meta = Meta True
+meta x = Meta True x []
 var = TVar True
 
-wk :: Subst nm
+wk :: Subst
 wk = map var [1..]
 
 if_ True f = id
 if_ False f = f
 
-apply :: Subst nm -> Type nm -> Type nm
+apply :: Subst -> Type -> Type
 apply f t = case t of
   x :⊕: y -> s x :⊕: s y
   x :&: y -> s x :&: s y
@@ -245,7 +241,7 @@ apply f t = case t of
  where s = apply f
        s' = apply (var 0 : wk ∙ f)
   
-applyS :: Subst nm -> (Seq nm) -> (Seq nm)
+applyS :: Subst -> (Seq) -> (Seq)
 applyS f t = case t of
   (Exchange π a) -> Exchange π (s a)
   Cut w ty x a b -> Cut w (f ∙ ty) x (s a) (s b)
@@ -264,7 +260,7 @@ applyS f t = case t of
  where s = applyS f
        s' = applyS (var 0 : wk ∙ f)
        
-neg :: Type nm -> Type nm       
+neg :: Type -> Type       
 neg (x :⊗: y) = neg x :|: neg y
 neg (x :|: y) = neg x :⊗: neg y
 neg (x :⊕: y) = neg x :&: neg y
@@ -281,7 +277,7 @@ neg (Quest t) = Bang (neg t)
 neg (Meta b x xs) = Meta (not b) x xs
 
 
-eval :: Monoid nm => Deriv nm -> Deriv nm
+eval :: Deriv -> Deriv
 eval (Deriv ts vs (Cut w ty γ a b)) = Deriv ts vs $ cut (length vs) w ty γ a b
 
 cut' _ = Cut
@@ -289,12 +285,11 @@ cut' _ = Cut
 remove0 π = [x-1 | x <- π, x > 0]
 
 -- Hereditary cut
-cut :: Monoid nm => 
-       Int -> -- ^ size of the context
-       nm -> 
-       Type nm -> 
+cut :: Int -> -- ^ size of the context
+       Name -> 
+       Type -> 
        Int -> -- ^ where to cut it
-       (Seq nm) -> (Seq nm) -> (Seq nm)
+       (Seq) -> (Seq) -> (Seq)
 -- FIXME: in the absence of "What" cut can be eliminated so these recursive calls terminate. Otherwise, we have a problem.
 -- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
@@ -360,5 +355,17 @@ subst π t = case t of
               where (l,_:r) = splitAt x $ map (\y -> if y > x then y-1 else x) π
 
 
-data Deriv nm = Deriv {derivTypeVars :: [nm], derivContext :: [(nm,Type nm)], derivSequent :: Seq nm}
+data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], derivSequent :: Seq}
+
+-- | Convert a derivation to a System. Assumes the type env. is
+-- ignorable (empty or contains only metavars)
+derivToSystem :: IsHeap h => Deriv -> System h
+derivToSystem (Deriv _ ctx a) = ([closure],heap)
+  where closure = (a,refs,[])
+        (heap,refs) = mapAccumL (flip alloc) emptyHeap (map snd ctx)
+ 
+------------------
+-- Symbolic heap
+
+
 

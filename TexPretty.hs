@@ -24,7 +24,7 @@ smallcaps x = braces (cmd0 "sc" <> x)
 
 rulText = cmd "text" . smallcaps 
 
-texSeq :: Bool -> [String] -> [(String,Type String)] -> Seq String -> Derivation
+texSeq :: Bool -> [String] -> [(String,Type)] -> Seq String -> Derivation
 texSeq showProg ts vs s0 = case s0 of
   Ax _ -> rul "Ax" []
   (Cut v vt x s t) -> rul (rulText "Cut") [fun ts ((v,neg vt):v0) s,fun ts ((v,vt):v1) t]
@@ -100,7 +100,7 @@ connect z x a y b =
           indent <> x <> mapsto a,
           indent <> y <> mapsto b]]
 
-texProg :: [String] -> [(String,Type String)] -> Seq String -> [TeX]
+texProg :: [String] -> [(String,Type)] -> Seq String -> [TeX]
 texProg ts vs s0 = case s0 of
   Ax _ -> [vv 0 <> cmd0 "leftrightarrow" <> vv 1]
   (Cut v vt x s t) -> connect (keyword "directly") 
@@ -144,7 +144,7 @@ texProg ts vs s0 = case s0 of
     where (v0,(w,Bang tyA):v1) = splitAt x vs
   What x -> [texVar x]
  where vv = vax ts vs
-       let' :: TeX -> Type String -> TeX -> TeX
+       let' :: TeX -> Type -> TeX -> TeX
        let'  w ty v = let_ <> w <> ":" <> texType 0 ts ty <> "=" <> v
        let'' w    v = let_ <> w <> "=" <> v
        letNew w ty = let' w ty "new"
@@ -162,10 +162,10 @@ texVar = text
              
 prn p k = if p > k then paren else id
        
-texCtx :: [String] -> [(String,Type String)] ->  TeX
+texCtx :: [String] -> [(String,Type)] ->  TeX
 texCtx ts vs = mconcat $ intersperse (text ",") [texVarT v (texType 0 ts t) | (v,t) <- vs]
     
-texType :: Int -> [String] -> Type String -> TeX
+texType :: Int -> [String] -> Type -> TeX
 texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
 texType p vs (Exists v t) = prn p 0 $ "∃" <> texVar v <> ". "  <> texType 0 (v:vs) t
 texType p vs (x :|: y) = prn p 0 $ texType 1 vs x <> par <> texType 0 vs y
@@ -187,3 +187,24 @@ texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
 -- texSubst :: [String] -> Subst String -> TeX
 -- texSubst vs s = mconcat $ intersperse "," $ [(s!!t) <> "/" <> (s!!i) | (i,t) <- zip [0..] vs]
        
+--------------------------------
+-- Pretty printing of closures
+
+texRef (Named x) = text x
+texRef (Shift t x) = texRef x <> "+ |" <> texType 0 (repeat "var. in texSizeOf") ty <> "|"
+texRef (Next x) = texRef x <> "+1"
+
+texHeapPart :: SymHeap -> Ref -> TeX
+texHeapPart h r = case v of
+    Nothing -> "..."
+    Just c -> texCell c <> texHeapPart h (Next r) <> texHeapPart (Shift r)
+  where v = M.lookup r h
+        
+texHeap h :: SymHeap -> TeX
+texHeap = cat $ punctuate ", " $ [text r <> cmd0 "mapsto" <> texHeapPart h (Named r) | Named r <- M.keys h]
+
+
+
+
+
+
