@@ -70,26 +70,28 @@ type Env ref = [ref]
 type Closure ref = (Seq (),Env ref,TypeEnv)
 
 class IsRef ref where
-  shift :: Int -> ref -> ref
+  shift :: Type () -> ref -> ref
+  next  :: ref -> ref
   
 class IsRef (Ref heap) => IsHeap heap where
   type Ref heap
   -- type Size heap 
   (!) :: heap -> Ref heap -> Cell (Ref heap)
   replace :: Ref heap -> Cell (Ref heap) -> heap -> heap
-  alloc :: Int -> heap -> (heap,Ref heap)
+  alloc :: Type () -> heap -> (heap,Ref heap)
 
 type Heap = [Cell Int]
 
 instance IsRef Int where
-  shift = (+)
+  shift t = (sizeOf t +)
+  next t  = succ
 instance IsHeap Heap where
   type Ref Heap = CellRef
 --  type Size Heap = Int
   (!) = (!!)
   replace n v h = let (l,_:r) = splitAt n h
                 in l ++ v : r
-  alloc n h = (h ++ replicate n New,length h)
+  alloc t h = (h ++ replicate (sizeOf t) New,length h)
 
 type System h = ([Closure (Ref h)],h)
 
@@ -98,11 +100,11 @@ runClosure h (Plus v a b,e,te)
   | Tag c <- h!(e!!v) = Just (replace (e!!v) Freed h,
                              [(if c then a else b,increment v e,te)])
 runClosure h (Cross ty _ _ v a,e,te)
-  = Just (h,[(a,el++[x,shift (sizeOf te ty) x] ++ er,te)])
+  = Just (h,[(a,el++[x,shift (te∙ty) x] ++ er,te)])
   where (el,x:er) = splitAt v e
 runClosure h (Par ty v a b,e,te)
   = Just (h,[(a,el++[z]++er,te)
-            ,(b,el++[shift (sizeOf te ty) z]++er,te)])
+            ,(b,el++[shift (te∙ty) z]++er,te)])
     where (el,z:er) = splitAt v e
 runClosure h (With t v a,e,te)
   = Just (replace (e!!v) (Tag t) h,[(a,increment v e,te)])
@@ -116,7 +118,7 @@ runClosure h (SBot,e,te)
 runClosure h (TApp v ty a,e,te)
   = Just (replace (e!!v) (Q ty q) h',[(a,e,te)])
   where (el,z:er) = splitAt v e
-        (h',q) = alloc (sizeOf (ty:te) ty) h
+        (h',q) = alloc ((ty:te)∙(error "need the type of the polymorphic value")) h
 runClosure h (TUnpack v a,e,te)
   | Q ty p <- h!w = Just (replace w Freed h,[(a,el++[p]++er,ty:te)])
   where (el,w:er) = splitAt v e
@@ -133,7 +135,7 @@ runClosure h (Ax ty,[w,x],te)
 runClosure h (Cut _ ty v a b,e,te)
   = Just (h',[(a,q:ea,te),(b,q:eb,te)])
   where (ea,eb) = splitAt v e
-        (h',q)  = alloc (sizeOf te ty) h
+        (h',q)  = alloc (te∙ty) h
 
 runClosure h (Offer v a,e,te)
   = Just (replace (e!!v) (Delay 1 (a,e,te)) h,[])
@@ -142,7 +144,7 @@ runClosure h (Demand ty v a,e,te)
   = Just (modifyRefCount (subtract 1) p $ h'
          ,[(a,el++[q]++er,te)])
     where (el,p:er) = splitAt v e
-          (h',q) = alloc (sizeOf te ty) h
+          (h',q) = alloc (te ∙ ty) h
 runClosure h (Ignore v a,e,te)
   = Just (modifyRefCount (subtract 1) m h,[(a,el++er,te)])
   where (el,m:er) = splitAt v e
@@ -154,7 +156,7 @@ modifyRefCount f r h = replace r (Delay (f c) cl) h
 
 increment :: IsRef ref => Int -> Env ref -> Env ref
 increment n e = let (l,x:r) = splitAt n e
-                in l ++ shift 1 x : r
+                in l ++ next x : r
 
 copy'' :: Type () -> Seq ()
 copy'' (t1 :⊕: t2) = Plus 0 (copy'' t1) (copy'' t2)
@@ -168,17 +170,17 @@ copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t
 copy'' t = Exchange [1,0] $ copy'' (neg t)
 
-sizeOf :: TypeEnv -> Type () -> Int
-sizeOf e (t1 :⊕: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
-sizeOf e (t1 :⊗: t2) = sizeOf e t1 + sizeOf e t2
-sizeOf e (t1 :|: t2) = sizeOf e t1 + sizeOf e t2
-sizeOf e (t1 :&: t2) = 1 + max (sizeOf e t1) (sizeOf e t2)
-sizeOf e (TVar _ v) = sizeOf e (e!!v)
-sizeOf e (Forall _ _) = 1
-sizeOf e (Exists _ _) = 1
-sizeOf e (Bang _)     = 1
-sizeOf e (Quest _)    = 1
-sizeOf e _ = 0
+sizeOf :: Type () -> Int
+sizeOf (t1 :⊕: t2) = 1 + max (sizeOf t1) (sizeOf t2)
+sizeOf (t1 :⊗: t2) = sizeOf t1 + sizeOf t2
+sizeOf (t1 :|: t2) = sizeOf t1 + sizeOf t2
+sizeOf (t1 :&: t2) = 1 + max (sizeOf t1) (sizeOf t2)
+sizeOf (TVar _ v) = error "can only evaluate the size of monotypes"
+sizeOf (Forall _ _) = 1
+sizeOf (Exists _ _) = 1
+sizeOf (Bang _)     = 1
+sizeOf (Quest _)    = 1
+sizeOf _ = 0
 
 stepSystem :: IsHeap h => System h -> Maybe (System h)
 stepSystem ([],h) = Nothing

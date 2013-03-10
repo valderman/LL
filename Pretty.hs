@@ -9,10 +9,10 @@ import LL
 import Control.Lens
 
 
-------------------------------------
--- Pretty printing
-
 type Name = String
+
+------------------------------------
+-- Pretty printing of sequents
 
 instance Show (Deriv Name) where
   show (Deriv ts vs s) = render $ (pCtx ts vs <> " ⊢") $$ pSeq ts vs s
@@ -94,4 +94,8 @@ instance Show (Seq Name) where
 pCtx :: [String] -> [(String,Type String)] ->  Doc
 pCtx ts vs = sep $ punctuate comma $ [text v <> " : " <> (pType 0 ts t) | (v,t) <- vs]
   
-----------------------
+--------------------------------
+-- Pretty printing of closures
+
+
+
