@@ -49,39 +49,58 @@ data (Seq nm) = Exchange [Int] (Seq nm) -- Permute variables
 -- Abstract Machine
 
 -- | A Cell of the Heap
-data Cell where
-  Freed :: Cell
-  Tag   :: Bool -> Cell
-  New   :: Cell
-  Delay :: Int -> Closure -> Cell
-  Q     :: (Type ()) -> Int -> Cell
+data Cell ref where
+  Freed :: Cell ref
+  Tag   :: Bool -> Cell ref
+  New   :: Cell ref
+  Delay :: Int -> Closure ref -> Cell ref
+  Q     :: (Type ()) -> ref -> Cell ref
 
 type CellRef = Int
 
 type TypeEnv = [Type ()]
 
-type Env = [CellRef]
+type Env ref = [ref]
 
-type Closure = (Seq (),Env,TypeEnv)
+type Closure ref = (Seq (),Env ref,TypeEnv)
 
-type Heap = [Cell]
+class IsRef ref where
+  shift :: Int -> ref -> ref
+  
+class IsRef (Ref heap) => IsHeap heap where
+  type Ref heap
+  -- type Size heap 
+  (!) :: heap -> Ref heap -> Cell (Ref heap)
+  replace :: Ref heap -> Cell (Ref heap) -> heap -> heap
+  alloc :: Int -> heap -> (heap,Ref heap)
 
-type System = ([Closure],Heap)
+type Heap = [Cell Int]
 
-runClosure :: Heap -> Closure -> Maybe (Heap,[Closure])
+instance IsRef Int where
+  shift = (+)
+instance IsHeap Heap where
+  type Ref Heap = CellRef
+--  type Size Heap = Int
+  (!) = (!!)
+  replace n v h = let (l,_:r) = splitAt n h
+                in l ++ v : r
+  alloc n h = (h ++ replicate n New,length h)
+
+type System h = ([Closure (Ref h)],h)
+
+runClosure :: IsHeap h => h -> Closure (Ref h) -> Maybe (h,[Closure (Ref h)])
 runClosure h (Plus v a b,e,te)
-  | Tag c <- h!!(e!!v) = Just (replace (e!!v) Freed h,
+  | Tag c <- h!(e!!v) = Just (replace (e!!v) Freed h,
                              [(if c then a else b,increment v e,te)])
 runClosure h (Cross ty _ _ v a,e,te)
-  = Just (h,[(a,el++[x,x+sizeOf te ty] ++ er,te)])
+  = Just (h,[(a,el++[x,shift (sizeOf te ty) x] ++ er,te)])
   where (el,x:er) = splitAt v e
 runClosure h (Par ty v a b,e,te)
   = Just (h,[(a,el++[z]++er,te)
-            ,(b,el++[z+sizeOf te ty]++er,te)])
+            ,(b,el++[shift (sizeOf te ty) z]++er,te)])
     where (el,z:er) = splitAt v e
 runClosure h (With t v a,e,te)
-  = Just (replace x (Tag t) h,[(a,el++er++[succ x],te)])
-    where (el,x:er) = splitAt v e
+  = Just (replace (e!!v) (Tag t) h,[(a,increment v e,te)])
 
 runClosure h (SOne v a,e,te)
   = Just(h,[(a,el++er,te)])
@@ -90,34 +109,35 @@ runClosure h (SBot,e,te)
   = Just (h,[])
 
 runClosure h (TApp v ty a,e,te)
-  = Just (replace (e!!v) (Q ty (length h)) h ++ replicate (sizeOf (ty:te) ty) New
-         ,[(a,e,te)])
+  = Just (replace (e!!v) (Q ty q) h',[(a,e,te)])
   where (el,z:er) = splitAt v e
+        (h',q) = alloc (sizeOf (ty:te) ty) h
 runClosure h (TUnpack v a,e,te)
-  | Q ty p <- h!!w = Just (replace w Freed h,[(a,el++[p]++er,ty:te)])
+  | Q ty p <- h!w = Just (replace w Freed h,[(a,el++[p]++er,ty:te)])
   where (el,w:er) = splitAt v e
 runClosure h (Exchange π a,e,te)
-  = Just (h,[(a,map (π!!) e,te)])
+  = Just (h,[(a,[e!!x | x <- π],te)])
 runClosure h (Ax (Bang ty),[w,x],te)
-  | d@(Delay n cl) <- h!!x = Just (replace w d (replace x Freed h),[])
+  | d@(Delay n cl) <- h!x = Just (replace w d (replace x Freed h),[])
 runClosure h (Ax (TVar True v),e,te)
   = Just (h,[(copy'' (te!!v),e,te)])
 runClosure h (Ax (Forall _ ty),[w,x],te)
-  | q@(Q ty p) <- h!!x = Just (replace w q (replace x Freed h),[])
+  | q@(Q ty p) <- h!x = Just (replace w q (replace x Freed h),[])
 runClosure h (Ax ty,[w,x],te)
   = Just (h,[(copy'' ty,[w,x],te)])
 runClosure h (Cut _ ty v a b,e,te)
-  = Just (h++replicate (sizeOf te ty) New,[(a,v:ea,te),(b,v:eb,te)])
+  = Just (h',[(a,q:ea,te),(b,q:eb,te)])
   where (ea,eb) = splitAt v e
-        v       = length h
+        (h',q)  = alloc (sizeOf te ty) h
 
 runClosure h (Offer v a,e,te)
   = Just (replace (e!!v) (Delay 1 (a,e,te)) h,[])
 runClosure h (Demand ty v a,e,te)
-  | (Delay n cl) <- h!!p
-  = Just (modifyRefCount (subtract 1) p h ++ replicate (sizeOf te ty) New
-         ,[(a,el++[length h]++er,te)])
+  | (Delay n cl) <- h!p
+  = Just (modifyRefCount (subtract 1) p $ h'
+         ,[(a,el++[q]++er,te)])
     where (el,p:er) = splitAt v e
+          (h',q) = alloc (sizeOf te ty) h
 runClosure h (Ignore v a,e,te)
   = Just (modifyRefCount (subtract 1) m h,[(a,el++er,te)])
   where (el,m:er) = splitAt v e
@@ -125,21 +145,11 @@ runClosure h (Alias v _ a,e,te)
   = Just (modifyRefCount (+1) (e!!v) h,[(a,e!!v:e,te)])
 
 modifyRefCount f r h = replace r (Delay (f c) cl) h
-  where (Delay c cl) = h!!r
+  where (Delay c cl) = h!r
 
-replace n v h = let (l,_:r) = splitAt n h
-                in l ++ v : r
-
+increment :: IsRef ref => Int -> Env ref -> Env ref
 increment n e = let (l,x:r) = splitAt n e
-                in l ++ succ x : r
-
-copy :: TypeEnv -> Type () -> Int -> Int -> Heap -> Heap
-copy te ty f t h = take t h ++ d ++ drop (t+size) h
-  where d = take size (drop f h)
-        size = sizeOf te ty
-
-copy' :: TypeEnv -> Type () -> Closure
-copy' = undefined
+                in l ++ shift 1 x : r
 
 copy'' :: Type () -> Seq ()
 copy'' (t1 :⊕: t2) = Plus 0 (copy'' t1) (copy'' t2)
@@ -165,13 +175,13 @@ sizeOf e (Bang _)     = 1
 sizeOf e (Quest _)    = 1
 sizeOf e _ = 0
 
-stepSystem :: System -> Maybe System
+stepSystem :: IsHeap h => System h -> Maybe (System h)
 stepSystem ([],h) = Nothing
 stepSystem (cl:cls,h) | Just (h',cl') <- runClosure h cl = Just (cl'++cls,h')
 stepSystem (cl:cls,h) = do (cls',h') <- stepSystem (cls,h)
                            return (cl:cls',h')
 
-runSystem :: System -> System
+runSystem :: IsHeap h => System h -> System h
 runSystem s | Just s' <- stepSystem s = runSystem s'
 runSystem s = s
 
@@ -318,7 +328,7 @@ isPos _ = False
 exchange π t = case t of
   (Ax ty) -> (Ax ty)
   (Cross ty w w' x c) -> Cross ty w w' (π!!x) (s' x c)
-  Exchange ρ a -> exchange (map (π!!) ρ) a
+  Exchange ρ a -> exchange [ρ!!x | x <- π] a
   (With c x a) -> With c (π!!x) (s a) 
   (Plus x a b) -> Plus (π!!x) (s a) (s b)
   (TApp x t a) -> TApp (π!!x) t (s a)
