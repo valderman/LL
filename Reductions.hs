@@ -8,8 +8,6 @@ whatB = What "b"
 whatC = What "c"
 whatD = What "d"
 
-dum = Meta True "dummy type" []
-
 cutWithPlus = Deriv ["Γ","Δ","A","B"] [(mempty,var 0), (mempty,var 1)] 
               (Cut "x" (var 2 :⊕: var 3) 1 
                (With True 0 (What "a")) 

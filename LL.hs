@@ -21,10 +21,15 @@ data Type nm = Type nm :⊕: Type nm
              | Quest (Type nm)
              | Meta Bool String [Type nm] -- A meta-variable types with types occuring in it.
 
+a ⊸ b = neg a :|: b
+dum = Meta True "dummy type" []
+
+
 subst0 x = x:map var [0..]
 
+type Permutation = [Int]
 -- | Sequents                              
-data (Seq nm) = Exchange [Int] (Seq nm) -- Permute variables
+data (Seq nm) = Exchange Permutation (Seq nm) -- Permute variables
          | Ax (Type nm) -- Exactly 2 vars
          | Cut nm (Type nm) Int (Seq nm) (Seq nm) -- new vars in position 0
            
@@ -324,27 +329,32 @@ isPos (TApp _ _ _) = True
 isPos SBot = True
 isPos _ = False
 
--- Hereditary exchange
-exchange π t = case t of
+inverse :: Permutation -> Permutation
+inverse π = [π!!x | x <- [0..length π-1]]
+
+exchange = subst
+-- | Application of variable substitution
+subst π t = case t of
   (Ax ty) -> (Ax ty)
-  (Cross ty w w' x c) -> Cross ty w w' (π!!x) (s' x c)
-  Exchange ρ a -> exchange [ρ!!x | x <- π] a
-  (With c x a) -> With c (π!!x) (s a) 
-  (Plus x a b) -> Plus (π!!x) (s a) (s b)
-  (TApp x t a) -> TApp (π!!x) t (s a)
-  (TUnpack x a) -> TUnpack (π!!x) (s a)
-  (Offer x a) -> Offer (π!!x) (s a)
-  (Demand ty x a) -> Demand ty (π!!x) (s a)
-  (Alias x w a) -> Alias (π!!x) w (s' x a)
-  (Ignore x a) -> Ignore (π!!x) (del x a)
-  (SOne x a) -> SOne (π!!x) (s a)
-  (SZero x) -> SZero (π!!x)
+  (Cross ty w w' x c) -> Cross ty w w' (f x) (s' x c)
+  Exchange ρ a -> subst (map f ρ) a
+  (With c x a) -> With c (f x) (s a) 
+  (Plus x a b) -> Plus (f x) (s a) (s b)
+  (TApp x t a) -> TApp (f x) t (s a)
+  (TUnpack x a) -> TUnpack (f x) (s a)
+  (Offer x a) -> Offer (f x) (s a)
+  (Demand ty x a) -> Demand ty (f x) (s a)
+  (Alias x w a) -> Alias (f x) w (s' x a)
+  (Ignore x a) -> Ignore (f x) (del x a)
+  (SOne x a) -> SOne (f x) (s a)
+  (SZero x) -> SZero (f x)
   SBot -> SBot
   a -> Exchange π a
- where s = exchange π
-       s' x = exchange (l++x:r)
+ where f = (π!!)
+       s = subst π
+       s' x = subst (l++x:r)
               where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else x) π
-       del x = exchange (l++r)
+       del x = subst (l++r)
               where (l,_:r) = splitAt x $ map (\y -> if y > x then y-1 else x) π
 
 
