@@ -372,7 +372,7 @@ derivToSystem (Deriv _ ctx a) = ([closure],heap)
 data SeqFinal t a = SeqFinal
      { sty :: [Name] -> Type -> t
      , sax :: (Name -> Name -> Type -> a)
-     , scut :: (Name -> Type -> a -> a -> a)
+     , scut :: (Name -> t -> a -> t -> a -> a)
      , scross :: (Int -> Name -> Name -> t -> Name -> t -> a -> a)
      , spar :: (Int -> Name -> t -> t -> a -> a -> a)
      , swith :: (Bool -> Int -> Name -> t -> a -> a)
@@ -400,8 +400,8 @@ foldSeq sf ts0 vs0 s0 =
  recurse ts0 vs0 s0 where
  recurse ts vs seq = case seq of
       Ax _ -> sax v0 v1 vt where [(v0,_),(v1,vt)] = vs 
-      (Cut v vt x s t) -> scut v vt (recurse ts ((v,neg vt):v0) s)
-                                   (recurse ts ((v,vt):v1) t)
+      (Cut v vt x s t) -> scut v (fty (neg vt)) (recurse ts ((v,neg vt):v0) s)
+                                 (fty      vt ) (recurse ts ((v,vt):v1) t)
         where (v0,v1) = splitAt x vs
       (Cross _ v v' x t) -> scross x w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
         where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs

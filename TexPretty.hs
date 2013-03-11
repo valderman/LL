@@ -30,7 +30,7 @@ texSeq showProg = foldSeq sf where
  sf (Deriv ts vs seq) = SeqFinal {..} where
   sty = texType 0
   sax v v' _ = rul (rulText "Ax") []
-  scut v _ s t = rul (rulText "Cut") [s,t]
+  scut v _ s _ t = rul (rulText "Cut") [s,t]
   scross _ w v vt v' vt' t =  rul "⊗" [t]
   spar _ w vt vt' s t = rul par [s,t]
   splus _ w vt vt' s t = rul "⊕" [s,t]
@@ -82,59 +82,35 @@ alts x a y b = [indent <> xblock (tex "l@{}l") [[x,mapsto a],
 
 connect z x a y b = connect_ <> z : alts x a y b
 
-texProg :: [String] -> [(String,Type)] -> Seq -> [TeX]
-texProg ts vs s0 = case s0 of
-  Ax _ -> [vv 0 <> cmd0 "leftrightarrow" <> vv 1]
-  (Cut v vt x s t) -> connect mempty --(keyword "directly") 
-                               (texVarT' v (neg vt)) (texProg ts ((v,neg vt):v0) s)
-                               (texVarT' v (    vt)) (texProg ts ((v,vt):v1) t)
-    where (v0,v1) = splitAt x vs
-  (Cross _ v v' x t) -> (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) :
-                      texProg ts (v0++(v,vt):(v',vt'):v1) t
-    where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par _ x s t) -> connect (keyword "via~" <> texVar w) 
-                    (texVarT' w vt ) (texProg ts (v0++[(w,vt)]) s)
-                    (texVarT' w vt') (texProg ts ((w,vt'):v1) t)
-    where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
-  (Plus x s t) -> case_ <> texVar w <> keyword "~of" :
-                  alts (keyword "inl~" <> texVar w) (texProg ts (v0++(w,vt ):v1) s)
-                       (keyword "inr~" <> texVar w) (texProg ts (v0++(w,vt'):v1) t)
-    where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
-  (With b x t) -> let' (texVar w) wt (c <> texVar w) : texProg ts (v0++(w,wt):v1) t
-     where (c,wt) = case b of True -> (fst_,vt); False -> (snd_,vt')
-           (v0,(w,(vt :&: vt')):v1) = splitAt x vs
-  SBot -> [texVar v] 
-     where ((v,Bot):_) = vs
-  (SZero x) -> [keyword "dump~" <> texCtx ts (v0 ++ v1) <> in_ <> texVar w]
-     where (v0,(w,Zero):v1) = splitAt x vs
-  (SOne x t ) -> let'' (cmd0 "diamond") (texVar w) : texProg ts (v0++v1) t
-    where (v0,(w,One):v1) = splitAt x vs
-  (Exchange p t) -> texProg ts [vs !! i | i <- p] t        
-  (TApp x tyB s) -> let'' (texVar w) (texVar w <> cmd0 "bullet" <> texType 0 ts tyB) : texProg ts (v0++(w,ty):v1) s
-    where (v0,(w,Forall _ tyA):v1) = splitAt x vs
-          ty = subst0 tyB ∙ tyA
-  (TUnpack x s) -> let'' (texVar tw <> "," <> texVar w) (texVar w) : texProg (tw:ts) (upd v0++(w,tyA):upd v1) s
-    where (v0,(w,Exists tw tyA):v1) = splitAt x vs
-          upd = (wk ∙) `for` mapped._2
-  (Offer x s) -> (keyword "offer~" <> texVarT w (texType 0 ts tyA)) : texProg ts (v0++(w,tyA):v1) s
-    where (v0,(w,Quest tyA):v1) = splitAt x vs
-  (Demand _ x s) -> (keyword "demand~" <> texVarT w (texType 0 ts tyA)) : texProg ts (v0++(w,tyA):v1) s
-    where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Ignore x s) -> (keyword "ignore~" <> texVarT w (texType 0 ts tyA)) : texProg ts (v0++v1) s
-    where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Alias x w' s) -> let' (texVar w') (Bang tyA) (keyword "alias~" <> texVar w) : texProg ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
-    where (v0,(w,Bang tyA):v1) = splitAt x vs
-  What x -> [texVar x]
- where vv = vax ts vs
-       let' :: TeX -> Type -> TeX -> TeX
-       let'  w ty v = let_ <> w <> ":" <> texType 0 ts ty <> "=" <> v
-       let'' w    v = let_ <> w <> "=" <> v
-       letNew w ty = let' w ty "new"
-       texVarT' v t = texVarT v (texType 0 ts t)
-
-vax ts vs x | x < length vs = texVar v <> " : " <> texType 0 ts t
-  where (v,t) = vs!!x 
-vax ts vs x | otherwise = "v" <> tex (show (x-length vs))
+texProg :: [Name] -> [(Name,Type)] -> Seq -> [TeX]
+texProg = foldSeq sf where
+ sf :: Deriv -> SeqFinal TeX [TeX]
+ sf (Deriv ts vs _) = SeqFinal {..} where
+  sty = texType 0
+  sax v v' _ = [texVar v <> " ↔ " <> texVar v']
+  scut v vt' s vt t = connect mempty (texVarT v vt') s
+                                     (texVarT v vt ) t
+  scross _ w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
+  spar _ w vt vt' s t = connect (keyword "via~" <> texVar w) 
+                    (texVarT w vt ) s
+                    (texVarT w vt') s
+  splus _ w vt vt' s t = case_ <> texVar w <> keyword "~of" :
+                  alts (keyword "inl~" <> texVar w) s
+                       (keyword "inr~" <> texVar w) t
+  swith b _ w ty s = let'' (texVarT w ty) (c <> texVar w) : s
+     where c = if b then fst_ else snd_
+  sbot v = [texVar v]
+  szero w vs = [keyword "dump~" <> texCtx' vs <> in_ <> texVar w]
+  sone w t = let'' (cmd0 "diamond") (texVar w) : t
+  sxchg _ t = t
+  stapp w tyB s = let'' (texVar w) (texVar w <> cmd0 "bullet" <> tyB) : s
+  stunpack tw w s = let'' (texVar tw <> "," <> texVar w) (texVar w) : s
+  soffer w ty s = (keyword "offer~" <> texVarT w ty) : s
+  sdemand w ty s = (keyword "demand~" <> texVarT w ty) : s
+  signore w ty s = (keyword "ignore~" <> texVarT w ty) : s
+  salias w w' ty s = let'' (texVarT w' ty) (keyword "alias~" <> texVar w) : s 
+  swhat a = [texVar a]
+  let'' w    v = let_ <> w <> "=" <> v
      
 texVarT [] t = t
 texVarT v t = texVar v <> ":" <> t
