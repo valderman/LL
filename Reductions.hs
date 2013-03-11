@@ -27,16 +27,15 @@ cutContract = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
 cutIgnore = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
             Cut "x" (Bang (var 2)) 1 (Offer 0 whatA) (Ignore 0 whatB)
 
-cutQuant = Deriv ["Γ","Δ","A","B"] [(mempty, var 0), (mempty, var 1)] $
-           Cut "x" (Exists "α" (var 3)) 1 (TApp 0 (var 3) whatA) (TUnpack 0 whatB)
+cutUnit = Deriv ["Γ"] [(mempty, var 0)] $ Cut "x" One 0 SBot (SOne 0 whatA)
 
+-- TODO: the other cut examples should use metavars.
 gamma = (mempty,meta "Γ")
 delta = (mempty,meta "Δ")
 
-cutQuant' = Deriv ["Θ"] [gamma,delta] $
+cutQuant = Deriv ["Θ"] [gamma,delta] $
            Cut "x" (Exists "α" (Meta True "A" [var 0])) 1 (TApp 0 (meta "B") whatA) (TUnpack 0 whatB)
 
-cutUnit = Deriv ["Γ"] [(mempty, var 0)] $ Cut "x" One 0 SBot (SOne 0 whatA)
 
 
 

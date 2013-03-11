@@ -173,10 +173,14 @@ texType p vs Zero = "0"
 texType p vs One = "1"
 texType p vs Top = "⊤"
 texType p vs Bot = "⊥"
-texType p vs (TVar True x) = texVar $ vs!!x 
-texType p vs (TVar False x) = (texVar $ vs!!x) <> tex "^" <> braces "⊥"
+texType p vs (TVar b x) = texVar (vs!!x) <> texNeg b
 texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
+texType p vs (Meta b x as) = textual x <> as' <> texNeg b
+  where as' = if null as then mempty else  brack (mconcat $ intersperse "," $ map (texType 0 vs) as)
+
+texNeg True = mempty
+texNeg False = tex "^" <> braces "⊥"
 
 -- texType p vs (MetaVar x) = vs!!x 
 -- texType p vs (Subst t f) = texType 4 vs t <> texSubst vs f

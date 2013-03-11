@@ -6,6 +6,7 @@ import MarXup.DerivationTrees
 import Control.Applicative
 import MarXup.MultiRef
 import Reductions
+import Data.Monoid
 
 import TexPretty
 import LL
@@ -25,8 +26,8 @@ program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
 allReductions displayer = mapM_ redRule 
-   [(amp,cutWithPlus),
-    (math par,cutParCross),
+   [(amp<>"⊕",cutWithPlus),
+    (math par<>"⊗",cutParCross),
     ("!?", cutBang),
     ("1⊥",cutUnit),
     ("∀∃",cutQuant),
