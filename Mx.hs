@@ -18,6 +18,9 @@ preamble = do
   cmd "input" (tex "unicodedefs")
   usepackage [] "amsmath"
   usepackage [] "cmll" -- for the operator "par"
+  title "Linear Logic: I see what I mean!"
+  authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),("Josef Svenningsson","",ch)]
+ where ch = "Chalmers University of Technology and University of Gothenburg"
 
 deriv :: Deriv -> Tex Label
 deriv (Deriv tvs vs s) = derivationTree [] $ texSeq False tvs vs s
@@ -45,6 +48,10 @@ allReductions displayer = mapM_ redRule
 todo = cmd "marginpar"
 
 main = render $ latexDocument "article" ["11pt"] preamble $ @"
+
+@maketitle
+
+@section{Introduction}
 
 @todo{Linear logic as a low-level logic}
 
@@ -74,6 +81,35 @@ abstract machine able to run programs written for it.
 
 @section{Reduction rules}
 @allReductions(program)
+
+@section{Discussion}
+
+Many presentations of LL for programming needlessly polarize (dualize)
+the presentation. We remain faithful to the spirit of Girard's LL ---
+LL is already intuitionistic: there is no need to restrict the system
+to give it computational content.
+
+
+On Intuitionistic Linear Logic, G.M. Bierman 93 
+Full Intuitionistic Linear Logic, Hyland & de Paiva 93
+A Term Calculus for Intuitionistic Linear Logic; Benton, Bierman, de Paiva, Hyland, 03
+Dual Intuitionistic Linear Logic, Andrew Barber 96
+
+
+A correspondance has recently been identified between linear logic
+propositions and session types. A proof of a proposition A can be
+identified with process obeying protocol A. This correspondance
+departs from the usual linear logic in that the type @math{A ⊗ B} is
+interpreted as @math{A} then @math{B}, whereas the usual interpretation of the
+linear formula is symmetric with respect to time. Our interpretation
+keeps the symmetry intact. The associated calculus is close to the
+π-calculus, which we observe is unintuitive to functional programmers
+in two respect. On a superficial level, they much prefer ISWIM-like
+syntaxes. On a semantic level, the ability to transmit channel names,
+departs fundamentally from the tradition of functional programming.
+
+
+
 @"
 
 
