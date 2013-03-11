@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE GADTs #-}
 
@@ -25,45 +26,29 @@ smallcaps x = braces (cmd0 "sc" <> x)
 rulText = cmd "text" . smallcaps 
 
 texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
-texSeq showProg ts vs s0 = case s0 of
-  Ax _ -> rul "Ax" []
-  (Cut v vt x s t) -> rul (rulText "Cut") [fun ts ((v,neg vt):v0) s,fun ts ((v,vt):v1) t]
-    where (v0,v1) = splitAt x vs
-  (Cross _ v v' x t) -> rul "⊗" [fun ts (v0++(v,vt):(v',vt'):v1) t]
-    where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par _ x s t) -> rul par [fun ts (v0++[(w,vt)]) s,fun ts ((w,vt'):v1) t]
-    where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
-  (Plus x s t) -> rul "⊕" [fun ts (v0++(w,vt ):v1) s,fun ts (v0++(w,vt'):v1) t]
-    where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
-  (With b x t) -> rul (amp<>tex"_"<>if b then "1" else "2") [fun ts (v0++(w,wt):v1) t]
-     where (c,wt) = case b of True -> ("fst",vt); False -> ("snd",vt')
-           (v0,(w,(vt :&: vt')):v1) = splitAt x vs
-  SBot -> rul "⊥" []
-     where ((v,Bot):_) = vs
-  (SZero x) -> rul "0" []
-     where (v0,(w,Zero):v1) = splitAt x vs
-  (SOne x t ) -> rul "1" [fun ts (v0++v1) t]
-    where (v0,(w,One):v1) = splitAt x vs
-  (Exchange p t) -> rul (rulText "Exch.") [fun ts [vs !! i | i <- p] t]
-  (TApp x tyB s) -> rul "∀" [fun ts (v0++(w,subst0 tyB ∙ tyA):v1) s]
-    where (v0,(w,Forall _ tyA):v1) = splitAt x vs
-  (TUnpack x s) -> rul "∃" [fun (tw:ts) (upd v0++(w,tyA):upd v1) s]
-    where (v0,(w,Exists tw tyA):v1) = splitAt x vs
-          upd = (wk ∙) `for` mapped._2
-  (Offer x s) -> rul "?" [fun ts (v0++(w,tyA):v1) s]
-    where (v0,(w,Quest tyA):v1) = splitAt x vs
-  (Demand _ x s) -> rul "!" [fun ts (v0++(w,tyA):v1) s]
-    where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Ignore x s) -> rul (rulText "Weaken") [fun ts (v0++v1) s]
-    where (v0,(w,Bang tyA):v1) = splitAt x vs
-  (Alias x w' s) -> rul (rulText "Contract") [fun ts ((w',Bang tyA):v0++(w,Bang tyA):v1) s]
-    where (v0,(w,Bang tyA):v1) = splitAt x vs
-  What x -> Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> texVar x))  []
- where vv = vax ts vs
-       rul :: TeX -> [Derivation] -> Derivation
-       rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
-       fun = texSeq showProg
-       maybeProg = if showProg then block (texProg ts vs s0) else mempty
+texSeq showProg = foldSeq sf where
+ sf (Deriv ts vs seq) = SeqFinal {..} where
+  sty = texType 0
+  sax v v' _ = rul (rulText "Ax") []
+  scut v _ s t = rul (rulText "Cut") [s,t]
+  scross _ w v vt v' vt' t =  rul "⊗" [t]
+  spar _ w vt vt' s t = rul par [s,t]
+  splus _ w vt vt' s t = rul "⊕" [s,t]
+  swith b _ w _ t = rul  (amp<>tex"_"<>if b then "1" else "2") [t]
+  sbot v = rul "⊥" []
+  szero w vs = rul "0" []
+  sone w t = rul "1" [t]
+  sxchg _ t = rul (rulText "Exch.") [t]
+  stapp w tyB s = rul "∀" [s]
+  stunpack tw w s = rul "∃" [s]
+  soffer w ty s = rul "?" [s] 
+  sdemand w ty s = rul "!" [s]
+  signore w ty s = rul (rulText "Weaken") [s]
+  salias w w' ty s = rul (rulText "Contract") [s]
+  swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> texVar a))  []
+  rul :: TeX -> [Derivation] -> Derivation
+  rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
+  maybeProg = if showProg then block (texProg ts vs seq) else mempty
 
 
 keyword :: String -> TeX 
@@ -160,8 +145,12 @@ texVar = textual
 prn p k = if p > k then paren else id
        
 texCtx :: [String] -> [(String,Type)] ->  TeX
-texCtx ts vs = mconcat $ intersperse "," [texVarT v (texType 0 ts t) | (v,t) <- vs]
+texCtx ts vs = texCtx' (over (mapped._2) (texType 0 ts) vs)
+
+
+texCtx' vs = mconcat $ intersperse "," [texVarT v t | (v,t) <- vs]
     
+
 texType :: Int -> [String] -> Type -> TeX
 texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
 texType p vs (Exists v t) = prn p 0 $ "∃" <> texVar v <> ". "  <> texType 0 (v:vs) t
@@ -182,12 +171,6 @@ texType p vs (Meta b x as) = textual x <> as' <> texNeg b
 texNeg True = mempty
 texNeg False = tex "^" <> braces "⊥"
 
--- texType p vs (MetaVar x) = vs!!x 
--- texType p vs (Subst t f) = texType 4 vs t <> texSubst vs f
--- 
--- texSubst :: [String] -> Subst String -> TeX
--- texSubst vs s = mconcat $ intersperse "," $ [(s!!t) <> "/" <> (s!!i) | (i,t) <- zip [0..] vs]
-       
 --------------------------------
 -- Pretty printing of closures
 {-

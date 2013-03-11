@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,6 +10,7 @@ module LL where
 
 import Data.Monoid
 import Data.List (mapAccumL)
+import Control.Lens
 
 type Name = String
 -- | Types
@@ -366,8 +368,72 @@ derivToSystem (Deriv _ ctx a) = ([closure],heap)
   where closure = (a,refs,[])
         (heap,refs) = mapAccumL (flip alloc) emptyHeap (map snd ctx)
  
-------------------
--- Symbolic heap
 
+data SeqFinal t a = SeqFinal
+     { sty :: [Name] -> Type -> t
+     , sax :: (Name -> Name -> Type -> a)
+     , scut :: (Name -> Type -> a -> a -> a)
+     , scross :: (Int -> Name -> Name -> t -> Name -> t -> a -> a)
+     , spar :: (Int -> Name -> t -> t -> a -> a -> a)
+     , swith :: (Bool -> Int -> Name -> t -> a -> a)
+     , splus :: (Int -> Name -> t -> t -> a -> a -> a)
+     , sxchg :: (Permutation -> a -> a)
+     , stapp :: (Name -> t -> a -> a)
+     , stunpack :: (Name -> Name -> a -> a)
+     , sbot :: (Name -> a)
+     , szero :: (Name -> [(Name, t)] -> a)
+     , sone :: (Name -> a -> a)
+     , soffer :: (Name -> t -> a -> a)
+     , sdemand :: (Name -> t -> a -> a)
+     , signore :: (Name -> t -> a -> a)
+     , salias :: (Name -> Name -> t -> a -> a)
+     , swhat :: (Name -> a)
+     }
 
+foldSeq :: (Deriv -> SeqFinal t a)
+     -> [Name] -- ^ ty vars
+     -> [(Name, Type)] -- ^ vars
+     -> Seq
+     -> a
 
+foldSeq sf ts0 vs0 s0 = 
+ recurse ts0 vs0 s0 where
+ recurse ts vs seq = case seq of
+      Ax _ -> sax v0 v1 vt where [(v0,_),(v1,vt)] = vs 
+      (Cut v vt x s t) -> scut v vt (recurse ts ((v,neg vt):v0) s)
+                                   (recurse ts ((v,vt):v1) t)
+        where (v0,v1) = splitAt x vs
+      (Cross _ v v' x t) -> scross x w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
+        where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
+      (Par _ x s t) -> spar x w (fty vt) (fty vt') (recurse ts (v0++[(w,vt)]) s) (recurse ts ((w,vt'):v1) t)
+        where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
+      (Plus x s t) -> splus x w (fty vt) (fty vt') (recurse ts (v0++(w,vt ):v1) s) (recurse ts (v0++(w,vt'):v1) t)
+        where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
+      (With b x t) -> swith b x w (fty wt) $ recurse ts (v0++(w,wt):v1) t
+         where wt = if b then vt else vt'
+               (v0,(w,(vt :&: vt')):v1) = splitAt x vs
+      SBot -> sbot v 
+         where [(v,Bot)] = vs
+      (SZero x) -> szero w (fctx (v0 ++ v1))
+         where (v0,(w,Zero):v1) = splitAt x vs
+      (SOne x t) -> sone w $ recurse ts (v0++v1) t
+        where (v0,(w,One):v1) = splitAt x vs
+      (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t        
+      (TApp x tyB s) -> stapp w (fty tyB) $ recurse ts (v0++(w,ty):v1) s
+        where (v0,(w,Forall _ tyA):v1) = splitAt x vs
+              ty = subst0 tyB ∙ tyA
+      (TUnpack x s) -> stunpack tw w $ recurse (tw:ts) (upd v0++(w,tyA):upd v1) s
+        where (v0,(w,Exists tw tyA):v1) = splitAt x vs
+              upd = over (mapped._2) (wk ∙) 
+      (Offer x s) -> soffer w (fty tyA) $ recurse ts (v0++(w,tyA):v1) s
+        where (v0,(w,Quest tyA):v1) = splitAt x vs
+      (Demand _ x s) -> sdemand w (fty tyA) $ recurse ts (v0++(w,tyA):v1) s
+        where (v0,(w,Bang tyA):v1) = splitAt x vs
+      (Ignore x s) -> signore w (fty tyA) $ recurse ts (v0++v1) s
+        where (v0,(w,Bang tyA):v1) = splitAt x vs
+      (Alias x w' s) -> salias w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
+        where (v0,(w,Bang tyA):v1) = splitAt x vs
+      What x -> swhat x
+   where fty = sty ts 
+         fctx = over (mapped._2) fty
+         SeqFinal{..} = sf (Deriv ts vs seq)
