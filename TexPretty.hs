@@ -24,7 +24,7 @@ smallcaps x = braces (cmd0 "sc" <> x)
 
 rulText = cmd "text" . smallcaps 
 
-texSeq :: Bool -> [String] -> [(String,Type)] -> Seq String -> Derivation
+texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
 texSeq showProg ts vs s0 = case s0 of
   Ax _ -> rul "Ax" []
   (Cut v vt x s t) -> rul (rulText "Cut") [fun ts ((v,neg vt):v0) s,fun ts ((v,vt):v1) t]
@@ -73,50 +73,47 @@ case_ = keyword "case~"
 in_ = keyword "~in~"
 connect_ = keyword "connect~"
 [fst_,snd_] = map keyword ["fst~","snd~"]
+separator :: TeX
 separator = cmd "hline" mempty
 
-blocks :: [[TeX]] -> TeX
-blocks [] = mempty
-blocks (x:xs) = block (block x: map (\y -> separator <> block y) xs)
-
-bblock = bigBraces . blocks
-
-xblock :: [TeX] -> TeX
-xblock  bod = do
+xblock :: TeX -> [[TeX]] -> TeX
+xblock format bod@(firstRow:_) = do
   env' "array" ["t"] $ do
-    braces (tex "l") 
-    mkrows $ bod
+    braces format
+    mkrows (map mkcols bod)
   return ()
 
 mapsto :: [TeX] -> TeX
-mapsto xs = cmd "mapsto" (xblock xs)
+mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
 -- left_ = cmd "Leftarrow" mempty
 -- right_ = cmd "Rightarrow" mempty
 
+indent :: TeX
 indent = cmd "hspace" $ tex "1em"
 
-connect z x a y b = 
-  [xblock [connect_ <> z,
-          indent <> x <> mapsto a,
-          indent <> y <> mapsto b]]
+alts :: TeX -> [TeX] -> TeX -> [TeX] -> [TeX]
+alts x a y b = [indent <> xblock (tex "l@{}l") [[x,mapsto a],
+                                                [y,mapsto b]]]
 
-texProg :: [String] -> [(String,Type)] -> Seq String -> [TeX]
+connect z x a y b = connect_ <> z : alts x a y b
+
+texProg :: [String] -> [(String,Type)] -> Seq -> [TeX]
 texProg ts vs s0 = case s0 of
   Ax _ -> [vv 0 <> cmd0 "leftrightarrow" <> vv 1]
-  (Cut v vt x s t) -> connect (keyword "directly") 
+  (Cut v vt x s t) -> connect mempty --(keyword "directly") 
                                (texVarT' v (neg vt)) (texProg ts ((v,neg vt):v0) s)
                                (texVarT' v (    vt)) (texProg ts ((v,vt):v1) t)
     where (v0,v1) = splitAt x vs
   (Cross _ v v' x t) -> (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) :
                       texProg ts (v0++(v,vt):(v',vt'):v1) t
     where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
-  (Par _ x s t) -> connect (texVar w) 
+  (Par _ x s t) -> connect (keyword "via~" <> texVar w) 
                     (texVarT' w vt ) (texProg ts (v0++[(w,vt)]) s)
                     (texVarT' w vt') (texProg ts ((w,vt'):v1) t)
     where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
-  (Plus x s t) -> [xblock [case_ <> texVar w <> keyword "~of",
-                          indent <> keyword "inl~" <> texVar w <> mapsto (texProg ts (v0++(w,vt ):v1) s), 
-                          indent <> keyword "inr~" <> texVar w <> mapsto (texProg ts (v0++(w,vt'):v1) t)]]
+  (Plus x s t) -> case_ <> texVar w <> keyword "~of" :
+                  alts (keyword "inl~" <> texVar w) (texProg ts (v0++(w,vt ):v1) s)
+                       (keyword "inr~" <> texVar w) (texProg ts (v0++(w,vt'):v1) t)
     where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
   (With b x t) -> let' (texVar w) wt (c <> texVar w) : texProg ts (v0++(w,wt):v1) t
      where (c,wt) = case b of True -> (fst_,vt); False -> (snd_,vt')
@@ -158,12 +155,12 @@ texVarT [] t = t
 texVarT v t = texVar v <> ":" <> t
        
 texVar :: String -> TeX              
-texVar = text
+texVar = textual
              
 prn p k = if p > k then paren else id
        
 texCtx :: [String] -> [(String,Type)] ->  TeX
-texCtx ts vs = mconcat $ intersperse (text ",") [texVarT v (texType 0 ts t) | (v,t) <- vs]
+texCtx ts vs = mconcat $ intersperse "," [texVarT v (texType 0 ts t) | (v,t) <- vs]
     
 texType :: Int -> [String] -> Type -> TeX
 texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
@@ -189,7 +186,7 @@ texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
        
 --------------------------------
 -- Pretty printing of closures
-
+{-
 texRef (Named x) = text x
 texRef (Shift t x) = texRef x <> "+ |" <> texType 0 (repeat "var. in texSizeOf") ty <> "|"
 texRef (Next x) = texRef x <> "+1"
@@ -203,8 +200,5 @@ texHeapPart h r = case v of
 texHeap h :: SymHeap -> TeX
 texHeap = cat $ punctuate ", " $ [text r <> cmd0 "mapsto" <> texHeapPart h (Named r) | Named r <- M.keys h]
 
-
-
-
-
+-}
 

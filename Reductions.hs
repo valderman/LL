@@ -30,11 +30,11 @@ cutIgnore = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
 cutQuant = Deriv ["Γ","Δ","A","B"] [(mempty, var 0), (mempty, var 1)] $
            Cut "x" (Exists "α" (var 3)) 1 (TApp 0 (var 3) whatA) (TUnpack 0 whatB)
 
-gamma = (mempty,Meta True "Γ" [])
-delta = (mempty,Meta True "Δ" [])
+gamma = (mempty,meta "Γ")
+delta = (mempty,meta "Δ")
 
 cutQuant' = Deriv ["Θ"] [gamma,delta] $
-           Cut "x" (Exists "α" (meta "A" [var 0])) 1 (TApp 0 (meta "B" []) whatA) (TUnpack 0 whatB)
+           Cut "x" (Exists "α" (Meta True "A" [var 0])) 1 (TApp 0 (meta "B") whatA) (TUnpack 0 whatB)
 
 cutUnit = Deriv ["Γ"] [(mempty, var 0)] $ Cut "x" One 0 SBot (SOne 0 whatA)
 

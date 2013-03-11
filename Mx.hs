@@ -18,10 +18,10 @@ preamble = do
   usepackage [] "amsmath"
   usepackage [] "cmll" -- for the operator "par"
 
-deriv :: Deriv String -> Tex Label
+deriv :: Deriv -> Tex Label
 deriv (Deriv tvs vs s) = derivationTree [] $ texSeq False tvs vs s
 
-program :: Deriv String -> Tex ()
+program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
 allReductions displayer = mapM_ redRule 
@@ -52,7 +52,7 @@ main = render $ latexDocument "article" ["11pt"] preamble $ @"
 We won't dwell on the general benefits of the parallel: this has been done countless times before, 
 remarkably by Girard in a paragraph which starts with the following provocative sentence.
 
-@env{quote}{
+@env("quote"){
 There are still people saying that, in order to make computer
 science, one essentially needs a soldering iron; this opinion is
 shared by logicians who despise computer science and by engineers
