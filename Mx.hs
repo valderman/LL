@@ -18,7 +18,7 @@ preamble = do
   cmd "input" (tex "unicodedefs")
   usepackage [] "amsmath"
   usepackage [] "cmll" -- for the operator "par"
-  title "Linear Logic: I see what I mean!"
+  title "Linear Logic: I see what it means!"
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
@@ -29,7 +29,7 @@ program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
 allReductions displayer = mapM_ redRule 
-   [(amp<>"⊕",cutWithPlus),
+   [(amp<>"⊕",cutWithPlus True),
     (math par<>"⊗",cutParCross),
     ("!?", cutBang),
     ("1⊥",cutUnit),

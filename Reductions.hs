@@ -3,35 +3,34 @@ import Data.Monoid
 import LL
 import Pretty
 
+gamma = (mempty,meta "Γ")
+delta = (mempty,meta "Δ")
+
 whatA = What "a"
 whatB = What "b"
 whatC = What "c"
 whatD = What "d"
 
-cutWithPlus = Deriv ["Γ","Δ","A","B"] [(mempty,var 0), (mempty,var 1)] 
-              (Cut "x" (var 2 :⊕: var 3) 1 
-               (With True 0 (What "a")) 
-               (Plus 0 (What "b") (What "c")))
+cutWithPlus b = Deriv ["Θ"] [gamma,delta]
+                (Cut "x" (meta "A" :⊕: meta "B") 1 
+                (With b 0 (What "a")) 
+                (Plus 0 (What "b") (What "c")))
               
-cutParCross = Deriv ["Γ","Δ","Ξ","A","B"] [(mempty,var 0), (mempty,var 1), (mempty,var 2)]
-              (Cut "x" (var 3 :⊗: var 4) 2 
+cutParCross = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
+              (Cut "x" (meta "A" :⊗: meta "B") 2 
                (Exchange [1,0,2] $ Par dum 1 whatA whatB)
                (Cross dum "x" "y" 0 whatC))
 
-cutBang = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
-          Cut "x" (Bang (var 2)) 1 (Offer 0 whatA) (Demand dum 0 whatB)
+cutBang = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+          Cut "x" (Bang $ meta "A") 1 (Offer 0 whatA) (Demand dum 0 whatB)
 
-cutContract = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
-          Cut "x" (Bang (var 2)) 1 (Offer 0 whatA) (Alias 0 "y" whatB)
+cutContract = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+          Cut "x" (Bang $ meta "A") 1 (Offer 0 whatA) (Alias 0 "y" whatB)
 
-cutIgnore = Deriv ["Γ","Δ","A"] [(mempty, Bang (var 0)), (mempty, var 1)] $
-            Cut "x" (Bang (var 2)) 1 (Offer 0 whatA) (Ignore 0 whatB)
+cutIgnore = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+            Cut "x" (Bang $ meta "A") 1 (Offer 0 whatA) (Ignore 0 whatB)
 
-cutUnit = Deriv ["Γ"] [(mempty, var 0)] $ Cut "x" One 0 SBot (SOne 0 whatA)
-
--- TODO: the other cut examples should use metavars.
-gamma = (mempty,meta "Γ")
-delta = (mempty,meta "Δ")
+cutUnit = Deriv ["Θ"] [gamma] $ Cut "x" One 0 SBot (SOne 0 whatA)
 
 cutQuant = Deriv ["Θ"] [gamma,delta] $
            Cut "x" (Exists "α" (Meta True "A" [var 0])) 1 (TApp 0 (meta "B") whatA) (TUnpack 0 whatB)
