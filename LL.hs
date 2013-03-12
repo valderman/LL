@@ -141,7 +141,7 @@ runClosure h (SBot,e,te)
 runClosure h (TApp x v ty a,e,te)
   = Just (replace (e!!+v) (Q ty q) h',[(a,el++(x,z):er,te)])
   where (el,(_,z):er) = splitAt v e
-        (h',q) = alloc ((ty:te)∙(error "need the type of the polymorphic value")) h
+        (h',q) = alloc ((ty:te)∙(meta "the type of the polymorphic value")) h
 runClosure h (TUnpack x v a,e,te)
   | Q ty p <- h!w = Just (replace w Freed h,[(a,el++[(x,p)]++er,ty:te)])
   where (el,(_,w):er) = splitAt v e
@@ -153,6 +153,7 @@ runClosure h (Ax (TVar True v),e,te)
   = Just (h,[(copy'' (te!!v),e,te)])
 runClosure h (Ax (Forall _ ty),[(_,w),(_,x)],te)
   | q@(Q ty p) <- h!x = Just (replace w q (replace x Freed h),[])
+runClosure h (Ax (Meta _ _ _),_,_) = Nothing -- FIXME: should show something
 runClosure h (Ax ty,[w,x],te)
   = Just (h,[(copy'' ty,[w,x],te)])
 runClosure h (Cut x y ty v a b,e,te)
@@ -386,7 +387,6 @@ derivToSystem (Deriv _ ctx a) = ([closure],heap)
   where closure = (a,zip (map fst ctx) refs,[])
         (heap,refs) = mapAccumL (flip alloc) emptyHeap (map snd ctx)
  
-
 data SeqFinal t a = SeqFinal
      { sty :: [Name] -> Type -> t
      , sax :: (Name -> Name -> Type -> a)

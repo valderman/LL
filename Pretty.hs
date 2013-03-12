@@ -83,7 +83,7 @@ pCtx' vs = sep $ punctuate comma $ [text v <> " : " <> t | (v,t) <- vs]
 
 pClosedType = pType 0 (repeat "<VAR>")
 
-pRef (Named x) = text x
+pRef (Named t x) = text x
 pRef (Shift t x) = pRef x <> "+ |" <> pClosedType t <> "|"
 pRef (Next x) = pRef x <> "+1"
 
@@ -102,7 +102,7 @@ pCell c = case c of
       _ -> "?"
 
 pHeap :: SymHeap -> Doc
-pHeap h = cat $ punctuate ", " [text r <> "↦" <> pHeapPart h (Named r) | Named r <- M.keys h]
+pHeap h = cat $ punctuate ", " [text r <> "↦" <> pHeapPart h (Named t r) | Named t r <- M.keys h]
 
 showSystem :: System SymHeap -> String
 showSystem = render . pSystem

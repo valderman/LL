@@ -9,17 +9,17 @@ import qualified Data.Map as M
 import Data.Map (Map)
 import LL
 
-data SymRef = Named String | Shift (Type) SymRef | Next SymRef
+data SymRef = Named Type String | Shift (Type) SymRef | Next SymRef
 instance Eq SymRef where
-  Named x == Named y = x == y
+  Named _ x == Named _ y = x == y
   Shift _ x == Shift _ y = x == y
   Next x == Next y = x == y
   _ == _ = False
 instance Ord SymRef where
-  compare (Named x) (Named y) = compare x y
+  compare (Named _ x) (Named _ y) = compare x y
   compare (Shift _ x) (Shift _ y) = compare x y
   compare (Next x) (Next y) = compare x y
-  compare (Named _) _ = LT
+  compare (Named _ _) _ = LT
   compare (Shift _ _) _ = LT
   compare _ _ = GT
 
@@ -34,7 +34,8 @@ instance IsHeap SymHeap where
   h ! r = M.findWithDefault New r h
   replace r v = M.alter (\_ -> Just v) r 
   alloc t h = (M.alter (\_ -> Just New) r h,r)
-    where r:_ = filter (\x -> not (x `elem` M.keys h)) $ map Named $ [nam ++ idx | idx <- "":map show [1..], nam <- ["p","q","r","s"] ]
+    where r:_ = filter (\x -> not (x `elem` M.keys h)) $ 
+                 map (Named t) $ [nam ++ idx | idx <- "":map show [1..], nam <- ["p","q","r","s"] ]
   emptyHeap = M.empty
 
 toSystem :: Deriv -> System SymHeap

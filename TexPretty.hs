@@ -184,7 +184,7 @@ texHeap = cat $ punctuate ", " $ [text r <> cmd0 "mapsto" <> texHeapPart h (Name
 unknownTypeEnv = repeat "VAR"
 
 texClosedType = texType 0 unknownTypeEnv
-texRef (Named x) = textual x
+texRef (Named _ x) = textual x
 texRef (Shift t x) = texRef x <> "+ |" <> texClosedType t <> "|"
 texRef (Next x) = texRef x <> "+1"
 
@@ -201,7 +201,9 @@ texCell c = case c of
       Freed -> cmd0 "dagger"
       Tag True -> "1"
       Tag False -> "0"
-      _ -> "?"
+      Q ty r -> paren $ texClosedType ty <> "," <> texRef r
+      -- Delay _ c -> brac $ pClosure c -- FIXME: this makes the eval code crash
+      Delay _ _ -> "?"
 
 doNothings (Nothing:Nothing:xs) = doNothings (Nothing:xs)
 doNothings (x:xs) = x : doNothings xs
@@ -210,11 +212,15 @@ doNothings [] = []
 texHeapPart h r = commas $ map (maybe "…" id) $ doNothings $ heapPart h r
 
 texHeap :: SymHeap -> TeX
-texHeap h = mconcat $ intersperse ", " [textual r <> "↦" <> texHeapPart h (Named r) | Named r <- M.keys h]
+texHeap h = mconcat $ intersperse ", " [textual r <> "↦" <> texHeapPart h (Named t r) | Named t r <- M.keys h, displayed t]
+  where displayed (Meta _ x _) | x `elem` ["Γ","Δ"] = False
+        displayed One = False
+        displayed Bot = False
+        displayed _ = True
 
 texSystem :: System SymHeap -> TeX
 texSystem (cls,h) = do
-  "H=" <>texHeap h <>";"
+  "H=…," <>texHeap h <>";"
   "C=ξ," <> commas (map pClosure cls)
 
 commas = mconcat . intersperse ", "
