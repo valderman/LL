@@ -408,36 +408,49 @@ foldSeq sf ts0 vs0 s0 =
                                        (fty      vt ) (recurse ts ((v',vt):v1) t)
         where (v0,v1) = splitAt x vs
       (Cross _ v v' x t) -> scross x w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
-        where (v0,(w,(vt :⊗: vt')):v1) = splitAt x vs
+        where (v0,(w,~(vt :⊗: vt')):v1) = splitAt x vs
       (Par _ v v' x s t) -> spar x w v (fty vt) v' (fty vt') (recurse ts (v0++[(v,vt)]) s) (recurse ts ((v',vt'):v1) t)
-        where (v0,(w,(vt :|: vt')):v1) = splitAt x vs
+        where (v0,(w,~(vt :|: vt')):v1) = splitAt x vs
       (Plus v v' x s t) -> splus x w v (fty vt) v' (fty vt') (recurse ts (v0++(v,vt ):v1) s) (recurse ts (v0++(v',vt'):v1) t)
-        where (v0,(w,(vt :⊕: vt')):v1) = splitAt x vs
+        where (v0,(w,~(vt :⊕: vt')):v1) = splitAt x vs
       (With v b x t) -> swith b x w v (fty wt) $ recurse ts (v0++(v,wt):v1) t
          where wt = if b then vt else vt'
-               (v0,(w,(vt :&: vt')):v1) = splitAt x vs
+               (v0,(w,~(vt :&: vt')):v1) = splitAt x vs
       SBot -> sbot v
-         where [(v,Bot)] = vs
+         where [(v,~Bot)] = vs
       (SZero x) -> szero w (fctx (v0 ++ v1))
-         where (v0,(w,Zero):v1) = splitAt x vs
+         where (v0,(w,~Zero):v1) = splitAt x vs
       (SOne x t) -> sone w $ recurse ts (v0++v1) t
-        where (v0,(w,One):v1) = splitAt x vs
+        where (v0,(w,~One):v1) = splitAt x vs
       (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t        
       (TApp v x tyB s) -> stapp w v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
-        where (v0,(w,Forall _ tyA):v1) = splitAt x vs
+        where (v0,(w,~(Forall _ tyA)):v1) = splitAt x vs
               ty = subst0 tyB ∙ tyA
       (TUnpack v x s) -> stunpack tw w v $ recurse (tw:ts) (upd v0++(v,tyA):upd v1) s
-        where (v0,(w,Exists tw tyA):v1) = splitAt x vs
-              upd = over (mapped._2) (wk ∙) 
+        where (v0,(w,~(Exists tw tyA)):v1) = splitAt x vs
+              upd = map (second (wk ∙))
       (Offer v x s) -> soffer w v  (fty tyA) $ recurse ts (v0++(v,tyA):v1) s
-        where (v0,(w,Quest tyA):v1) = splitAt x vs
+        where (v0,(w,~(Quest tyA)):v1) = splitAt x vs
       (Demand v _ x s) -> sdemand w v (fty tyA) $ recurse ts (v0++(v,tyA):v1) s
-        where (v0,(w,Bang tyA):v1) = splitAt x vs
+        where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       (Ignore x s) -> signore w (fty tyA) $ recurse ts (v0++v1) s
-        where (v0,(w,Bang tyA):v1) = splitAt x vs
+        where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       (Alias x w' s) -> salias w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
-        where (v0,(w,Bang tyA):v1) = splitAt x vs
+        where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       What x -> swhat x
    where fty = sty ts 
          fctx = over (mapped._2) fty
          SeqFinal{..} = sf (Deriv ts vs seq)
+
+second f (a,b) = (a,f b)
+
+{-
+
+fillTypes :: (Deriv -> SeqFinal Type Seq)
+     -> [Name] -- ^ ty vars
+     -> [(Name, Type)] -- ^ vars
+     -> Seq
+     -> Seq
+     
+
+-}

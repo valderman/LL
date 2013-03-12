@@ -4,8 +4,8 @@ import LL
 import Pretty
 import Symheap
 
-gamma = ("",meta "Γ")
-delta = ("",meta "Δ")
+gamma = ("?γ",meta "Γ")
+delta = ("?δ",meta "Δ")
 
 whatA = What "a"
 whatB = What "b"

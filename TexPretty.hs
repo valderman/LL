@@ -13,6 +13,8 @@ import MarXup.DerivationTrees
 import Data.List
 import Data.String
 import Data.Monoid
+import qualified Data.Map as M
+import Symheap
 
 infix 1 `for`
 x `for` lens = over lens x
@@ -83,37 +85,46 @@ alts x a y b = [indent <> xblock (tex "l@{}l") [[x,mapsto a],
 
 connect z x a y b = connect_ <> z : alts x a y b
 
-texProg :: [Name] -> [(Name,Type)] -> Seq -> [TeX]
-texProg = foldSeq sf where
+texProg = texProg' True
+texUntypedProg :: [Name] -> [Name] -> Seq -> [TeX]
+texUntypedProg ts vs = texProg' False ts (zip vs (repeat $ error "accessing type when texing untyped term")) 
+
+texProg' :: Bool -> [Name] -> [(Name,Type)] -> Seq -> [TeX]
+texProg' showTypes = foldSeq sf where
  sf :: Deriv -> SeqFinal TeX [TeX]
  sf (Deriv ts vs _) = SeqFinal {..} where
-  sty = texType 0
+  sty ts t  = texType 0 ts t
   sax v v' _ = [texVar v <> " ↔ " <> texVar v']
-  scut v v' vt' s vt t = connect mempty (texVarT v'  vt') s
-                                        (texVarT v   vt ) t
+  scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
+                                        (texVarT' v   vt ) t
   scross _ w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
   spar _ w v vt v' vt' s t = connect (keyword "via~" <> texVar w) 
-                    (texVarT v  vt ) s
-                    (texVarT v' vt') t
+                    (texVarT' v  vt ) s
+                    (texVarT' v' vt') t
   splus _ w v vt v' vt' s t = case_ <> texVar w <> keyword "~of" :
                   alts (keyword "inl~" <> texVar v) s
                        (keyword "inr~" <> texVar v') t
-  swith b _ w v' ty s = let'' (texVarT v' ty) (c <> texVar w) : s
+  swith b _ w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) : s
      where c = if b then fst_ else snd_
   sbot v = [texVar v]
-  szero w vs = [keyword "dump~" <> texCtx' vs <> in_ <> texVar w]
+  szero w vs  = [keyword "dump~" <> whenShowTypes (texCtx' vs) <> in_ <> texVar w]
   sone w t = let'' (cmd0 "diamond") (texVar w) : t
   sxchg _ t = t
   stapp v w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
-  stunpack v tw w s = let'' (texVar tw <> "," <> texVar v) (texVar w) : s
-  soffer v w ty s = (keyword "offer~" <> texVarT v ty) : s
-  sdemand v w ty s = (keyword "demand~" <> texVarT v ty) : s
+  stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v) : s
+  soffer v w ty s = (keyword "offer~" <> texVarT' v ty) : s
+  sdemand v w ty s = (keyword "demand~" <> texVarT' v ty) : s
   signore w ty s = (keyword "ignore~" <> texVar w) : s
-  salias w w' ty s = let'' (texVarT w' ty) (keyword "alias~" <> texVar w) : s 
+  salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias~" <> texVar w) : s 
   swhat a = [texVar a]
   let'' w    v = let_ <> w <> "=" <> v
+ texVarT' x y | showTypes = texVarT x y
+              | otherwise = texVar x                            
+ whenShowTypes | showTypes = id                            
+               | otherwise = const "?"
      
 texVarT [] t = t
+texVarT ('?':_) t = t
 texVarT v t = texVar v <> ":" <> t
        
 texVar :: String -> TeX              
@@ -169,4 +180,53 @@ texHeap h :: SymHeap -> TeX
 texHeap = cat $ punctuate ", " $ [text r <> cmd0 "mapsto" <> texHeapPart h (Named r) | Named r <- M.keys h]
 
 -}
+
+unknownTypeEnv = repeat "VAR"
+
+texClosedType = texType 0 unknownTypeEnv
+texRef (Named x) = textual x
+texRef (Shift t x) = texRef x <> "+ |" <> texClosedType t <> "|"
+texRef (Next x) = texRef x <> "+1"
+
+
+heapPart :: SymHeap -> SymRef -> [Maybe TeX]
+heapPart h r = case v of
+    Nothing -> [Nothing]
+    Just c -> Just (texCell c) : heapPart h (Next r) ++ heapPart h (Shift (error "this should not be used in lookup") r)
+  where v = M.lookup r h
+        
+texCell :: Cell SymRef -> TeX
+texCell c = case c of
+      New -> "□"
+      Freed -> cmd0 "dagger"
+      Tag True -> "1"
+      Tag False -> "0"
+      _ -> "?"
+
+doNothings (Nothing:Nothing:xs) = doNothings (Nothing:xs)
+doNothings (x:xs) = x : doNothings xs
+doNothings [] = []
+
+texHeapPart h r = commas $ map (maybe "…" id) $ doNothings $ heapPart h r
+
+texHeap :: SymHeap -> TeX
+texHeap h = mconcat $ intersperse ", " [textual r <> "↦" <> texHeapPart h (Named r) | Named r <- M.keys h]
+
+texSystem :: System SymHeap -> TeX
+texSystem (cls,h) = do
+  "H=" <>texHeap h <>";"
+  "C=ξ," <> commas (map pClosure cls)
+
+commas = mconcat . intersperse ", "
+
+pClosure :: Closure SymRef -> TeX
+pClosure (seq,env,typeEnv) = 
+  brac (block' $ texUntypedProg unknownTypeEnv (map fst env) seq)  <> brack (commas $ [texVar' nm r | (nm,r) <- env])
+  
+texVar' :: String -> SymRef -> TeX  
+texVar' "" r = "…"
+texVar' ('?':x) r = textual x
+texVar' x r = textual x <> "=" <> texRef r
+  
+
 

@@ -7,7 +7,7 @@ import Control.Applicative
 import MarXup.MultiRef
 import Reductions
 import Data.Monoid
-
+import Symheap
 import TexPretty
 import LL
 import Rules
@@ -18,6 +18,7 @@ preamble = do
   usepackage [] "graphicx"
   cmd "input" (tex "unicodedefs")
   usepackage [] "amsmath"
+  usepackage [] "amssymb"
   usepackage [] "cmll" -- for the operator "par"
   title "Linear Logic: I see what it means!"
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),("Josef Svenningsson","",ch)]
@@ -27,24 +28,32 @@ deriv :: Bool -> Deriv -> Tex Label
 deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 
 program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = math (block (texProg tvs vs s))
+program (Deriv tvs vs s) = math (block (texProg' False tvs vs s))
+
+amRule seq = cmdn "frac" [texSystem sys0, texSystem sys1]
+  where sys0 = toSystem seq              
+        sys1 = runSystem sys0
+
+comment :: Tex a -> TeX
+comment x = ""
 
 allRules displayer = mapM_ showRule 
- [axRule     
- ,cutRule    
- ,crossRule  
- ,parRule    
- ,withRule True
- ,plusRule   
- ,oneRule    
- ,zeroRule   
- ,botRule    
- ,forallRule 
- ,existRule  
- ,offerRule  
- ,demandRule 
- ,ignoreRule 
- ,aliasRule  
+ [
+--   axRule   -- FIXME: evaluating the system in this case loops. Do we support Meta in Ax?  
+   cutRule    
+  ,crossRule  
+  ,parRule    
+  ,withRule True
+  ,plusRule   
+  ,oneRule    
+  ,zeroRule   
+  ,botRule    
+  ,forallRule 
+  ,existRule  
+  ,offerRule  
+  ,demandRule 
+  ,ignoreRule 
+  ,aliasRule  
  ] 
  where showRule input = do
           displayMath $ displayer input
@@ -105,8 +114,12 @@ abstract machine able to run programs written for it.
 @section{Cut-elimination rules}
 @allReductions(deriv False)
 
-@section{Reduction rules}
+@section{Program reduction rules}
 @allReductions(program)
+
+@section{Abstract machine rules}
+@allRules(amRule)
+
 
 @section{Discussion}
 
