@@ -47,23 +47,26 @@ pSeq = foldSeq sf where
  sf (Deriv ts vs _) = SeqFinal {..} where
   sty = pType 0
   sax v v' _ = text v <> " ↔ " <> text v'
-  scut v _ s _ t = "connect new " <> text v <> " in {" <> vcat [s<>";",t] <>"}"
+  scut v v' vt' s vt t = "connect " <>
+                                "{"<> vcat [text v'  <> " : " <> vt' <> " in " <> s <> ";",
+                                            text v <> " : " <> vt <> " in " <> t] <>"}"
   scross _ w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
-  spar _ w vt vt' s t = "connect {"<> vcat [text w <> " : " <> vt <> " in " <> s <> ";",
-                                            text w <> " : " <> vt' <> " in " <> t] <>"}"
-  splus _ w vt vt' s t = "case " <> text w <> " of {" <> 
-                          vcat ["inl " <> text w <> " ↦ " <> s<> ";", 
-                                "inr " <> text w <> " ↦ " <> t]<> "}"
-  swith b _ w _ t = "let " <> text w <> " = " <> c <> " " <> text w <> " in " $$ t
+  spar _ w v vt v' vt' s t = "connect "<>text w <>
+                                "{"<> vcat [text v  <> " : " <> vt <> " in " <> s <> ";",
+                                            text v' <> " : " <> vt' <> " in " <> t] <>"}"
+  splus _ w v vt v' vt' s t = "case " <> text w <> " of {" <> 
+                          vcat ["inl " <> text v <> " ↦ " <> s<> ";", 
+                                "inr " <> text v' <> " ↦ " <> t]<> "}"
+  swith b _ w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
      where c = if b then "fst" else "snd"
   sbot v = text v 
   szero w vs = "dump " <> pCtx' vs <> " in " <> text w
   sone w t = "let ◇ = " <> text w <> " in " $$ t
   sxchg _ t = t
-  stapp w tyB s = "let " <> text w <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
-  stunpack tw w s = "let ⟨" <> text tw <> "," <> text w <> "⟩ = " <> text w <> " in " $$ s
-  soffer w ty s = "offer " <> text w <> " : " <> ty $$ s
-  sdemand w ty s = "demand " <> text w <> " : " <> ty $$ s
+  stapp v w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
+  stunpack v tw w s = "let ⟨" <> text tw <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
+  soffer v w ty s = "offer " <> text v <> " : " <> ty $$ s
+  sdemand v w ty s = "demand " <> text v <> " : " <> ty $$ s
   signore w ty s = "ignore " <> text w $$ s
   salias w w' ty s = "let " <> text w' <> " = alias " <> text w <> " : " <> ty $$ s
   swhat a = braces $ pCtx ts vs
@@ -101,14 +104,18 @@ pCell c = case c of
 pHeap :: SymHeap -> Doc
 pHeap h = cat $ punctuate ", " [text r <> "↦" <> pHeapPart h (Named r) | Named r <- M.keys h]
 
+showSystem :: System SymHeap -> String
+showSystem = render . pSystem
 
+pSystem :: System SymHeap -> Doc
 pSystem (cls,h) = hang "Heap:" 2 (pHeap h) $$
                   hang "Closures:" 2 (vcat $ map pClosure cls)
 
+pClosure :: Closure SymRef -> Doc
 pClosure (seq,env,typeEnv) = 
          hang "Closure:" 2 (vcat [
            "Code: TODO",
-            hang "Env: " 2 (cat $ punctuate ", " [pRef r | r <- env]),
+            hang "Env: " 2 (cat $ punctuate ", " [text nm <> " = " <> pRef r | (nm,r) <- env]),
             hang "TypeEnv:" 2 (cat $ punctuate ", " $ map pClosedType typeEnv)])
 
 sshow = putStrLn . render . pSystem  

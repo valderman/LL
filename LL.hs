@@ -117,7 +117,7 @@ runClosure h (Par ty x y v a b,e,te)
     where (el,(_,z):er) = splitAt v e
 runClosure h (With x t v a,e,te)
   = Just (replace (e!!+v) (Tag t) h,[(a,increment v x e,te)])
-
+  -- FIXME: free the part which is unused (half of the time)
 runClosure h (SOne v a,e,te)
   = Just(h,[(a,el++er,te)])
     where (el,_:er) = splitAt v e
@@ -160,6 +160,7 @@ runClosure h (Ignore v a,e,te)
   where (el,(_,m):er) = splitAt v e
 runClosure h (Alias v x a,e,te)
   = Just (modifyRefCount (+1) (e!!+v) h,[(a,(x,e!!+v):e,te)])
+runClosure _ _ = Nothing
 
 modifyRefCount f r h = replace r (Delay (f c) cl) h
   where (Delay c cl) = h!r

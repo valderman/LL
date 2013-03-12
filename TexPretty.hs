@@ -89,12 +89,12 @@ texProg = foldSeq sf where
  sf (Deriv ts vs _) = SeqFinal {..} where
   sty = texType 0
   sax v v' _ = [texVar v <> " ↔ " <> texVar v']
-  scut v v' vt' s vt t = connect mempty (texVarT v  vt') s
-                                        (texVarT v' vt ) t
+  scut v v' vt' s vt t = connect mempty (texVarT v'  vt') s
+                                        (texVarT v   vt ) t
   scross _ w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
   spar _ w v vt v' vt' s t = connect (keyword "via~" <> texVar w) 
                     (texVarT v  vt ) s
-                    (texVarT v' vt') s
+                    (texVarT v' vt') t
   splus _ w v vt v' vt' s t = case_ <> texVar w <> keyword "~of" :
                   alts (keyword "inl~" <> texVar v) s
                        (keyword "inr~" <> texVar v') t
@@ -104,7 +104,7 @@ texProg = foldSeq sf where
   szero w vs = [keyword "dump~" <> texCtx' vs <> in_ <> texVar w]
   sone w t = let'' (cmd0 "diamond") (texVar w) : t
   sxchg _ t = t
-  stapp v w tyB s = let'' (texVar v) (texVar w <> cmd0 "bullet" <> tyB) : s
+  stapp v w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
   stunpack v tw w s = let'' (texVar tw <> "," <> texVar v) (texVar w) : s
   soffer v w ty s = (keyword "offer~" <> texVarT v ty) : s
   sdemand v w ty s = (keyword "demand~" <> texVarT v ty) : s
@@ -123,7 +123,10 @@ texVar nm = textual nm
 prn p k = if p > k then paren else id
        
 texCtx :: [String] -> [(String,Type)] ->  TeX
-texCtx ts vs = texCtx' (over (mapped._2) (texType 0 ts) vs)
+texCtx ts vs = do
+  -- uncomment to show the typing context
+  -- mconcat $ intersperse "," (map texVar $ reverse ts) >>  textual ";"
+  texCtx' (over (mapped._2) (texType 0 ts) vs)
 
 
 texCtx' vs = mconcat $ intersperse "," [texVarT v t | (v,t) <- vs]
