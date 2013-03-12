@@ -47,9 +47,9 @@ pSeq = foldSeq sf where
  sf (Deriv ts vs _) = SeqFinal {..} where
   sty = pType 0
   sax v v' _ = text v <> " ↔ " <> text v'
-  scut v v' vt' s vt t = "connect " <>
-                                "{"<> vcat [text v'  <> " : " <> vt' <> " in " <> s <> ";",
-                                            text v <> " : " <> vt <> " in " <> t] <>"}"
+  scut v v' vt s vt' t = "connect " <>
+                                "{"<> vcat [text v  <> " : " <> vt  <> " in " <> s <> ";",
+                                            text v' <> " : " <> vt' <> " in " <> t] <>"}"
   scross w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
   spar w v vt v' vt' s t = "connect "<>text w <>
                                 "{"<> vcat [text v  <> " : " <> vt <> " in " <> s <> ";",
