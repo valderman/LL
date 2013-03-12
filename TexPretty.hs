@@ -33,10 +33,10 @@ texSeq showProg = foldSeq sf where
   sty = texType 0
   sax v v' _ = rul (rulText "Ax") []
   scut v _ _ s _ t = rul (rulText "Cut") [s,t]
-  scross _ w v vt v' vt' t =  rul "⊗" [t]
-  spar _ w _ vt _ vt' s t = rul par [s,t]
-  splus _ w _ vt _ vt' s t = rul "⊕" [s,t]
-  swith b _ w _ _ s = rul  (amp<>tex"_"<>if b then "1" else "2") [s]
+  scross w v vt v' vt' t =  rul "⊗" [t]
+  spar w _ vt _ vt' s t = rul par [s,t]
+  splus w _ vt _ vt' s t = rul "⊕" [s,t]
+  swith b w _ _ s = rul  (amp<>tex"_"<>if b then "1" else "2") [s]
   sbot v = rul "⊥" []
   szero w vs = rul "0" []
   sone w t = rul "1" [t]
@@ -97,14 +97,14 @@ texProg' showTypes = foldSeq sf where
   sax v v' _ = [texVar v <> " ↔ " <> texVar v']
   scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
                                         (texVarT' v   vt ) t
-  scross _ w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
-  spar _ w v vt v' vt' s t = connect (keyword "via~" <> texVar w) 
+  scross w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
+  spar w v vt v' vt' s t = connect (keyword "via~" <> texVar w) 
                     (texVarT' v  vt ) s
                     (texVarT' v' vt') t
-  splus _ w v vt v' vt' s t = case_ <> texVar w <> keyword "~of" :
+  splus w v vt v' vt' s t = case_ <> texVar w <> keyword "~of" :
                   alts (keyword "inl~" <> texVar v) s
                        (keyword "inr~" <> texVar v') t
-  swith b _ w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) : s
+  swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) : s
      where c = if b then fst_ else snd_
   sbot v = [texVar v]
   szero w vs  = [keyword "dump~" <> whenShowTypes (texCtx' vs) <> in_ <> texVar w]

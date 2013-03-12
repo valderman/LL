@@ -33,7 +33,7 @@ program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 amRule seq = case msys1 of
   Nothing -> cmd "text" "no rule for~" <> program seq
   Just sys1 -> cmdn "frac" [texSystem sys0, texSystem sys1] >> return ()
-  where sys0 = toSystem seq              
+  where sys0 = toSystem $ fillTypes seq              
         msys1 = stepSystem sys0
 
 comment :: Tex a -> TeX

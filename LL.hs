@@ -56,6 +56,20 @@ data (Seq) = Exchange Permutation (Seq) -- Permute variables
          | Ignore Int (Seq)
          | Alias Int Name (Seq)
 
+varOf (Cut _ _ _ x _ _) = x
+varOf (Cross _ _ _ x _) = x
+varOf (Par   _ _ _ x _ _) = x
+varOf (Plus _ _ x _ _) = x
+varOf (With _ _ x _) = x
+varOf (SOne x _) = x
+varOf (TApp _ x _ _) = x
+varOf (TUnpack _ x _) = x
+varOf (Offer _ x _) = x
+varOf (Demand _ _ x _) = x
+varOf (Ignore x _) = x
+varOf (Alias x _ _) = x
+
+
 -- Abstract Machine
 
 -- | A Cell of the Heap
@@ -377,10 +391,10 @@ data SeqFinal t a = SeqFinal
      { sty :: [Name] -> Type -> t
      , sax :: (Name -> Name -> Type -> a)
      , scut :: (Name -> Name -> t -> a -> t -> a -> a)
-     , scross :: (Int -> Name -> Name -> t -> Name -> t -> a -> a)
-     , spar   :: (Int -> Name -> Name -> t -> Name -> t -> a -> a -> a)
-     , swith :: (Bool -> Int -> Name -> Name -> t -> a -> a)
-     , splus :: (Int -> Name -> Name -> t -> Name -> t -> a -> a -> a)
+     , scross :: (Name -> Name -> t -> Name -> t -> a -> a)
+     , spar   :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
+     , swith :: (Bool -> Name -> Name -> t -> a -> a)
+     , splus :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
      , sxchg :: (Permutation -> a -> a)
      , stapp :: (Name -> Name -> t -> a -> a)
      , stunpack :: (Name -> Name -> Name -> a -> a)
@@ -407,13 +421,13 @@ foldSeq sf ts0 vs0 s0 =
       (Cut v v' vt x s t) -> scut v v' (fty (neg vt)) (recurse ts ((v,neg vt):v0) s)
                                        (fty      vt ) (recurse ts ((v',vt):v1) t)
         where (v0,v1) = splitAt x vs
-      (Cross _ v v' x t) -> scross x w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
+      (Cross _ v v' x t) -> scross w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
         where (v0,(w,~(vt :⊗: vt')):v1) = splitAt x vs
-      (Par _ v v' x s t) -> spar x w v (fty vt) v' (fty vt') (recurse ts (v0++[(v,vt)]) s) (recurse ts ((v',vt'):v1) t)
+      (Par _ v v' x s t) -> spar w v (fty vt) v' (fty vt') (recurse ts (v0++[(v,vt)]) s) (recurse ts ((v',vt'):v1) t)
         where (v0,(w,~(vt :|: vt')):v1) = splitAt x vs
-      (Plus v v' x s t) -> splus x w v (fty vt) v' (fty vt') (recurse ts (v0++(v,vt ):v1) s) (recurse ts (v0++(v',vt'):v1) t)
+      (Plus v v' x s t) -> splus w v (fty vt) v' (fty vt') (recurse ts (v0++(v,vt ):v1) s) (recurse ts (v0++(v',vt'):v1) t)
         where (v0,(w,~(vt :⊕: vt')):v1) = splitAt x vs
-      (With v b x t) -> swith b x w v (fty wt) $ recurse ts (v0++(v,wt):v1) t
+      (With v b x t) -> swith b w v (fty wt) $ recurse ts (v0++(v,wt):v1) t
          where wt = if b then vt else vt'
                (v0,(w,~(vt :&: vt')):v1) = splitAt x vs
       SBot -> sbot v
@@ -444,13 +458,29 @@ foldSeq sf ts0 vs0 s0 =
 
 second f (a,b) = (a,f b)
 
-{-
+fillTypes' :: [Name] -> [(Name, Type)] -> Seq -> Seq
+fillTypes' = foldSeq sf where
+  sf :: Deriv -> SeqFinal Type Seq
+  sf (Deriv ts vs seq) = SeqFinal {..} where
+    sty _ t = t
+    sax _ _ t = Ax t
+    scut v v' _ s vt t = Cut v v' vt x s t
+    scross _ v ty v' ty' s = Cross ty v v' x s 
+    spar _ v ty v' ty' s t = Par ty v v' x s t
+    splus _ v vt v' vt' s t = Plus v v' x s t
+    swith b _ v _ t = With v b x t
+    sbot _ = SBot
+    szero _ _ = SZero x
+    sone _ t = SOne x t
+    sxchg p t = Exchange p t
+    stapp _ v tyB s = TApp v x tyB s
+    stunpack _ _ v s = TUnpack v x s
+    soffer _ v _ s = Offer v x s
+    sdemand _ v ty s = Demand v ty x s
+    signore _ _ s = Ignore x s
+    salias _ w' _ s = Alias x w' s
+    swhat a = What a
+    x = varOf seq
+    
+fillTypes (Deriv ts vs s) = (Deriv ts vs (fillTypes' ts vs s))    
 
-fillTypes :: (Deriv -> SeqFinal Type Seq)
-     -> [Name] -- ^ ty vars
-     -> [(Name, Type)] -- ^ vars
-     -> Seq
-     -> Seq
-     
-
--}

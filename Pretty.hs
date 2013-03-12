@@ -50,14 +50,14 @@ pSeq = foldSeq sf where
   scut v v' vt' s vt t = "connect " <>
                                 "{"<> vcat [text v'  <> " : " <> vt' <> " in " <> s <> ";",
                                             text v <> " : " <> vt <> " in " <> t] <>"}"
-  scross _ w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
-  spar _ w v vt v' vt' s t = "connect "<>text w <>
+  scross w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
+  spar w v vt v' vt' s t = "connect "<>text w <>
                                 "{"<> vcat [text v  <> " : " <> vt <> " in " <> s <> ";",
                                             text v' <> " : " <> vt' <> " in " <> t] <>"}"
-  splus _ w v vt v' vt' s t = "case " <> text w <> " of {" <> 
+  splus w v vt v' vt' s t = "case " <> text w <> " of {" <> 
                           vcat ["inl " <> text v <> " ↦ " <> s<> ";", 
                                 "inr " <> text v' <> " ↦ " <> t]<> "}"
-  swith b _ w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
+  swith b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
      where c = if b then "fst" else "snd"
   sbot v = text v 
   szero w vs = "dump " <> pCtx' vs <> " in " <> text w
