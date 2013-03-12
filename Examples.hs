@@ -22,8 +22,8 @@ s1 = Deriv [] [("x",bool), ("y",neg (bool :⊗: bool))] $
 test = Deriv [] [("x",neg t0)]  $
        TUnpack "y" 0 $
        TUnpack "z" 0 $
-       Cross dum "x" "y" 0 $ 
-       Cross dum "v" "w" 0 $ 
+       Cross dum "m" "n" 0 $ 
+       Cross dum "o" "p" 0 $ 
        Exchange [1,2,0] $ 
        Par dum "a" "b" 1 ax ax
 
@@ -43,6 +43,6 @@ exchTest = Deriv ["a","b","c"] [("x",var 0),("y",One),("z",neg (var 0))] $
 
 -- | Testing cuts
 cutTest = Deriv [] [("x",Zero)] $
-          Cut "x" "y" Bot 1
+          Cut "a" "b" Bot 1
             (SOne 0 (SZero 0))
             SBot
