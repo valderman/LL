@@ -1,5 +1,4 @@
 import LL
-import Pretty 
 
 t0 = Forall "α" $ Forall "β" $ (a :⊗: b) ⊸ (b :⊗: a)
   where a = var 1

@@ -10,6 +10,7 @@ import Data.Monoid
 
 import TexPretty
 import LL
+import Rules
 
 preamble :: Tex ()
 preamble = do
@@ -22,11 +23,33 @@ preamble = do
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
-deriv :: Deriv -> Tex Label
-deriv (Deriv tvs vs s) = derivationTree [] $ texSeq False tvs vs s
+deriv :: Bool -> Deriv -> Tex Label
+deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 
 program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
+
+allRules displayer = mapM_ showRule 
+ [axRule     
+ ,cutRule    
+ ,crossRule  
+ ,parRule    
+ ,withRule True
+ ,plusRule   
+ ,oneRule    
+ ,zeroRule   
+ ,botRule    
+ ,forallRule 
+ ,existRule  
+ ,offerRule  
+ ,demandRule 
+ ,ignoreRule 
+ ,aliasRule  
+ ] 
+ where showRule input = do
+          displayMath $ displayer input
+          newline        
+                     
 
 allReductions displayer = mapM_ redRule 
    [(amp<>"⊕",cutWithPlus True),
@@ -76,8 +99,11 @@ abstract machine able to run programs written for it.
 
 @todo{π-calculus as a low-level programming language: not quite. We fill the niche}
 
+@section{Typing rules}
+@allRules(deriv True)
+
 @section{Cut-elimination rules}
-@allReductions(deriv)
+@allReductions(deriv False)
 
 @section{Reduction rules}
 @allReductions(program)
@@ -109,6 +135,10 @@ syntaxes. On a semantic level, the ability to transmit channel names,
 departs fundamentally from the tradition of functional programming.
 
 
+@section{Discussion}
+
+Could we make a purely demand-driven version of the machine? That is, 
+instead of waiting, call the code of the closure responsible for giving the data.
 
 @"
 

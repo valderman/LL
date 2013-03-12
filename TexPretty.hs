@@ -30,25 +30,25 @@ texSeq showProg = foldSeq sf where
  sf (Deriv ts vs seq) = SeqFinal {..} where
   sty = texType 0
   sax v v' _ = rul (rulText "Ax") []
-  scut v _ s _ t = rul (rulText "Cut") [s,t]
+  scut v _ _ s _ t = rul (rulText "Cut") [s,t]
   scross _ w v vt v' vt' t =  rul "⊗" [t]
-  spar _ w vt vt' s t = rul par [s,t]
-  splus _ w vt vt' s t = rul "⊕" [s,t]
-  swith b _ w _ t = rul  (amp<>tex"_"<>if b then "1" else "2") [t]
+  spar _ w _ vt _ vt' s t = rul par [s,t]
+  splus _ w _ vt _ vt' s t = rul "⊕" [s,t]
+  swith b _ w _ _ s = rul  (amp<>tex"_"<>if b then "1" else "2") [s]
   sbot v = rul "⊥" []
   szero w vs = rul "0" []
   sone w t = rul "1" [t]
   sxchg _ t = rul (rulText "Exch.") [t]
-  stapp w tyB s = rul "∀" [s]
-  stunpack tw w s = rul "∃" [s]
-  soffer w ty s = rul "?" [s] 
-  sdemand w ty s = rul "!" [s]
+  stapp w _ tyB s = rul "∀" [s]
+  stunpack tw w _ s = rul "∃" [s]
+  soffer w _ ty s = rul "?" [s] 
+  sdemand w _ ty s = rul "!" [s]
   signore w ty s = rul (rulText "Weaken") [s]
   salias w w' ty s = rul (rulText "Contract") [s]
-  swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> texVar a))  []
+  swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
   rul :: TeX -> [Derivation] -> Derivation
   rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
-  maybeProg = if showProg then block (texProg ts vs seq) else mempty
+  maybeProg = if showProg then block' (texProg ts vs seq) else mempty
 
 
 keyword :: String -> TeX 
@@ -61,6 +61,7 @@ connect_ = keyword "connect~"
 separator :: TeX
 separator = cmd "hline" mempty
 
+block' = xblock "l" . map (:[])
 xblock :: TeX -> [[TeX]] -> TeX
 xblock format bod@(firstRow:_) = do
   env' "array" ["t"] $ do
@@ -88,26 +89,26 @@ texProg = foldSeq sf where
  sf (Deriv ts vs _) = SeqFinal {..} where
   sty = texType 0
   sax v v' _ = [texVar v <> " ↔ " <> texVar v']
-  scut v vt' s vt t = connect mempty (texVarT v vt') s
-                                     (texVarT v vt ) t
+  scut v v' vt' s vt t = connect mempty (texVarT v  vt') s
+                                        (texVarT v' vt ) t
   scross _ w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
-  spar _ w vt vt' s t = connect (keyword "via~" <> texVar w) 
-                    (texVarT w vt ) s
-                    (texVarT w vt') s
-  splus _ w vt vt' s t = case_ <> texVar w <> keyword "~of" :
-                  alts (keyword "inl~" <> texVar w) s
-                       (keyword "inr~" <> texVar w) t
-  swith b _ w ty s = let'' (texVarT w ty) (c <> texVar w) : s
+  spar _ w v vt v' vt' s t = connect (keyword "via~" <> texVar w) 
+                    (texVarT v  vt ) s
+                    (texVarT v' vt') s
+  splus _ w v vt v' vt' s t = case_ <> texVar w <> keyword "~of" :
+                  alts (keyword "inl~" <> texVar v) s
+                       (keyword "inr~" <> texVar v') t
+  swith b _ w v' ty s = let'' (texVarT v' ty) (c <> texVar w) : s
      where c = if b then fst_ else snd_
   sbot v = [texVar v]
   szero w vs = [keyword "dump~" <> texCtx' vs <> in_ <> texVar w]
   sone w t = let'' (cmd0 "diamond") (texVar w) : t
   sxchg _ t = t
-  stapp w tyB s = let'' (texVar w) (texVar w <> cmd0 "bullet" <> tyB) : s
-  stunpack tw w s = let'' (texVar tw <> "," <> texVar w) (texVar w) : s
-  soffer w ty s = (keyword "offer~" <> texVarT w ty) : s
-  sdemand w ty s = (keyword "demand~" <> texVarT w ty) : s
-  signore w ty s = (keyword "ignore~" <> texVarT w ty) : s
+  stapp v w tyB s = let'' (texVar v) (texVar w <> cmd0 "bullet" <> tyB) : s
+  stunpack v tw w s = let'' (texVar tw <> "," <> texVar v) (texVar w) : s
+  soffer v w ty s = (keyword "offer~" <> texVarT v ty) : s
+  sdemand v w ty s = (keyword "demand~" <> texVarT v ty) : s
+  signore w ty s = (keyword "ignore~" <> texVar w) : s
   salias w w' ty s = let'' (texVarT w' ty) (keyword "alias~" <> texVar w) : s 
   swhat a = [texVar a]
   let'' w    v = let_ <> w <> "=" <> v
@@ -116,7 +117,8 @@ texVarT [] t = t
 texVarT v t = texVar v <> ":" <> t
        
 texVar :: String -> TeX              
-texVar = textual
+texVar ('_':nm) = cmd "bar" $ texVar nm
+texVar nm = textual nm
              
 prn p k = if p > k then paren else id
        
