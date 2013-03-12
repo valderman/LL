@@ -28,11 +28,13 @@ deriv :: Bool -> Deriv -> Tex Label
 deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 
 program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = math (block (texProg' False tvs vs s))
+program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
-amRule seq = cmdn "frac" [texSystem sys0, texSystem sys1]
+amRule seq = case msys1 of
+  Nothing -> cmd "text" "no rule for~" <> program seq
+  Just sys1 -> cmdn "frac" [texSystem sys0, texSystem sys1] >> return ()
   where sys0 = toSystem seq              
-        sys1 = runSystem sys0
+        msys1 = stepSystem sys0
 
 comment :: Tex a -> TeX
 comment x = ""

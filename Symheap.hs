@@ -34,7 +34,7 @@ instance IsHeap SymHeap where
   h ! r = M.findWithDefault New r h
   replace r v = M.alter (\_ -> Just v) r 
   alloc t h = (M.alter (\_ -> Just New) r h,r)
-    where r:_ = filter (\x -> not (x `elem` M.keys h)) $ map Named $ [nam ++ idx | idx <- "":map show [1..], nam <- ["p","q"] ]
+    where r:_ = filter (\x -> not (x `elem` M.keys h)) $ map Named $ [nam ++ idx | idx <- "":map show [1..], nam <- ["p","q","r","s"] ]
   emptyHeap = M.empty
 
 toSystem :: Deriv -> System SymHeap
