@@ -71,12 +71,6 @@ texVar' x r = textual x <> "=" <> texRef r
 
 -}
 
------
--- Move to Diagrams
-
-
-setHeight o h = ypart (N ▸ o - S ▸ o) === h
-setWidth  o w = xpart (E ▸ o - W ▸ o) === w
 
 
 
