@@ -141,7 +141,7 @@ runClosure h (SBot,e,te)
 runClosure h (TApp x v ty a,e,te)
   = Just (replace (e!!+v) (Q ty q) h',[(a,el++(x,z):er,te)])
   where (el,(_,z):er) = splitAt v e
-        (h',q) = alloc ((ty:te)∙(meta "the type of the polymorphic value")) h
+        (h',q) = alloc ((ty:te)∙(meta "the type of the polymorphic value")) h -- FIXME: probaby the type should be an arg to TApp
 runClosure h (TUnpack x v a,e,te)
   | Q ty p <- h!w = Just (replace w Freed h,[(a,el++[(x,p)]++er,ty:te)])
   where (el,(_,w):er) = splitAt v e

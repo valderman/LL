@@ -165,21 +165,6 @@ texNeg False = tex "^" <> braces "⊥"
 
 --------------------------------
 -- Pretty printing of closures
-{-
-texRef (Named x) = text x
-texRef (Shift t x) = texRef x <> "+ |" <> texType 0 (repeat "var. in texSizeOf") ty <> "|"
-texRef (Next x) = texRef x <> "+1"
-
-texHeapPart :: SymHeap -> Ref -> TeX
-texHeapPart h r = case v of
-    Nothing -> "..."
-    Just c -> texCell c <> texHeapPart h (Next r) <> texHeapPart (Shift r)
-  where v = M.lookup r h
-        
-texHeap h :: SymHeap -> TeX
-texHeap = cat $ punctuate ", " $ [text r <> cmd0 "mapsto" <> texHeapPart h (Named r) | Named r <- M.keys h]
-
--}
 
 unknownTypeEnv = repeat "VAR"
 
