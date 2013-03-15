@@ -11,6 +11,7 @@ import Symheap
 import TexPretty
 import LL
 import Rules
+import DiagPretty
 
 preamble :: Tex ()
 preamble = do
@@ -27,38 +28,48 @@ preamble = do
 deriv :: Bool -> Deriv -> Tex Label
 deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 
+deriv' = deriv True
+
+deriv2 (a,Nothing) = displayMath $ deriv' a
+deriv2 (a,Just b) = displayMath $ deriv' a >> cmd0 "quad" >> deriv' b
+
 program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
-amRule seq = case msys1 of
+amRule (seq,mseq) = case msys1 of
   Nothing -> cmd "text" "no rule for~" <> program seq
-  Just sys1 -> cmdn "frac" [texSystem sys0, texSystem sys1] >> return ()
-  where sys0 = toSystem $ fillTypes seq              
+  Just sys1 -> rul sys0 sys1 >> follow 
+    where follow = case mseq of
+            Nothing -> return ()
+            Just seq' -> rul sys2 sys3
+             where (cl2,_) = toSystem' seq'
+                   h = snd sys1
+                   sys2 = (cl2,h)
+                   sys3 = runSystem sys2
+  where sys0 = toSystem' seq
         msys1 = stepSystem sys0
+
+rul s s' = displayMath $ cmdn "frac" [diagSystem s, diagSystem s'] >> return ()
+-- rul s s' = displayMath $ cmdn "frac" [texSystem s, texSystem s'] >> return ()
+toSystem' =  toSystem . fillTypes
 
 comment :: Tex a -> TeX
 comment x = ""
 
 allRules displayer = mapM_ showRule 
- [
---   axRule   -- FIXME: evaluating the system in this case loops. Do we support Meta in Ax?  
-   cutRule    
-  ,crossRule  
-  ,parRule    
-  ,withRule True
-  ,plusRule   
-  ,oneRule    
-  ,zeroRule   
-  ,botRule    
-  ,forallRule 
-  ,existRule  
-  ,offerRule  
-  ,demandRule 
-  ,ignoreRule 
-  ,aliasRule  
- ] 
+  [(axRule,Nothing)
+  ,(cutRule,Nothing)
+  ,(parRule,Just crossRule)
+  ,(withRule True,Just plusRule)
+  ,(botRule,Just oneRule)    
+  ,(zeroRule,Nothing)
+  ,(forallRule,Just existRule)
+  ,(offerRule,Just demandRule) 
+  ,(ignoreRule,Nothing) 
+  ,(aliasRule,Nothing)  
+  ] 
  where showRule input = do
-          displayMath $ displayer input
+          displayer input
           newline        
                      
 
@@ -111,7 +122,7 @@ abstract machine able to run programs written for it.
 @todo{π-calculus as a low-level programming language: not quite. We fill the niche}
 
 @section{Typing rules}
-@allRules(deriv True)
+@allRules(deriv2)
 
 @section{Cut-elimination rules}
 @allReductions(deriv False)
