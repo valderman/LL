@@ -29,6 +29,18 @@ data Type = Type :⊕: Type
 a ⊸ b = neg a :|: b
 dum = meta "dummy type" 
 
+positiveType t = case t of
+  One -> True
+  Zero -> True
+  _ :⊗: _ -> True
+  _ :⊕: _ -> True            
+  Bang _ -> True
+  Exists _ _ -> True
+  TVar b _ -> b
+  Meta b _ _ -> b
+  _ -> False
+
+mkPositive t = if positiveType t then t else neg t
 
 subst0 x = x:map var [0..]
 

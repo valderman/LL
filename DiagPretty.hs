@@ -35,30 +35,30 @@ followup c t r = case t of
                      Tag False -> [(Next r,b)]
                      _ -> []          
 
+lk :: SymRef ->  Render (Maybe (Expr ObjectRef))
+lk r = do
+  s <- get
+  return $ M.lookup r s 
+
+link :: Expr ObjectRef -> Expr ObjectRef -> D ()
+link source target = do
+  delay $ mpRaw "drawarrow " <> out (Center ▸ source) <> "{down}.." <> out (NW ▸ target) <> "{down};\n"
+
 renderHeapPart :: SymHeap -> SymRef -> Type -> Render (Expr ObjectRef)
 renderHeapPart h r t = do
-  s <- get
-  case M.lookup r s of
+  oref <- lk r
+  case oref of
     Just b -> return b
     Nothing -> do
-      b <- lift $ boxObj
-      modify (M.insert r b)
-      case M.lookup r h of
-        Nothing -> do
-            -- lift $ width b === 0
-            return ()
+      b <- case M.lookup r h of
+        Nothing -> lift $ textObj $ strut $ "..."
         Just c -> do x <- renderCell c
                      xs <- forM (followup c t r) $ \(r', t') -> do
                        renderHeapPart h r' t'
                      let allObjs = (x:xs)
                      sequenceObjs 0 allObjs
-                     lift $ N ▸ x =-= N ▸ b
-                     lift $ S ▸ x =-= S ▸ b
-                     lift $ W ▸ x =|= W ▸ b
-                     lift $ E ▸ (last allObjs) =|= E ▸ b
-                     -- lift $ S ▸ b =-= S ▸ x
-                     -- lift $ N ▸ b =-= N ▸ x
-                     
+      modify (M.insert r b)
+      lift $ drawBounds b
       return b
 
 strut x = cmd0 "strut" <> x
@@ -75,28 +75,55 @@ renderCell c = lift $ case c of
 
 renderTopHeapPart h t r = do
   o <- renderHeapPart h (Named t r) t
-  l <- lift $ textObj $ strut $ math $ texClosedType t
-  lift $ NW ▸ l === SW ▸ o
-  return o
+  lift $ do
+    l <- textObj $ strut $ math $ texClosedType t
+    ypart (N ▸ o) === (-50)
+    NW ▸ l === SW ▸ o
+    return o
 
-renderHeap :: SymHeap -> Render ()
-renderHeap h = sequenceObjs 5 =<< sequence [renderTopHeapPart h t r | Named t r <- M.keys h]
+renderHeap :: SymHeap -> Render (Expr ObjectRef)
+renderHeap h = sequenceObjs 30 =<< sequence [renderTopHeapPart h t r | Named t r <- M.keys h]
 
-sequenceObjs d [] = return ()
-sequenceObjs d [x] = return ()
-sequenceObjs d (x:y:xs) = do 
-  lift $ (BaselineE ▸ x) + (d +: 0) === Baseline ▸ y 
-  sequenceObjs d (y:xs)                         
+sequenceObjs' :: Expr Numeric -> [Expr ObjectRef] -> D (Expr ObjectRef)
+sequenceObjs' d [] = textObj $ strut ""
+sequenceObjs' d [x] = return x
+sequenceObjs' d (x:xs) = do 
+  b <- abstractBox
+  sequence_ [(BaselineE ▸ x1) + (d +: 0) === Baseline ▸ x0 | (x0,x1) <- zip (x:xs) xs]
+  Baseline ▸ b === Baseline ▸ x
+  N ▸ b =-= N ▸ x
+  S ▸ b =-= S ▸ x
+  E ▸ b =|= E ▸ x
+  return b
+ where y = last xs
 
+sequenceObjs :: Expr Numeric -> [Expr ObjectRef] -> Render (Expr ObjectRef)
+sequenceObjs d xs = lift $ sequenceObjs' d xs
+       
 runRender x = runStateT x M.empty
 
-renderClosure :: Closure SymRef -> Render ()
-renderClosure c = return ()
+renderEnv :: Env SymRef -> Render (Expr ObjectRef)
+renderEnv env = sequenceObjs 0 =<< forM env (\(nm,ref) -> do
+  target <- lk ref
+  lift $ do
+     lab <- textObj $ strut $ math $ texVar $ nm
+     val <- boxObj 
+     NW ▸ val === SW ▸ lab
+     height val === 12
+     width val === 12
+     case target of
+       Just t -> link val t
+       _ -> return () 
+     return val)
+
+renderClosure :: Closure SymRef -> Render (Expr ObjectRef)
+renderClosure (code,env,typeEnv) = renderEnv env
 
 renderSystem :: System SymHeap -> Render ()
 renderSystem (cls,h) = do
   renderHeap h
-  mapM_ renderClosure cls
+  sequenceObjs 40 =<< mapM renderClosure cls
+  return ()
 
 diagSystem :: System SymHeap -> TeX 
 diagSystem s = mpFigure [] (fst <$> (runRender $ renderSystem s)) >> return ()
