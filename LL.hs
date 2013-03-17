@@ -91,6 +91,7 @@ data Cell ref where
   New   :: Cell ref
   Delay :: Int -> Closure ref -> Cell ref
   Q     :: Type -> ref -> Cell ref -- 1st arg should be a monotype
+  NewMeta :: Type -> Cell ref
 
 type CellRef = Int
 
@@ -109,6 +110,7 @@ class IsRef (Ref heap) => IsHeap heap where
   (!) :: heap -> Ref heap -> Cell (Ref heap) 
   replace :: Ref heap -> Cell (Ref heap) -> heap -> heap
   alloc :: Type -> heap -> (heap,Ref heap)
+  allocAtom :: Ref heap -> Cell (Ref heap) -> heap -> heap
   emptyHeap :: heap
 
 type Heap = [Cell Int]
@@ -122,8 +124,24 @@ instance IsHeap Heap where
   (!) = (!!)
   replace n v (h) = let (l,_:r) = splitAt n h
                 in l ++ v : r
-  alloc t (h) = (h ++ replicate (sizeOf t) New,length h)
+  alloc t (h) = (h ++ replicate (sizeOf t) New,length h) -- FIXME
   emptyHeap = []
+
+
+-- FIXME: pretty sure we need this:
+-- This means we also need to allocate in & rule (fst/snd)
+allocAt r t = do
+  case mkPositive t of
+      Zero -> id
+      One -> id
+      a :⊗: b -> allocAt r a . allocAt (shift a r) b
+      a :⊕: b -> allocAtom r New
+      -- FIXME: need unallocated, but shared area
+      -- Bang _ -> allocAtom r (Delay 0 Nothing)
+      Exists _ _ -> allocAtom r New
+      t@(Meta _ _ _) -> allocAtom r (NewMeta t)
+      TVar _ _ -> error "can only allocate concrete types"
+
 
 type System h = ([Closure (Ref h)],h)
 
