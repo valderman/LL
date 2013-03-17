@@ -19,21 +19,7 @@ import Symheap
 import Control.Monad.State
 import TexPretty
 
-unknownTypeEnv = repeat "VAR"
-
 type Render a = StateT (M.Map SymRef (Expr ObjectRef)) MP a
-
-followup :: Cell SymRef -> Type -> SymRef -> [(SymRef,Type)]
-followup c t r = case t of 
-  a :⊕: b -> nxt a b
-  a :&: b -> nxt a b
-  a :⊗: b -> [(Shift a r,b)]
-  a :|: b -> [(Shift a r,b)]
-  _ -> []
- where nxt a b = case c of
-                     Tag True -> [(Next r,a)]
-                     Tag False -> [(Next r,b)]
-                     _ -> []          
 
 lk :: SymRef ->  Render (Maybe (Expr ObjectRef))
 lk r = do
@@ -41,25 +27,38 @@ lk r = do
   return $ M.lookup r s 
 
 link :: Expr ObjectRef -> Expr ObjectRef -> D ()
-link source target = do
-  delay $ mpRaw "drawarrow " <> out (Center ▸ source) <> "{down}.." <> out (NW ▸ target) <> "{down};\n"
+link source target = do   
+  delay $ mpRaw "drawarrow " <> out (Center ▸ source) <> "{down}..." <> out (NW ▸ target) <> "{down};\n"
+
+boxIt o = do
+  x <- o
+  drawBounds x
+  return x
 
 renderHeapPart :: SymHeap -> SymRef -> Type -> Render (Expr ObjectRef)
 renderHeapPart h r t = do
   oref <- lk r
   case oref of
-    Just b -> return b
+    Just oref' -> return oref'
     Nothing -> do
-      b <- case M.lookup r h of
-        Nothing -> lift $ textObj $ strut $ "..."
-        Just c -> do x <- renderCell c
-                     xs <- forM (followup c t r) $ \(r', t') -> do
-                       renderHeapPart h r' t'
-                     let allObjs = (x:xs)
-                     sequenceObjs 0 allObjs
-      modify (M.insert r b)
-      lift $ drawBounds b
-      return b
+       oref' <- case mkPositive t of
+          Meta _ nm _ -> lift $ boxIt $ renderVar nm
+          TVar _ _ -> lift $ boxObj
+          t0 :⊗: t1 -> do p1 <- renderHeapPart h r t0
+                          p2 <- renderHeapPart h (Shift t0 r) t1    
+                          sequenceObjs 0 [p1,p2]
+          t0 :⊕: t1 -> case M.lookup r h of
+            Just (Tag t) -> do 
+              p1 <- lift $ boxIt $ textObj $ strut $ if t then "1" else "0"
+              p2 <- renderHeapPart h (Next r) (if t then t0 else t1)
+              sequenceObjs 0 [p1,p2]
+            _ -> do
+              p1 <- lift $ boxIt $ textObj $ strut $ "X" 
+              p2 <- lift $ boxObj
+              sequenceObjs 0 [p1,p2]
+          _ -> lift $ boxIt $ textObj "OT"         
+       modify (M.insert r oref')
+       return oref'
 
 strut x = cmd0 "strut" <> x
 
@@ -76,8 +75,8 @@ renderCell c = lift $ case c of
 renderTopHeapPart h t r = do
   o <- renderHeapPart h (Named t r) t
   lift $ do
+    -- ypart (N ▸ o) === (-50)
     l <- textObj $ strut $ math $ texClosedType t
-    ypart (N ▸ o) === (-50)
     NW ▸ l === SW ▸ o
     return o
 
@@ -89,11 +88,10 @@ sequenceObjs' d [] = textObj $ strut ""
 sequenceObjs' d [x] = return x
 sequenceObjs' d (x:xs) = do 
   b <- abstractBox
-  sequence_ [(BaselineE ▸ x1) + (d +: 0) === Baseline ▸ x0 | (x0,x1) <- zip (x:xs) xs]
-  Baseline ▸ b === Baseline ▸ x
-  N ▸ b =-= N ▸ x
+  sequence_ [W ▸ x1 === (E ▸ x0) + (d +: 0) | (x0,x1) <- zip (x:xs) xs]
+  NW ▸ b === NW ▸ x
   S ▸ b =-= S ▸ x
-  E ▸ b =|= E ▸ x
+  E ▸ b =|= E ▸ y
   return b
  where y = last xs
 
@@ -102,11 +100,13 @@ sequenceObjs d xs = lift $ sequenceObjs' d xs
        
 runRender x = runStateT x M.empty
 
+renderVar nm = textObj $ strut $ math $ texVar $ nm
+
 renderEnv :: Env SymRef -> Render (Expr ObjectRef)
 renderEnv env = sequenceObjs 0 =<< forM env (\(nm,ref) -> do
   target <- lk ref
   lift $ do
-     lab <- textObj $ strut $ math $ texVar $ nm
+     lab <- renderVar nm
      val <- boxObj 
      NW ▸ val === SW ▸ lab
      height val === 12
@@ -117,12 +117,17 @@ renderEnv env = sequenceObjs 0 =<< forM env (\(nm,ref) -> do
      return val)
 
 renderClosure :: Closure SymRef -> Render (Expr ObjectRef)
-renderClosure (code,env,typeEnv) = renderEnv env
+renderClosure (code,env,typeEnv) = do
+   code' <- lift $ textObj $ block' $ texUntypedProg unknownTypeEnv (map fst env) code
+   env' <- renderEnv env
+   lift $ S ▸ code' === N ▸ env' + (0 +: 20) 
+   return $ env'
 
 renderSystem :: System SymHeap -> Render ()
 renderSystem (cls,h) = do
-  renderHeap h
-  sequenceObjs 40 =<< mapM renderClosure cls
+  h' <- renderHeap h
+  cls' <- sequenceObjs 40 =<< mapM renderClosure cls
+  lift $ Center ▸ h' + (0+:50) === Center ▸ cls' 
   return ()
 
 diagSystem :: System SymHeap -> TeX 
