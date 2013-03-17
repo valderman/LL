@@ -63,7 +63,7 @@ pSeq = foldSeq sf where
   szero w vs = "dump " <> pCtx' vs <> " in " <> text w
   sone w t = "let ◇ = " <> text w <> " in " $$ t
   sxchg _ t = t
-  stapp v w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
+  stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
   stunpack tw w v s = "let ⟨" <> text tw <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
   soffer v w ty s = "offer " <> text v <> " : " <> ty $$ s
   sdemand v w ty s = "demand " <> text v <> " : " <> ty $$ s

@@ -60,7 +60,7 @@ data (Seq) = Exchange Permutation (Seq) -- Permute variables
          | SBot              -- Rename to Terminate
          | What Name
            
-         | TApp Name Int (Type) (Seq)
+         | TApp Type Name Int (Type) (Seq)
          | TUnpack Name Int (Seq)
 
          | Offer Name Int (Seq)
@@ -74,7 +74,7 @@ varOf (Par   _ _ _ x _ _) = x
 varOf (Plus _ _ x _ _) = x
 varOf (With _ _ x _) = x
 varOf (SOne x _) = x
-varOf (TApp _ x _ _) = x
+varOf (TApp _ _ x _ _) = x
 varOf (TUnpack _ x _) = x
 varOf (Offer _ x _) = x
 varOf (Demand _ _ x _) = x
@@ -168,10 +168,10 @@ runClosure h (SOne v a,e,te)
 runClosure h (SBot,e,te)
   = Just (h,[])
 
-runClosure h (TApp x v ty a,e,te)
+runClosure h (TApp tp x v ty a,e,te)
   = Just (replace (e!!+v) (Q ty q) h',[(a,el++(x,z):er,te)])
   where (el,(_,z):er) = splitAt v e
-        (h',q) = alloc ((ty:te)∙(meta "the type of the polymorphic value")) h -- FIXME: probaby the type should be an arg to TApp
+        (h',q) = alloc ((ty:te)∙tp) h
 runClosure h (TUnpack x v a,e,te)
   | Q ty p <- h!w = Just (replace w Freed h,[(a,el++[(x,p)]++er,ty:te)])
   where (el,(_,w):er) = splitAt v e
@@ -304,7 +304,7 @@ applyS f t = case t of
   Plus w w' x a b -> Plus w w' x (s a) (s b)
   With w c x a -> With w c x (s a)
   SOne x a -> SOne x (s a) 
-  TApp w x ty a -> TApp w x (f ∙ ty) (s a)
+  TApp tp w x ty a -> TApp ((var 0:wk∙f)∙tp) w x (f ∙ ty) (s a)
   TUnpack w x a -> TUnpack w x (s' a)
   Offer w x a -> Offer w x (s a)
   Demand w ty x a -> Demand w ty x (s a)
@@ -343,7 +343,8 @@ cut :: Int -> -- ^ size of the context
        Type -> 
        Int -> -- ^ where to cut it
        (Seq) -> (Seq) -> (Seq)
--- FIXME: in the absence of "What" cut can be eliminated so these recursive calls terminate. Otherwise, we have a problem.
+-- FIXME: in the absence of "What" cut can be eliminated so these recursive calls terminate. Otherwise, we have a problem. 
+-- At the moment it seems we never use hereditary cut, so this should probably go away.
 -- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 cut 2 _ _ ty 1 (Ax _) a = a
@@ -355,7 +356,7 @@ cut n _ _ (ta :⊗: tb)
 cut n _ _ (ta :⊕: tb) 
            γ (With z c 0 a) (Plus w w' 0 s t) = cut n z (if c then w else w') (if c then ta else tb) γ a (if c then s else t)
 cut n _ _ (Exists v ty) 
-           γ (TApp z 0 t a) (TUnpack w 0 b) = cut n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
+           γ (TApp _ z 0 t a) (TUnpack w 0 b) = cut n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
 cut n _ _ (Bang ty) 
            γ (Offer z 0 a) (Demand w _ 0 b) = cut n z w ty γ a b
 cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
@@ -375,7 +376,7 @@ isPos (Ax _) = True
 isPos (Exchange _ (Par _ _ _ _ _ _)) = True
 isPos (With _ _  _ _) = True
 isPos (Offer _ _ _) = True
-isPos (TApp _ _ _ _) = True
+isPos (TApp _ _ _ _ _) = True
 isPos SBot = True
 isPos _ = False
 
@@ -390,7 +391,7 @@ subst π t = case t of
   Exchange ρ a -> subst (map f ρ) a
   (With w c x a) -> With w c (f x) (s a) 
   (Plus w w' x a b) -> Plus w w' (f x) (s a) (s b)
-  (TApp w x t a) -> TApp w (f x) t (s a)
+  (TApp tp w x t a) -> TApp tp w (f x) t (s a)
   (TUnpack w x a) -> TUnpack w (f x) (s a)
   (Offer w x a) -> Offer w (f x) (s a)
   (Demand w ty x a) -> Demand w ty (f x) (s a)
@@ -426,7 +427,7 @@ data SeqFinal t a = SeqFinal
      , swith :: (Bool -> Name -> Name -> t -> a -> a)
      , splus :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
      , sxchg :: (Permutation -> a -> a)
-     , stapp :: (Name -> Name -> t -> a -> a)
+     , stapp :: (Name -> t -> Name -> t -> a -> a)
      , stunpack :: (Name -> Name -> Name -> a -> a)
      , sbot :: (Name -> a)
      , szero :: (Name -> [(Name, t)] -> a)
@@ -467,7 +468,7 @@ foldSeq sf ts0 vs0 s0 =
       (SOne x t) -> sone w $ recurse ts (v0++v1) t
         where (v0,(w,~One):v1) = splitAt x vs
       (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t        
-      (TApp v x tyB s) -> stapp w v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
+      (TApp _ v x tyB s) -> stapp w (sty (v:ts) tyA) v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
         where (v0,(w,~(Forall _ tyA)):v1) = splitAt x vs
               ty = subst0 tyB ∙ tyA
       (TUnpack v x s) -> stunpack tw w v $ recurse (tw:ts) (upd v0++(v,tyA):upd v1) s
@@ -503,7 +504,7 @@ fillTypes' = foldSeq sf where
     szero _ _ = SZero x
     sone _ t = SOne x t
     sxchg p t = Exchange p t
-    stapp _ v tyB s = TApp v x tyB s
+    stapp _ tp v tyB s = TApp tp v x tyB s
     stunpack _ _ v s = TUnpack v x s
     soffer _ v _ s = Offer v x s
     sdemand _ v ty s = Demand v ty x s
