@@ -49,8 +49,7 @@ amRule (seq,mseq) = case msys1 of
   where sys0 = toSystem' seq
         msys1 = stepSystem sys0
 
-rul s s' = displayMath $ cmdn "frac" [diagSystem s, diagSystem s'] >> return ()
--- rul s s' = displayMath $ cmdn "frac" [texSystem s, texSystem s'] >> return ()
+rul s s' = displayMath $ cmdn "frac" [diagSystem s <> texSystem s, diagSystem s' <> texSystem s'] >> return ()
 toSystem' =  toSystem . fillTypes
 
 comment :: Tex a -> TeX

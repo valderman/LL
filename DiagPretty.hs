@@ -35,6 +35,13 @@ boxIt o = do
   drawBounds x
   return x
 
+addSpace dx dy o = do
+  o' <- abstractBox
+  Center ▸ o === Center ▸ o'
+  width o' === width o + 2*dx 
+  height o' === height o + 2*dy
+  return o'
+
 renderHeapPart :: SymHeap -> SymRef -> Type -> Render (Expr ObjectRef)
 renderHeapPart h r t = do
   oref <- lk r
@@ -42,7 +49,7 @@ renderHeapPart h r t = do
     Just oref' -> return oref'
     Nothing -> do
        oref' <- case mkPositive t of
-          Meta _ nm _ -> lift $ boxIt $ renderVar nm
+          Meta _ nm _ -> lift $ boxIt $ addSpace 6 0 =<< renderVar nm
           TVar _ _ -> lift $ boxObj
           t0 :⊗: t1 -> do p1 <- renderHeapPart h r t0
                           p2 <- renderHeapPart h (Shift t0 r) t1    
@@ -54,11 +61,14 @@ renderHeapPart h r t = do
               sequenceObjs 0 [p1,p2]
             _ -> do
               p1 <- lift $ boxIt $ textObj $ strut $ "X" 
-              p2 <- lift $ boxObj
+              p2 <- lift $ boxIt $ textObj $ strut $ (renderTyp t0 <> " or " <> renderTyp t1)
+              modify (M.insert (Next r) p2)
               sequenceObjs 0 [p1,p2]
           _ -> lift $ boxIt $ textObj "OT"         
        modify (M.insert r oref')
        return oref'
+
+renderTyp = math . texClosedType . mkPositive
 
 strut x = cmd0 "strut" <> x
 
@@ -100,6 +110,7 @@ sequenceObjs d xs = lift $ sequenceObjs' d xs
        
 runRender x = runStateT x M.empty
 
+renderVar ('?':_) = abstractBox
 renderVar nm = textObj $ strut $ math $ texVar $ nm
 
 renderEnv :: Env SymRef -> Render (Expr ObjectRef)
@@ -122,7 +133,7 @@ renderClosure (code,env,typeEnv) = do
    env' <- renderEnv env
    lift $ S ▸ code' === N ▸ env' + (0 +: 20) 
    return $ env'
-
+   
 renderSystem :: System SymHeap -> Render ()
 renderSystem (cls,h) = do
   h' <- renderHeap h
