@@ -83,8 +83,17 @@ pCtx' vs = sep $ punctuate comma $ [text v <> " : " <> t | (v,t) <- vs]
 
 pClosedType = pType 0 (repeat "<VAR>")
 
+pLayout :: Layout -> Doc
+pLayout (a `Then`b) = pLayout a <> "+" <> pLayout b
+pLayout (Bit a) = pLayout a <> "+1" 
+pLayout (Pointer) = "1"
+pLayout (MetaL t) = "|" <> pClosedType t <> "|"
+pLayout (Union a b) = pLayout a <> "⊔" <> pLayout b
+pLayout Empty = "0"
+
+
 pRef (Named t x) = text x
-pRef (Shift t x) = pRef x <> "+ |" <> pClosedType t <> "|"
+pRef (Shift t x) = pRef x <> "+ |" <> pLayout t <> "|"
 pRef (Next x) = pRef x <> "+1"
 
 pHeapPart :: SymHeap -> SymRef -> Doc

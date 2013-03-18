@@ -42,51 +42,54 @@ addSpace dx dy o = do
   height o' === height o + 2*dy
   return o'
 
-renderHeapPart :: SymHeap -> SymRef -> Type -> Render (Expr ObjectRef)
-renderHeapPart h r t = do
+forceWidth w o = do
+  o' <- abstractBox
+  Center ▸ o === Center ▸ o'
+  width o' === w
+  height o' === height o
+  return o'
+
+renderHeapPart :: SymHeap -> SymRef -> Render [Expr ObjectRef]
+renderHeapPart h r = do
   oref <- lk r
   case oref of
-    Just oref' -> return oref'
-    Nothing -> do
-       oref' <- case mkPositive t of
-          Meta _ nm _ -> lift $ boxIt $ addSpace 6 0 =<< renderVar nm
-          TVar _ _ -> lift $ boxObj
-          t0 :⊗: t1 -> do p1 <- renderHeapPart h r t0
-                          p2 <- renderHeapPart h (Shift t0 r) t1    
-                          sequenceObjs 0 [p1,p2]
-          t0 :⊕: t1 -> case M.lookup r h of
-            Just (Tag t) -> do 
-              p1 <- lift $ boxIt $ textObj $ strut $ if t then "1" else "0"
-              p2 <- renderHeapPart h (Next r) (if t then t0 else t1)
+    Just oref' -> return [oref']
+    Nothing -> case M.lookup r h of 
+      Nothing -> return []
+      Just v -> do
+       x0 <- renderCell h v
+       x1 <- renderHeapPart h (Next r)
+       x2 <- renderHeapPart h (Shift (error "this should not be used in lookup") r)
+       y <- sequenceObjs 0 (x0 : x1 ++ x2)
+       modify (M.insert r y)
+       return [y]
+
+
+cellSz w t = lift (boxIt . forceWidth w =<< (textObj $ strut $ math t))
+oneCell = cellSz 32
+
+renderCell h c = case c of
+   Freed -> oneCell $ cmd0 "dagger" 
+   Tag t -> oneCell $ if t then "1" else "0"
+   New ->  oneCell ""
+   NewMeta l -> cellSz 40 $ texLayout l
+   (Delay _ c) ->  oneCell $ "D " 
+   (Q t' r') -> do
+              p1 <- cellSz 16 $ renderTyp t'
+              p2 <- cellSz 16 $ ""
+              renderHeapPart h r'
+              link' p2 r'
               sequenceObjs 0 [p1,p2]
-            _ -> do
-              p1 <- lift $ boxIt $ textObj $ strut $ "X" 
-              p2 <- lift $ boxIt $ textObj $ strut $ (renderTyp t0 <> " or " <> renderTyp t1)
-              modify (M.insert (Next r) p2)
-              sequenceObjs 0 [p1,p2]
-          _ -> lift $ boxIt $ textObj "OT"         
-       modify (M.insert r oref')
-       return oref'
 
 renderTyp = math . texClosedType . mkPositive
 
 strut x = cmd0 "strut" <> x
 
-renderCell :: Cell SymRef -> Render (Expr ObjectRef)
-renderCell c = lift $ case c of
-      New -> textObj $ strut $ "X"
-      Freed -> textObj $ strut $ math $ cmd0 "dagger"
-      Tag True -> textObj $ strut "1"
-      Tag False -> textObj $strut "0"
-      Q ty r -> textObj $ strut "Q" -- paren $ texClosedType ty <> "," <> texRef r
-      -- Delay _ c -> brac $ pClosure c -- FIXME: this makes the eval code crash
-      Delay _ _ -> textObj $ strut "?"
-
 renderTopHeapPart h t r = do
-  o <- renderHeapPart h (Named t r) t
+  [o] <- renderHeapPart h (Named t r)
   lift $ do
     -- ypart (N ▸ o) === (-50)
-    l <- textObj $ strut $ math $ texClosedType t
+    l <- textObj $ strut $ math $ texLayout t
     NW ▸ l === SW ▸ o
     return o
 
@@ -113,19 +116,23 @@ runRender x = runStateT x M.empty
 renderVar ('?':_) = abstractBox
 renderVar nm = textObj $ strut $ math $ texVar $ nm
 
+link' val ref = do
+   target <- lk ref
+   case target of
+       Just t -> lift $ link val t
+       _ -> return () 
+
 renderEnv :: Env SymRef -> Render (Expr ObjectRef)
 renderEnv env = sequenceObjs 0 =<< forM env (\(nm,ref) -> do
   target <- lk ref
+  val <- lift $ boxObj 
   lift $ do
      lab <- renderVar nm
-     val <- boxObj 
      NW ▸ val === SW ▸ lab
      height val === 12
      width val === 12
-     case target of
-       Just t -> link val t
-       _ -> return () 
-     return val)
+  link' val ref
+  return val)
 
 renderClosure :: Closure SymRef -> Render (Expr ObjectRef)
 renderClosure (code,env,typeEnv) = do

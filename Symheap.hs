@@ -9,7 +9,7 @@ import qualified Data.Map as M
 import Data.Map (Map)
 import LL
 
-data SymRef = Named Type String | Shift (Type) SymRef | Next SymRef
+data SymRef = Named Layout String | Shift Layout SymRef | Next SymRef
 instance Eq SymRef where
   Named _ x == Named _ y = x == y
   Shift _ x == Shift _ y = x == y
@@ -29,11 +29,22 @@ instance IsRef SymRef where
   shift = Shift
   next  = Next
 
+
+
+allocAt r t = case t of 
+      Empty -> id
+      a `Then` b -> allocAt r a . allocAt (shift a r) b
+      Bit b -> allocAtom r New . allocAt (next r) b
+      Pointer -> allocAtom r New -- alternative: (Delay 0 Nothing)       -- FIXME: need unallocated, but shared area
+      t -> allocAtom r (NewMeta t)
+
+allocAtom r t = M.alter (\_ -> Just t) r
+
 instance IsHeap SymHeap where
   type Ref SymHeap = SymRef
   h ! r = M.findWithDefault New r h
   replace r v = M.alter (\_ -> Just v) r 
-  alloc t h = (M.alter (\_ -> Just New) r h,r)
+  alloc' t h = (allocAt r t h,r)
     where r:_ = filter (\x -> not (x `elem` M.keys h)) $ 
                  map (Named t) $ [nam ++ idx | idx <- "":map show [1..], nam <- ["p","q","r","s"] ]
   emptyHeap = M.empty

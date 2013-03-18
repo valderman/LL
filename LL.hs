@@ -26,6 +26,23 @@ data Type = Type :⊕: Type
              | Quest (Type)
              | Meta Bool String [Type] --  A meta-variable, with types with types occuring in it.
 
+data Layout = Layout `Then` Layout 
+            | Bit Layout
+            | Pointer
+            | MetaL Type
+            | Union Layout Layout
+            | Empty
+
+mkLayout :: Type -> Layout
+mkLayout t = case mkPositive t of
+              One -> Empty
+              Zero -> Empty
+              a :⊗: b -> mkLayout a `Then` mkLayout b
+              a :⊕: b -> Bit (mkLayout a `Union` mkLayout b)
+              Bang _ -> Pointer
+              Exists _ _ -> Pointer
+              Meta _ _ _ -> MetaL (mkPositive t)
+              TVar _ _ -> error "cannot know layout of var"
 a ⊸ b = neg a :|: b
 dum = meta "dummy type" 
 
@@ -91,7 +108,7 @@ data Cell ref where
   New   :: Cell ref
   Delay :: Int -> Closure ref -> Cell ref
   Q     :: Type -> ref -> Cell ref -- 1st arg should be a monotype
-  NewMeta :: Type -> Cell ref
+  NewMeta :: Layout -> Cell ref
 
 type CellRef = Int
 
@@ -102,16 +119,18 @@ type Env ref = [(Name,ref)]
 type Closure ref = (Seq,Env ref,TypeEnv)
 
 class IsRef ref where
-  shift :: Type -> ref -> ref
+  shift :: Layout -> ref -> ref
   next  :: ref -> ref
   
 class IsRef (Ref heap) => IsHeap heap where
   type Ref heap
   (!) :: heap -> Ref heap -> Cell (Ref heap) 
   replace :: Ref heap -> Cell (Ref heap) -> heap -> heap
-  alloc :: Type -> heap -> (heap,Ref heap)
-  allocAtom :: Ref heap -> Cell (Ref heap) -> heap -> heap
+  alloc' :: Layout -> heap -> (heap,Ref heap)
   emptyHeap :: heap
+
+alloc :: IsHeap heap => Type -> heap -> (heap,Ref heap)
+alloc = alloc' . mkLayout
 
 type Heap = [Cell Int]
 
@@ -124,24 +143,8 @@ instance IsHeap Heap where
   (!) = (!!)
   replace n v (h) = let (l,_:r) = splitAt n h
                 in l ++ v : r
-  alloc t (h) = (h ++ replicate (sizeOf t) New,length h) -- FIXME
+  alloc' t (h) = (h ++ replicate (sizeOf t) New,length h)
   emptyHeap = []
-
-
--- FIXME: pretty sure we need this:
--- This means we also need to allocate in & rule (fst/snd)
-allocAt r t = do
-  case mkPositive t of
-      Zero -> id
-      One -> id
-      a :⊗: b -> allocAt r a . allocAt (shift a r) b
-      a :⊕: b -> allocAtom r New
-      -- FIXME: need unallocated, but shared area
-      -- Bang _ -> allocAtom r (Delay 0 Nothing)
-      Exists _ _ -> allocAtom r New
-      t@(Meta _ _ _) -> allocAtom r (NewMeta t)
-      TVar _ _ -> error "can only allocate concrete types"
-
 
 type System h = ([Closure (Ref h)],h)
 
@@ -153,11 +156,11 @@ runClosure h (Plus x y v a b,e,te)
   | Tag c <- h!(e!!+v) = Just (replace (e!!+v) Freed h,
                               [(if c then a else b,increment v (if c then x else y) e,te)])
 runClosure h (Cross ty x y v a,e,te)
-  = Just (h,[(a,el++[(x,z),(y,shift (te∙ty) z)] ++ er,te)])
+  = Just (h,[(a,el++[(x,z),(y,shift (mkLayout (te∙ty)) z)] ++ er,te)])
   where (el,(_,z):er) = splitAt v e
 runClosure h (Par ty x y v a b,e,te)
   = Just (h,[(a,el++[(x,z)]++er,te)
-            ,(b,el++[(y,shift (te∙ty) z)]++er,te)])
+            ,(b,el++[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
     where (el,(_,z):er) = splitAt v e
 runClosure h (With x t v a,e,te)
   = Just (replace (e!!+v) (Tag t) h,[(a,increment v x e,te)])
@@ -226,16 +229,13 @@ copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t
 copy'' t = Exchange [1,0] $ copy'' (neg t)
 
-sizeOf :: Type -> Int
-sizeOf (t1 :⊕: t2) = 1 + max (sizeOf t1) (sizeOf t2)
-sizeOf (t1 :⊗: t2) = sizeOf t1 + sizeOf t2
-sizeOf (TVar _ v) = error "can only evaluate the size of closed types"
-sizeOf (Forall _ _) = 1
-sizeOf (Bang _)     = 1
-sizeOf One     = 0
-sizeOf Zero     = 0
-sizeOf (Meta _ _ _) = error "cannot get size of meta-type"
-sizeOf x = sizeOf (neg x)
+sizeOf :: Layout -> Int
+sizeOf (Bit t) = 1 + sizeOf t
+sizeOf (t1 `Union` t2) = max (sizeOf t1) (sizeOf t2)
+sizeOf (t1 `Then` t2) = sizeOf t1 + sizeOf t2
+sizeOf Pointer = 1
+sizeOf Empty    = 0
+sizeOf (MetaL _) = error "cannot get size of meta-type"
 
 stepSystem :: IsHeap h => System h -> Maybe (System h)
 stepSystem ([],h) = Nothing

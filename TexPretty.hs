@@ -142,6 +142,13 @@ texCtx ts vs = do
 
 texCtx' vs = mconcat $ intersperse "," [texVarT v t | (v,t) <- vs]
     
+texLayout :: Layout -> TeX
+texLayout (a `Then`b) = texLayout a <> "+" <> texLayout b
+texLayout (Bit a) = texLayout a <> "+1" 
+texLayout (Pointer) = "1"
+texLayout (MetaL t) = "|" <> texClosedType t <> "|"
+texLayout (Union a b) = texLayout a <> "⊔" <> texLayout b
+texLayout Empty = "0"
 
 texType :: Int -> [String] -> Type -> TeX
 texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
@@ -170,7 +177,7 @@ unknownTypeEnv = repeat "VAR"
 
 texClosedType = texType 0 unknownTypeEnv
 texRef (Named _ x) = textual x
-texRef (Shift t x) = texRef x <> "+ |" <> texClosedType t <> "|"
+texRef (Shift t x) = texRef x <> "+" <> texLayout t
 texRef (Next x) = texRef x <> "+1"
 
 
@@ -183,6 +190,7 @@ heapPart h r = case v of
 texCell :: Cell SymRef -> TeX
 texCell c = case c of
       New -> "□"
+      NewMeta _ -> "□"
       Freed -> cmd0 "dagger"
       Tag True -> "1"
       Tag False -> "0"
@@ -198,9 +206,8 @@ texHeapPart h r = commas $ map (maybe "…" id) $ doNothings $ heapPart h r
 
 texHeap :: SymHeap -> TeX
 texHeap h = mconcat $ intersperse ", " [textual r <> "↦" <> texHeapPart h (Named t r) | Named t r <- M.keys h, displayed t]
-  where displayed (Meta _ x _) | x `elem` ["Γ","Δ"] = False
-        displayed One = False
-        displayed Bot = False
+  where displayed (MetaL (Meta _ x _)) | x `elem` ["Γ","Δ"] = False
+        displayed Empty = False
         displayed _ = True
 
 texSystem :: System SymHeap -> TeX
