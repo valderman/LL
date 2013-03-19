@@ -211,7 +211,7 @@ runClosure h (Alias v x a,e,te)
 runClosure _ _ = Nothing
 
 modifyRefCount f r h = replace r (Delay (f c) cl) h
-  where (Delay c cl) = h!r
+  where (Delay c cl) = h!r -- FIXME
 
 increment :: IsRef ref => Int -> Name -> Env ref -> Env ref
 increment n nm e = let (l,(_,x):r) = splitAt n e

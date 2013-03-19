@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, PostfixOperators #-}
 
 module DiagPretty where
 
@@ -35,6 +35,15 @@ boxIt o = do
   drawBounds x
   return x
 
+drawFlexBox l = delay $ do
+  freezeBounds l
+  draw (NW ▸ l .-- (NE ▸ l .!)) [dashed evenly]
+  draw (SW ▸ l .-- (SE ▸ l .!)) [dashed evenly]
+  draw (NW ▸ l + (dx+:0) .-- NW ▸ l .-- SW ▸ l.-- (SW ▸ l + (dx+:0) .!)) []
+  draw (NE ▸ l - (dx+:0) .-- NE ▸ l .-- SE ▸ l.-- (SE ▸ l - (dx+:0) .!)) []
+
+ where dx = 7
+         
 addSpace dx dy o = do
   o' <- abstractBox
   Center ▸ o === Center ▸ o'
@@ -72,8 +81,17 @@ renderCell h c = case c of
    Freed -> oneCell $ cmd0 "dagger" 
    Tag t -> oneCell $ if t then "1" else "0"
    New ->  oneCell ""
-   NewMeta l -> cellSz 40 $ texLayout l
-   (Delay _ c) ->  oneCell $ "D " 
+   NewMeta l -> do v <- lift (forceWidth 40 =<< (textObj $ strut $ ""))
+                   lift $ drawFlexBox v
+                   text <- lift $ textObj $ strut $ math $ texLayout l
+                   lift $ NW ▸ text + (0 +: 2) === SW ▸ v 
+                   return v
+   (Delay _ c) -> oneCell "D" -- FIXME
+--                  do
+--     p <- oneCell ""
+--     x <- renderClosure c 
+--     lift $ link p x
+--     return p
    (Q t' r') -> do
               p1 <- cellSz 16 $ renderTyp t'
               p2 <- cellSz 16 $ ""
@@ -89,8 +107,8 @@ renderTopHeapPart h t r = do
   [o] <- renderHeapPart h (Named t r)
   lift $ do
     -- ypart (N ▸ o) === (-50)
-    l <- textObj $ strut $ math $ texLayout t
-    NW ▸ l === SW ▸ o
+    -- l <- textObj $ strut $ math $ texLayout t
+    -- NW ▸ l === SW ▸ o
     return o
 
 renderHeap :: SymHeap -> Render (Expr ObjectRef)
@@ -150,26 +168,6 @@ renderSystem (cls,h) = do
 
 diagSystem :: System SymHeap -> TeX 
 diagSystem s = mpFigure [] (fst <$> (runRender $ renderSystem s)) >> return ()
-
-{-
-texSystem :: System SymHeap -> TeX
-texSystem (cls,h) = do
-  "H=…," <>texHeap h <>";"
-  "C=ξ," <> commas (map pClosure cls)
-
-commas = mconcat . intersperse ", "
-
-pClosure :: Closure SymRef -> TeX
-pClosure (seq,env,typeEnv) = 
-  brac (block' $ texUntypedProg unknownTypeEnv (map fst env) seq)  <> brack (commas $ [texVar' nm r | (nm,r) <- env])
-  
-texVar' :: String -> SymRef -> TeX  
-texVar' "" r = "…"
-texVar' ('?':x) r = textual x
-texVar' x r = textual x <> "=" <> texRef r
-  
-
--}
 
 
 
