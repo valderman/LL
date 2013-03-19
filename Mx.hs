@@ -15,13 +15,15 @@ import Rules
 preamble :: Tex ()
 preamble = do
   usepackage ["utf8"] "inputenc"
-  usepackage [] "graphicx"
-  cmd "input" (tex "unicodedefs")
+  usepackage [] "graphicx" -- used for import metapost diagrams
   usepackage [] "amsmath"
-  usepackage [] "amssymb"
+  usepackage [] "amssymb" -- extra symbols such as □ 
   usepackage [] "cmll" -- for the operator "par"
+  cmd "input" (tex "unicodedefs")
+  
   title "Linear Logic: I see what it means!"
-  authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),("Josef Svenningsson","",ch)]
+  authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
+                    ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
 deriv :: Bool -> Deriv -> Tex Label
@@ -123,7 +125,7 @@ abstract machine able to run programs written for it.
 @allRules(amRule)
 
 
-@section{Discussion}
+@section{Related Work}
 
 Many presentations of LL for programming needlessly polarize (dualize)
 the presentation. We remain faithful to the spirit of Girard's LL ---
