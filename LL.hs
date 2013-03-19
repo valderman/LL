@@ -26,9 +26,38 @@ data Type = Type :⊕: Type
              | Quest (Type)
              | Meta Bool String [Type] --  A meta-variable, with types with types occuring in it.
 
+data Layout = Layout `Then` Layout 
+            | Bit Layout
+            | Pointer
+            | MetaL Type
+            | Union Layout Layout
+            | Empty
+
+mkLayout :: Type -> Layout
+mkLayout t = case mkPositive t of
+              One -> Empty
+              Zero -> Empty
+              a :⊗: b -> mkLayout a `Then` mkLayout b
+              a :⊕: b -> Bit (mkLayout a `Union` mkLayout b)
+              Bang _ -> Pointer
+              Exists _ _ -> Pointer
+              Meta _ _ _ -> MetaL (mkPositive t)
+              TVar _ _ -> error "cannot know layout of var"
 a ⊸ b = neg a :|: b
 dum = meta "dummy type" 
 
+positiveType t = case t of
+  One -> True
+  Zero -> True
+  _ :⊗: _ -> True
+  _ :⊕: _ -> True            
+  Bang _ -> True
+  Exists _ _ -> True
+  TVar b _ -> b
+  Meta b _ _ -> b
+  _ -> False
+
+mkPositive t = if positiveType t then t else neg t
 
 subst0 x = x:map var [0..]
 
@@ -48,7 +77,7 @@ data (Seq) = Exchange Permutation (Seq) -- Permute variables
          | SBot              -- Rename to Terminate
          | What Name
            
-         | TApp Name Int (Type) (Seq)
+         | TApp Type Name Int (Type) (Seq)
          | TUnpack Name Int (Seq)
 
          | Offer Name Int (Seq)
@@ -62,7 +91,7 @@ varOf (Par   _ _ _ x _ _) = x
 varOf (Plus _ _ x _ _) = x
 varOf (With _ _ x _) = x
 varOf (SOne x _) = x
-varOf (TApp _ x _ _) = x
+varOf (TApp _ _ x _ _) = x
 varOf (TUnpack _ x _) = x
 varOf (Offer _ x _) = x
 varOf (Demand _ _ x _) = x
@@ -79,6 +108,7 @@ data Cell ref where
   New   :: Cell ref
   Delay :: Int -> Closure ref -> Cell ref
   Q     :: Type -> ref -> Cell ref -- 1st arg should be a monotype
+  NewMeta :: Layout -> Cell ref
 
 type CellRef = Int
 
@@ -89,15 +119,18 @@ type Env ref = [(Name,ref)]
 type Closure ref = (Seq,Env ref,TypeEnv)
 
 class IsRef ref where
-  shift :: Type -> ref -> ref
+  shift :: Layout -> ref -> ref
   next  :: ref -> ref
   
 class IsRef (Ref heap) => IsHeap heap where
   type Ref heap
   (!) :: heap -> Ref heap -> Cell (Ref heap) 
   replace :: Ref heap -> Cell (Ref heap) -> heap -> heap
-  alloc :: Type -> heap -> (heap,Ref heap)
+  alloc' :: Layout -> heap -> (heap,Ref heap)
   emptyHeap :: heap
+
+alloc :: IsHeap heap => Type -> heap -> (heap,Ref heap)
+alloc = alloc' . mkLayout
 
 type Heap = [Cell Int]
 
@@ -110,7 +143,7 @@ instance IsHeap Heap where
   (!) = (!!)
   replace n v (h) = let (l,_:r) = splitAt n h
                 in l ++ v : r
-  alloc t (h) = (h ++ replicate (sizeOf t) New,length h)
+  alloc' t (h) = (h ++ replicate (sizeOf t) New,length h)
   emptyHeap = []
 
 type System h = ([Closure (Ref h)],h)
@@ -123,11 +156,11 @@ runClosure h (Plus x y v a b,e,te)
   | Tag c <- h!(e!!+v) = Just (replace (e!!+v) Freed h,
                               [(if c then a else b,increment v (if c then x else y) e,te)])
 runClosure h (Cross ty x y v a,e,te)
-  = Just (h,[(a,el++[(x,z),(y,shift (te∙ty) z)] ++ er,te)])
+  = Just (h,[(a,el++[(x,z),(y,shift (mkLayout (te∙ty)) z)] ++ er,te)])
   where (el,(_,z):er) = splitAt v e
 runClosure h (Par ty x y v a b,e,te)
   = Just (h,[(a,el++[(x,z)]++er,te)
-            ,(b,el++[(y,shift (te∙ty) z)]++er,te)])
+            ,(b,el++[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
     where (el,(_,z):er) = splitAt v e
 runClosure h (With x t v a,e,te)
   = Just (replace (e!!+v) (Tag t) h,[(a,increment v x e,te)])
@@ -138,10 +171,10 @@ runClosure h (SOne v a,e,te)
 runClosure h (SBot,e,te)
   = Just (h,[])
 
-runClosure h (TApp x v ty a,e,te)
+runClosure h (TApp tp x v ty a,e,te)
   = Just (replace (e!!+v) (Q ty q) h',[(a,el++(x,z):er,te)])
   where (el,(_,z):er) = splitAt v e
-        (h',q) = alloc ((ty:te)∙(error "need the type of the polymorphic value")) h
+        (h',q) = alloc ((ty:te)∙tp) h
 runClosure h (TUnpack x v a,e,te)
   | Q ty p <- h!w = Just (replace w Freed h,[(a,el++[(x,p)]++er,ty:te)])
   where (el,(_,w):er) = splitAt v e
@@ -153,6 +186,7 @@ runClosure h (Ax (TVar True v),e,te)
   = Just (h,[(copy'' (te!!v),e,te)])
 runClosure h (Ax (Forall _ ty),[(_,w),(_,x)],te)
   | q@(Q ty p) <- h!x = Just (replace w q (replace x Freed h),[])
+runClosure h (Ax (Meta _ _ _),_,_) = Nothing -- FIXME: should show something
 runClosure h (Ax ty,[w,x],te)
   = Just (h,[(copy'' ty,[w,x],te)])
 runClosure h (Cut x y ty v a b,e,te)
@@ -195,16 +229,13 @@ copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t
 copy'' t = Exchange [1,0] $ copy'' (neg t)
 
-sizeOf :: Type -> Int
-sizeOf (t1 :⊕: t2) = 1 + max (sizeOf t1) (sizeOf t2)
-sizeOf (t1 :⊗: t2) = sizeOf t1 + sizeOf t2
-sizeOf (TVar _ v) = error "can only evaluate the size of closed types"
-sizeOf (Forall _ _) = 1
-sizeOf (Bang _)     = 1
-sizeOf One     = 0
-sizeOf Zero     = 0
-sizeOf (Meta _ _ _) = error "cannot get size of meta-type"
-sizeOf x = sizeOf (neg x)
+sizeOf :: Layout -> Int
+sizeOf (Bit t) = 1 + sizeOf t
+sizeOf (t1 `Union` t2) = max (sizeOf t1) (sizeOf t2)
+sizeOf (t1 `Then` t2) = sizeOf t1 + sizeOf t2
+sizeOf Pointer = 1
+sizeOf Empty    = 0
+sizeOf (MetaL _) = error "cannot get size of meta-type"
 
 stepSystem :: IsHeap h => System h -> Maybe (System h)
 stepSystem ([],h) = Nothing
@@ -273,7 +304,7 @@ applyS f t = case t of
   Plus w w' x a b -> Plus w w' x (s a) (s b)
   With w c x a -> With w c x (s a)
   SOne x a -> SOne x (s a) 
-  TApp w x ty a -> TApp w x (f ∙ ty) (s a)
+  TApp tp w x ty a -> TApp ((var 0:wk∙f)∙tp) w x (f ∙ ty) (s a)
   TUnpack w x a -> TUnpack w x (s' a)
   Offer w x a -> Offer w x (s a)
   Demand w ty x a -> Demand w ty x (s a)
@@ -312,7 +343,8 @@ cut :: Int -> -- ^ size of the context
        Type -> 
        Int -> -- ^ where to cut it
        (Seq) -> (Seq) -> (Seq)
--- FIXME: in the absence of "What" cut can be eliminated so these recursive calls terminate. Otherwise, we have a problem.
+-- FIXME: in the absence of "What" cut can be eliminated so these recursive calls terminate. Otherwise, we have a problem. 
+-- At the moment it seems we never use hereditary cut, so this should probably go away.
 -- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 cut 2 _ _ ty 1 (Ax _) a = a
@@ -324,7 +356,7 @@ cut n _ _ (ta :⊗: tb)
 cut n _ _ (ta :⊕: tb) 
            γ (With z c 0 a) (Plus w w' 0 s t) = cut n z (if c then w else w') (if c then ta else tb) γ a (if c then s else t)
 cut n _ _ (Exists v ty) 
-           γ (TApp z 0 t a) (TUnpack w 0 b) = cut n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
+           γ (TApp _ z 0 t a) (TUnpack w 0 b) = cut n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
 cut n _ _ (Bang ty) 
            γ (Offer z 0 a) (Demand w _ 0 b) = cut n z w ty γ a b
 cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
@@ -344,7 +376,7 @@ isPos (Ax _) = True
 isPos (Exchange _ (Par _ _ _ _ _ _)) = True
 isPos (With _ _  _ _) = True
 isPos (Offer _ _ _) = True
-isPos (TApp _ _ _ _) = True
+isPos (TApp _ _ _ _ _) = True
 isPos SBot = True
 isPos _ = False
 
@@ -359,7 +391,7 @@ subst π t = case t of
   Exchange ρ a -> subst (map f ρ) a
   (With w c x a) -> With w c (f x) (s a) 
   (Plus w w' x a b) -> Plus w w' (f x) (s a) (s b)
-  (TApp w x t a) -> TApp w (f x) t (s a)
+  (TApp tp w x t a) -> TApp tp w (f x) t (s a)
   (TUnpack w x a) -> TUnpack w (f x) (s a)
   (Offer w x a) -> Offer w (f x) (s a)
   (Demand w ty x a) -> Demand w ty (f x) (s a)
@@ -386,7 +418,6 @@ derivToSystem (Deriv _ ctx a) = ([closure],heap)
   where closure = (a,zip (map fst ctx) refs,[])
         (heap,refs) = mapAccumL (flip alloc) emptyHeap (map snd ctx)
  
-
 data SeqFinal t a = SeqFinal
      { sty :: [Name] -> Type -> t
      , sax :: (Name -> Name -> Type -> a)
@@ -396,7 +427,7 @@ data SeqFinal t a = SeqFinal
      , swith :: (Bool -> Name -> Name -> t -> a -> a)
      , splus :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
      , sxchg :: (Permutation -> a -> a)
-     , stapp :: (Name -> Name -> t -> a -> a)
+     , stapp :: (Name -> t -> Name -> t -> a -> a)
      , stunpack :: (Name -> Name -> Name -> a -> a)
      , sbot :: (Name -> a)
      , szero :: (Name -> [(Name, t)] -> a)
@@ -437,7 +468,7 @@ foldSeq sf ts0 vs0 s0 =
       (SOne x t) -> sone w $ recurse ts (v0++v1) t
         where (v0,(w,~One):v1) = splitAt x vs
       (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t        
-      (TApp v x tyB s) -> stapp w v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
+      (TApp _ v x tyB s) -> stapp w (sty (v:ts) tyA) v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
         where (v0,(w,~(Forall _ tyA)):v1) = splitAt x vs
               ty = subst0 tyB ∙ tyA
       (TUnpack v x s) -> stunpack tw w v $ recurse (tw:ts) (upd v0++(v,tyA):upd v1) s
@@ -473,7 +504,7 @@ fillTypes' = foldSeq sf where
     szero _ _ = SZero x
     sone _ t = SOne x t
     sxchg p t = Exchange p t
-    stapp _ v tyB s = TApp v x tyB s
+    stapp _ tp v tyB s = TApp tp v x tyB s
     stunpack _ _ v s = TUnpack v x s
     soffer _ v _ s = Offer v x s
     sdemand _ v ty s = Demand v ty x s

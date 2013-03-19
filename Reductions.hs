@@ -25,7 +25,7 @@ cutIgnore = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
 cutUnit = Deriv ["Θ"] [gamma] $ Cut "z" "_z" One 0 SBot (SOne 0 whatA)
 
 cutQuant = Deriv ["Θ"] [gamma,delta] $
-           Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
+           Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
 
 
 

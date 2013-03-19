@@ -41,7 +41,7 @@ texSeq showProg = foldSeq sf where
   szero w vs = rul "0" []
   sone w t = rul "1" [t]
   sxchg _ t = rul (rulText "Exch.") [t]
-  stapp w _ tyB s = rul "∀" [s]
+  stapp w _ _ tyB s = rul "∀" [s]
   stunpack tw w _ s = rul "∃" [s]
   soffer w _ ty s = rul "?" [s] 
   sdemand w _ ty s = rul "!" [s]
@@ -55,11 +55,11 @@ texSeq showProg = foldSeq sf where
 
 keyword :: String -> TeX 
 keyword = mathsf . tex
-let_ = keyword "let~"
-case_ = keyword "case~"
-in_ = keyword "~in~"
-connect_ = keyword "connect~"
-[fst_,snd_] = map keyword ["fst~","snd~"]
+let_ = keyword "let "
+case_ = keyword "case "
+in_ = keyword " in "
+connect_ = keyword "connect "
+[fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
 separator = cmd "hline" mempty
 
@@ -98,24 +98,24 @@ texProg' showTypes = foldSeq sf where
   scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
                                         (texVarT' v   vt ) t
   scross w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
-  spar w v vt v' vt' s t = connect (keyword "via~" <> texVar w) 
+  spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
                     (texVarT' v  vt ) s
                     (texVarT' v' vt') t
-  splus w v vt v' vt' s t = case_ <> texVar w <> keyword "~of" :
-                  alts (keyword "inl~" <> texVar v) s
-                       (keyword "inr~" <> texVar v') t
+  splus w v vt v' vt' s t = case_ <> texVar w <> keyword " of" :
+                  alts (keyword "inl " <> texVar v) s
+                       (keyword "inr " <> texVar v') t
   swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) : s
      where c = if b then fst_ else snd_
   sbot v = [texVar v]
-  szero w vs  = [keyword "dump~" <> whenShowTypes (texCtx' vs) <> in_ <> texVar w]
+  szero w vs  = [keyword "dump " <> whenShowTypes (texCtx' vs) <> in_ <> texVar w]
   sone w t = let'' (cmd0 "diamond") (texVar w) : t
   sxchg _ t = t
-  stapp v w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
+  stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
   stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v) : s
-  soffer v w ty s = (keyword "offer~" <> texVarT' v ty) : s
-  sdemand v w ty s = (keyword "demand~" <> texVarT' v ty) : s
-  signore w ty s = (keyword "ignore~" <> texVar w) : s
-  salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias~" <> texVar w) : s 
+  soffer v w ty s = (keyword "offer " <> texVarT' v ty) : s
+  sdemand v w ty s = (keyword "demand " <> texVarT' v ty) : s
+  signore w ty s = (keyword "ignore " <> texVar w) : s
+  salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w) : s 
   swhat a = [texVar a]
   let'' w    v = let_ <> w <> "=" <> v
  texVarT' x y | showTypes = texVarT x y
@@ -142,6 +142,13 @@ texCtx ts vs = do
 
 texCtx' vs = mconcat $ intersperse "," [texVarT v t | (v,t) <- vs]
     
+texLayout :: Layout -> TeX
+texLayout (a `Then`b) = texLayout a <> "+" <> texLayout b
+texLayout (Bit a) = texLayout a <> "+1" 
+texLayout (Pointer) = "1"
+texLayout (MetaL t) = "|" <> texClosedType t <> "|"
+texLayout (Union a b) = texLayout a <> "⊔" <> texLayout b
+texLayout Empty = "0"
 
 texType :: Int -> [String] -> Type -> TeX
 texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
@@ -165,27 +172,12 @@ texNeg False = tex "^" <> braces "⊥"
 
 --------------------------------
 -- Pretty printing of closures
-{-
-texRef (Named x) = text x
-texRef (Shift t x) = texRef x <> "+ |" <> texType 0 (repeat "var. in texSizeOf") ty <> "|"
-texRef (Next x) = texRef x <> "+1"
-
-texHeapPart :: SymHeap -> Ref -> TeX
-texHeapPart h r = case v of
-    Nothing -> "..."
-    Just c -> texCell c <> texHeapPart h (Next r) <> texHeapPart (Shift r)
-  where v = M.lookup r h
-        
-texHeap h :: SymHeap -> TeX
-texHeap = cat $ punctuate ", " $ [text r <> cmd0 "mapsto" <> texHeapPart h (Named r) | Named r <- M.keys h]
-
--}
 
 unknownTypeEnv = repeat "VAR"
 
 texClosedType = texType 0 unknownTypeEnv
-texRef (Named x) = textual x
-texRef (Shift t x) = texRef x <> "+ |" <> texClosedType t <> "|"
+texRef (Named _ x) = textual x
+texRef (Shift t x) = texRef x <> "+" <> texLayout t
 texRef (Next x) = texRef x <> "+1"
 
 
@@ -198,10 +190,13 @@ heapPart h r = case v of
 texCell :: Cell SymRef -> TeX
 texCell c = case c of
       New -> "□"
+      NewMeta _ -> "□"
       Freed -> cmd0 "dagger"
       Tag True -> "1"
       Tag False -> "0"
-      _ -> "?"
+      Q ty r -> paren $ texClosedType ty <> "," <> texRef r
+      -- Delay _ c -> brac $ pClosure c -- FIXME: this makes the eval code crash
+      Delay _ _ -> "?"
 
 doNothings (Nothing:Nothing:xs) = doNothings (Nothing:xs)
 doNothings (x:xs) = x : doNothings xs
@@ -210,11 +205,14 @@ doNothings [] = []
 texHeapPart h r = commas $ map (maybe "…" id) $ doNothings $ heapPart h r
 
 texHeap :: SymHeap -> TeX
-texHeap h = mconcat $ intersperse ", " [textual r <> "↦" <> texHeapPart h (Named r) | Named r <- M.keys h]
+texHeap h = mconcat $ intersperse ", " [textual r <> "↦" <> texHeapPart h (Named t r) | Named t r <- M.keys h, displayed t]
+  where displayed (MetaL (Meta _ x _)) | x `elem` ["Γ","Δ"] = False
+        displayed Empty = False
+        displayed _ = True
 
 texSystem :: System SymHeap -> TeX
 texSystem (cls,h) = do
-  "H=" <>texHeap h <>";"
+  "H=…," <>texHeap h <>";"
   "C=ξ," <> commas (map pClosure cls)
 
 commas = mconcat . intersperse ", "

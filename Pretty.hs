@@ -47,9 +47,9 @@ pSeq = foldSeq sf where
  sf (Deriv ts vs _) = SeqFinal {..} where
   sty = pType 0
   sax v v' _ = text v <> " ↔ " <> text v'
-  scut v v' vt' s vt t = "connect " <>
-                                "{"<> vcat [text v'  <> " : " <> vt' <> " in " <> s <> ";",
-                                            text v <> " : " <> vt <> " in " <> t] <>"}"
+  scut v v' vt s vt' t = "connect " <>
+                                "{"<> vcat [text v  <> " : " <> vt  <> " in " <> s <> ";",
+                                            text v' <> " : " <> vt' <> " in " <> t] <>"}"
   scross w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
   spar w v vt v' vt' s t = "connect "<>text w <>
                                 "{"<> vcat [text v  <> " : " <> vt <> " in " <> s <> ";",
@@ -63,8 +63,8 @@ pSeq = foldSeq sf where
   szero w vs = "dump " <> pCtx' vs <> " in " <> text w
   sone w t = "let ◇ = " <> text w <> " in " $$ t
   sxchg _ t = t
-  stapp v w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
-  stunpack v tw w s = "let ⟨" <> text tw <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
+  stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
+  stunpack tw w v s = "let ⟨" <> text tw <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
   soffer v w ty s = "offer " <> text v <> " : " <> ty $$ s
   sdemand v w ty s = "demand " <> text v <> " : " <> ty $$ s
   signore w ty s = "ignore " <> text w $$ s
@@ -83,8 +83,17 @@ pCtx' vs = sep $ punctuate comma $ [text v <> " : " <> t | (v,t) <- vs]
 
 pClosedType = pType 0 (repeat "<VAR>")
 
-pRef (Named x) = text x
-pRef (Shift t x) = pRef x <> "+ |" <> pClosedType t <> "|"
+pLayout :: Layout -> Doc
+pLayout (a `Then`b) = pLayout a <> "+" <> pLayout b
+pLayout (Bit a) = pLayout a <> "+1" 
+pLayout (Pointer) = "1"
+pLayout (MetaL t) = "|" <> pClosedType t <> "|"
+pLayout (Union a b) = pLayout a <> "⊔" <> pLayout b
+pLayout Empty = "0"
+
+
+pRef (Named t x) = text x
+pRef (Shift t x) = pRef x <> "+ |" <> pLayout t <> "|"
 pRef (Next x) = pRef x <> "+1"
 
 pHeapPart :: SymHeap -> SymRef -> Doc
@@ -102,7 +111,7 @@ pCell c = case c of
       _ -> "?"
 
 pHeap :: SymHeap -> Doc
-pHeap h = cat $ punctuate ", " [text r <> "↦" <> pHeapPart h (Named r) | Named r <- M.keys h]
+pHeap h = cat $ punctuate ", " [text r <> "↦" <> pHeapPart h (Named t r) | Named t r <- M.keys h]
 
 showSystem :: System SymHeap -> String
 showSystem = render . pSystem
