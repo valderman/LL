@@ -123,9 +123,12 @@ pSystem (cls,h) = hang "Heap:" 2 (pHeap h) $$
 pClosure :: Closure SymRef -> Doc
 pClosure (seq,env,typeEnv) = 
          hang "Closure:" 2 (vcat [
-           "Code: TODO",
+            hang "Code:" 2 (pSeq (zipWith const typeNames typeEnv) (mkEnvDummy env) seq),
             hang "Env: " 2 (cat $ punctuate ", " [text nm <> " = " <> pRef r | (nm,r) <- env]),
             hang "TypeEnv:" 2 (cat $ punctuate ", " $ map pClosedType typeEnv)])
 
 sshow = putStrLn . render . pSystem  
 
+-- TODO: Dummy definitions to be able to print the code. Needs a proper solution
+typeNames = ["α","β","γ","δ","ε","ζ","η","ι","κ","λ","μ"]
+mkEnvDummy = map (\(n,_) -> (n,dum))
