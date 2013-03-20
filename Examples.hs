@@ -46,3 +46,10 @@ cutTest = Deriv [] [("x",Zero)] $
           Cut "a" "b" Bot 1
             (SOne 0 (SZero 0))
             SBot
+
+mpTest = Deriv ["α"] [("p",var 0 :⊗: neg (var 0))] $
+         Cross (var 0) "a" "b" 0 $
+         Cut "x" "y" (var 0) 1
+           (Ax (var 0))
+           (Ax (neg (var 0)))
+
