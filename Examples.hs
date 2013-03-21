@@ -54,3 +54,23 @@ mpTest = Deriv ["α"] [("p",var 0 :⊗: neg (var 0))] $
            (Ax (var 0))
            (Ax (neg (var 0)))
 
+-- Small example program
+
+two = One :⊕: One
+
+bType 0 = One
+bType n = two :⊗: bType (n-1)
+
+semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
+            Plus "t" "u" 0
+              (What "a")
+              (SOne 0 $
+               Plus "v" "w" 0
+               (SOne 0 $
+                Par (neg two) "k" "l" 0
+                  (With "m" True 0 SBot)
+                  (With "n" False 0 SBot)
+               )
+               (What "c"))
+--p = Deriv [] [("x",bType b),("y",bType b),("z",neg (bType b))] $
+    
