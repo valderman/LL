@@ -33,13 +33,13 @@ deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 deriv' = deriv True
 
 deriv2 (a,Nothing) = displayMath $ deriv' a
-deriv2 (a,Just b) = displayMath $ deriv' a >> cmd0 "quad" >> deriv' b
+deriv2 (a,Just b) = displayMath $ deriv' a >> cmd0 "hspace{1cm}" >> deriv' b
 
 program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = math (block (texProg tvs vs s))
 
 amRule (seq,mseq) = case msys1 of
-  Nothing -> cmd "text" "no rule for~" <> program seq
+  Nothing -> cmd "text" "no rule for" <> program seq
   Just sys1 -> rul sys0 sys1 >> follow 
     where follow = case mseq of
             Nothing -> return ()

@@ -113,7 +113,7 @@ texProg' showTypes = foldSeq sf where
   stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
   stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v) : s
   soffer v w ty s = (keyword "offer " <> texVarT' v ty) : s
-  sdemand v w ty s = (keyword "demand " <> texVarT' v ty) : s
+  sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v) : s
   signore w ty s = (keyword "ignore " <> texVar w) : s
   salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w) : s 
   swhat a = [texVar a]
@@ -176,6 +176,7 @@ texNeg False = tex "^" <> braces "⊥"
 unknownTypeEnv = repeat "VAR"
 
 texClosedType = texType 0 unknownTypeEnv
+texRef Null = cmd "mathsf" "NULL"
 texRef (Named _ x) = textual x
 texRef (Shift t x) = texRef x <> "+" <> texLayout t
 texRef (Next x) = texRef x <> "+1"
@@ -195,8 +196,8 @@ texCell c = case c of
       Tag True -> "1"
       Tag False -> "0"
       Q ty r -> paren $ texClosedType ty <> "," <> texRef r
-      -- Delay _ c -> brac $ pClosure c -- FIXME: this makes the eval code crash
-      Delay _ _ -> "?"
+      Delay n Nothing -> brac $ ""
+      Delay n (Just c) -> brac $ pClosure c -- FIXME: this makes the eval code crash
 
 doNothings (Nothing:Nothing:xs) = doNothings (Nothing:xs)
 doNothings (x:xs) = x : doNothings xs

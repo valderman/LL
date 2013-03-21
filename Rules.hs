@@ -24,7 +24,7 @@ botRule    = Deriv ["Θ"] [("x",Bot)] SBot
 forallRule = Deriv ["Θ"] [gamma,("z",Forall "α" (Meta True "A" [var 0]))] $ TApp dum "x" 1 (meta "B") whatA
 existRule  = Deriv ["Θ"] [gamma,("z",Exists "α" (Meta True "A" [var 0]))] $ TUnpack "x" 1 whatA
 offerRule  = Deriv ["Θ"] [("?γ",Bang (meta "Γ")),("z",Quest (meta "A"))] $ Offer "x" 1 whatA
-demandRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Demand "x" dum 1 whatA
+demandRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Demand "x" dum 1 whatB
 ignoreRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore 1 whatA
 aliasRule  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias 1 "z'" whatA
 

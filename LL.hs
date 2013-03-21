@@ -106,7 +106,7 @@ data Cell ref where
   Freed :: Cell ref
   Tag   :: Bool -> Cell ref
   New   :: Cell ref
-  Delay :: Int -> Closure ref -> Cell ref
+  Delay :: Int -> Maybe (Closure ref) -> Cell ref
   Q     :: Type -> ref -> Cell ref -- 1st arg should be a monotype
   NewMeta :: Layout -> Cell ref
 
@@ -118,9 +118,10 @@ type Env ref = [(Name,ref)]
 
 type Closure ref = (Seq,Env ref,TypeEnv)
 
-class IsRef ref where
+class Eq ref => IsRef ref where
   shift :: Layout -> ref -> ref
   next  :: ref -> ref
+  nullPointer  :: ref
   
 class IsRef (Ref heap) => IsHeap heap where
   type Ref heap
@@ -137,6 +138,8 @@ type Heap = [Cell Int]
 instance IsRef Int where
   shift t = (sizeOf t +)
   next = succ
+  nullPointer = -1
+  
 instance IsHeap Heap where
   type Ref Heap = CellRef
 --  type Size Heap = Int
@@ -159,8 +162,8 @@ runClosure h (Cross ty x y v a,e,te)
   = Just (h,[(a,el++[(x,z),(y,shift (mkLayout (te∙ty)) z)] ++ er,te)])
   where (el,(_,z):er) = splitAt v e
 runClosure h (Par ty x y v a b,e,te)
-  = Just (h,[(a,el++[(x,z)]++er,te)
-            ,(b,el++[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
+  = Just (h,[(a,el++[(x,z)],te)
+            ,(b,[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
     where (el,(_,z):er) = splitAt v e
 runClosure h (With x t v a,e,te)
   = Just (replace (e!!+v) (Tag t) h,[(a,increment v x e,te)])
@@ -195,12 +198,12 @@ runClosure h (Cut x y ty v a b,e,te)
         (h',q)  = alloc (te∙ty) h
 
 runClosure h (Offer x v a,e,te)
-  = Just (replace (e!!+v) (Delay 1 (a,el++(x,w):er,te)) h,[])
+  = Just (replace (e!!+v) (Delay 1 (Just (a,el++(x,nullPointer):er,te))) h,[]) -- FIXME: refcount is wrong
     where (el,(_,w):er) = splitAt v e
 runClosure h (Demand x ty v a,e,te)
-  | (Delay n cl) <- h!p
+  | (Delay n (Just (u,e',te'))) <- h!p
   = Just (modifyRefCount (subtract 1) p $ h'
-         ,[(a,el++[(x,q)]++er,te)])
+         ,[(a,el++[(x,q)]++er,te),(u,setNull e' q,te')])
     where (el,(_,p):er) = splitAt v e
           (h',q) = alloc (te ∙ ty) h
 runClosure h (Ignore v a,e,te)
@@ -210,8 +213,12 @@ runClosure h (Alias v x a,e,te)
   = Just (modifyRefCount (+1) (e!!+v) h,[(a,(x,e!!+v):e,te)])
 runClosure _ _ = Nothing
 
-modifyRefCount f r h = replace r (Delay (f c) cl) h
-  where (Delay c cl) = h!r -- FIXME
+setNull [] q = []
+setNull ((x,w):xs) q | w == nullPointer = (x,q):xs
+                     | otherwise = (x,w):setNull xs q
+
+modifyRefCount f r h | Delay c cl <- h!r = replace r (Delay (f c) cl)      h
+                     | New        <- h!r = replace r (Delay (f 0) Nothing) h
 
 increment :: IsRef ref => Int -> Name -> Env ref -> Env ref
 increment n nm e = let (l,(_,x):r) = splitAt n e

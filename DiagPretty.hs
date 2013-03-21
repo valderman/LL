@@ -35,14 +35,16 @@ boxIt o = do
   drawBounds x
   return x
 
-drawFlexBox l = delay $ do
+drawFlexBox' open l = delay $ do
   freezeBounds l
   draw (NW ▸ l .-- (NE ▸ l .!)) [dashed evenly]
   draw (SW ▸ l .-- (SE ▸ l .!)) [dashed evenly]
-  draw (NW ▸ l + (dx+:0) .-- NW ▸ l .-- SW ▸ l.-- (SW ▸ l + (dx+:0) .!)) []
-  draw (NE ▸ l - (dx+:0) .-- NE ▸ l .-- SE ▸ l.-- (SE ▸ l - (dx+:0) .!)) []
+  draw (NW ▸ l + (dx+:0) .-- NW ▸ l .-- SW ▸ l.-- (SW ▸ l + (dx+:0) .!)) []  
+  unless open $ draw (NE ▸ l - (dx+:0) .-- NE ▸ l .-- SE ▸ l.-- (SE ▸ l - (dx+:0) .!)) []
 
  where dx = 7
+
+drawFlexBox = drawFlexBox' False 
          
 addSpace dx dy o = do
   o' <- abstractBox
@@ -73,28 +75,40 @@ renderHeapPart h r = do
        modify (M.insert r y)
        return [y]
 
+halfSize = 14
+fullSize = halfSize * 2
 
 cellSz w t = lift (boxIt . forceWidth w =<< (textObj $ strut $ math t))
-oneCell = cellSz 32
+
+oneCell = cellSz fullSize
+halfCell = cellSz halfSize
+
+metaBox = lift (forceWidth 40 =<< (textObj $ strut $ ""))
 
 renderCell h c = case c of
    Freed -> oneCell $ cmd0 "dagger" 
    Tag t -> oneCell $ if t then "1" else "0"
    New ->  oneCell ""
-   NewMeta l -> do v <- lift (forceWidth 40 =<< (textObj $ strut $ ""))
+   NewMeta Empty -> do
+     v <- metaBox
+     lift $ drawFlexBox' True v
+     return v
+   NewMeta l -> do v <-  metaBox
                    lift $ drawFlexBox v
                    text <- lift $ textObj $ strut $ math $ texLayout l
                    lift $ NW ▸ text + (0 +: 2) === SW ▸ v 
                    return v
-   (Delay _ c) -> oneCell "D" -- FIXME
---                  do
---     p <- oneCell ""
---     x <- renderClosure c 
---     lift $ link p x
---     return p
+   (Delay _ mc) -> do
+       p <- oneCell ""
+       case mc of
+         Nothing -> return ()
+         Just c -> do x <- renderClosure c 
+                      lift $ NW ▸ x === SW ▸ p + (0 +: (-20))
+                      lift $ link p x
+       return p
    (Q t' r') -> do
-              p1 <- cellSz 16 $ renderTyp t'
-              p2 <- cellSz 16 $ ""
+              p1 <- halfCell $ renderTyp t'
+              p2 <- halfCell $ ""
               renderHeapPart h r'
               link' p2 r'
               sequenceObjs 0 [p1,p2]
@@ -138,7 +152,7 @@ link' val ref = do
    target <- lk ref
    case target of
        Just t -> lift $ link val t
-       _ -> return () 
+       _ -> return () -- FIXME: show null pointers
 
 renderEnv :: Env SymRef -> Render (Expr ObjectRef)
 renderEnv env = sequenceObjs 0 =<< forM env (\(nm,ref) -> do
