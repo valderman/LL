@@ -108,9 +108,12 @@ data Cell ref where
   Freed :: Cell ref
   Tag   :: Bool -> Cell ref
   New   :: Cell ref
-  Delay :: Int -> Maybe (Closure ref) -> Cell ref
+  Delay :: RefCount ref -> Maybe (Closure ref) -> Cell ref
   Q     :: Type -> ref -> Cell ref -- 1st arg should be a monotype
   NewMeta :: Layout -> Cell ref
+
+countRefs New = 0
+countRefs (Delay n _) = n
 
 type CellRef = Int
 
@@ -120,7 +123,8 @@ type Env ref = [(Name,ref)]
 
 type Closure ref = (Seq,Env ref,TypeEnv)
 
-class Eq ref => IsRef ref where
+class (Num (RefCount ref), Eq ref) => IsRef ref where
+  type RefCount ref 
   shift :: Layout -> ref -> ref
   next  :: ref -> ref
   nullPointer  :: ref
@@ -138,6 +142,7 @@ alloc = alloc' . mkLayout
 type Heap = [Cell Int]
 
 instance IsRef Int where
+  type RefCount Int = Int
   shift t = (sizeOf t +)
   next = succ
   nullPointer = -1
@@ -200,8 +205,9 @@ runClosure h (Cut x y ty v a b,e,te)
         (h',q)  = alloc (te∙ty) h
 
 runClosure h (Offer x v a,e,te)
-  = Just (replace (e!!+v) (Delay 1 (Just (a,el++(x,nullPointer):er,te))) h,[]) -- FIXME: refcount is wrong
+  = Just (replace (e!!+v) (Delay n (Just (a,el++(x,nullPointer):er,te))) h,[])
     where (el,(_,w):er) = splitAt v e
+          n = countRefs (h!(e!!+v)) -- FIXME: JP: how much should the refcount be? I am suspecting only the "clients" should be counted.
 runClosure h (Demand x ty v a,e,te)
   | (Delay n (Just (u,e',te'))) <- h!p
   = Just (modifyRefCount (subtract 1) p $ h'

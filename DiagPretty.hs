@@ -93,8 +93,7 @@ renderCell h c = case c of
      v <- metaBox
      lift $ drawFlexBox' True v
      return v
-   -- TODO: print !Γ
-   NewMeta l -> do v <-  metaBox
+   NewMeta l -> do v <- metaBox
                    lift $ drawFlexBox v
                    text <- lift $ textObj $ strut $ math $ texLayout l
                    lift $ NW ▸ text + (0 +: 2) === SW ▸ v 
@@ -121,7 +120,6 @@ strut x = cmd0 "strut" <> x
 renderTopHeapPart h t r = do
   [o] <- renderHeapPart h (Named t r)
   lift $ do
-    -- ypart (N ▸ o) === (-50)
     -- l <- textObj $ strut $ math $ texLayout t
     -- NW ▸ l === SW ▸ o
     return o

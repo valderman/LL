@@ -198,8 +198,8 @@ texCell c = case c of
       Tag True -> "1"
       Tag False -> "0"
       Q ty r -> paren $ texClosedType ty <> "," <> texRef r
-      Delay n Nothing -> brac $ ""
-      Delay n (Just c) -> brac $ pClosure c -- FIXME: this makes the eval code crash
+      Delay (SymCount n) Nothing -> brac "" <> textual n
+      Delay (SymCount n) (Just c) -> brac (pClosure c) <> textual n
 
 doNothings (Nothing:Nothing:xs) = doNothings (Nothing:xs)
 doNothings (x:xs) = x : doNothings xs
