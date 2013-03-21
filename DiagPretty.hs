@@ -93,6 +93,7 @@ renderCell h c = case c of
      v <- metaBox
      lift $ drawFlexBox' True v
      return v
+   -- TODO: print !Γ
    NewMeta l -> do v <-  metaBox
                    lift $ drawFlexBox v
                    text <- lift $ textObj $ strut $ math $ texLayout l
@@ -148,6 +149,9 @@ runRender x = runStateT x M.empty
 renderVar ('?':_) = abstractBox
 renderVar nm = textObj $ strut $ math $ texVar $ nm
 
+link' val Null = lift $ delay $ do
+                   draw (NE ▸ val .-- (SW ▸ val .!)) []
+                   draw (NW ▸ val .-- (SE ▸ val .!)) []
 link' val ref = do
    target <- lk ref
    case target of
@@ -168,9 +172,9 @@ renderEnv env = sequenceObjs 0 =<< forM env (\(nm,ref) -> do
 
 renderClosure :: Closure SymRef -> Render (Expr ObjectRef)
 renderClosure (code,env,typeEnv) = do
-   code' <- lift $ textObj $ block' $ texUntypedProg unknownTypeEnv (map fst env) code
+   code' <- lift $ textObj $ texUntypedProg unknownTypeEnv (map fst env) code
    env' <- renderEnv env
-   lift $ S ▸ code' === N ▸ env' + (0 +: 20) 
+   lift $ E ▸ code' + (5 +: 0)  === W ▸ env' 
    return $ env'
    
 renderSystem :: System SymHeap -> Render ()

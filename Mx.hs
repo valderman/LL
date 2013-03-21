@@ -44,15 +44,15 @@ amRule (seq,mseq) = case msys1 of
     where follow = case mseq of
             Nothing -> return ()
             Just seq' -> rul sys2 sys3
-             where (cl2,_) = toSystem' seq'
+             where sys2 = toSystem' h seq'
                    h = snd sys1
-                   sys2 = (cl2,h)
                    sys3 = runSystem sys2
-  where sys0 = toSystem' seq
+  where sys0 = toSystem' emptyHeap seq
         msys1 = stepSystem sys0
 
 rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return ()
-toSystem' =  toSystem . fillTypes
+
+toSystem' h =  toSystem h . fillTypes
 
 comment :: Tex a -> TeX
 comment x = ""

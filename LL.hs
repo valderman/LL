@@ -25,13 +25,15 @@ data Type = Type :⊕: Type
              | Bang (Type)
              | Quest (Type)
              | Meta Bool String [Type] --  A meta-variable, with types with types occuring in it.
-
+  deriving Eq
+           
 data Layout = Layout `Then` Layout 
             | Bit Layout
-            | Pointer
+            | Pointer Layout
             | MetaL Type
             | Union Layout Layout
             | Empty
+  deriving Eq              
 
 mkLayout :: Type -> Layout
 mkLayout t = case mkPositive t of
@@ -39,8 +41,8 @@ mkLayout t = case mkPositive t of
               Zero -> Empty
               a :⊗: b -> mkLayout a `Then` mkLayout b
               a :⊕: b -> Bit (mkLayout a `Union` mkLayout b)
-              Bang _ -> Pointer
-              Exists _ _ -> Pointer
+              Bang x  -> Pointer (mkLayout x)
+              Exists _ _ -> Pointer (MetaL $ meta "Polymorphic")
               Meta _ _ _ -> MetaL (mkPositive t)
               TVar _ _ -> error "cannot know layout of var"
 a ⊸ b = neg a :|: b
@@ -240,7 +242,7 @@ sizeOf :: Layout -> Int
 sizeOf (Bit t) = 1 + sizeOf t
 sizeOf (t1 `Union` t2) = max (sizeOf t1) (sizeOf t2)
 sizeOf (t1 `Then` t2) = sizeOf t1 + sizeOf t2
-sizeOf Pointer = 1
+sizeOf (Pointer _) = 1
 sizeOf Empty    = 0
 sizeOf (MetaL _) = error "cannot get size of meta-type"
 

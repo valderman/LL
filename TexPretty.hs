@@ -71,57 +71,59 @@ xblock format bod@(firstRow:_) = do
     mkrows (map mkcols bod)
   return ()
 
-mapsto :: [TeX] -> TeX
-mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
 -- left_ = cmd "Leftarrow" mempty
 -- right_ = cmd "Rightarrow" mempty
 
 indent :: TeX
 indent = cmd "hspace" $ tex "1em"
 
-alts :: TeX -> [TeX] -> TeX -> [TeX] -> [TeX]
-alts x a y b = [indent <> xblock (tex "l@{}l") [[x,mapsto a],
-                                                [y,mapsto b]]]
-
-connect z x a y b = connect_ <> z : alts x a y b
 
 texProg = texProg' True
-texUntypedProg :: [Name] -> [Name] -> Seq -> [TeX]
-texUntypedProg ts vs = texProg' False ts (zip vs (repeat $ error "accessing type when texing untyped term")) 
+texUntypedProg :: [Name] -> [Name] -> Seq -> TeX
+texUntypedProg ts vs s = math $ punctuate ";" $ texProg' False ts (zip vs (repeat $ error "accessing type when texing untyped term")) s
 
 texProg' :: Bool -> [Name] -> [(Name,Type)] -> Seq -> [TeX]
 texProg' showTypes = foldSeq sf where
- sf :: Deriv -> SeqFinal TeX [TeX]
- sf (Deriv ts vs _) = SeqFinal {..} where
-  sty ts t  = texType 0 ts t
-  sax v v' _ = [texVar v <> " ↔ " <> texVar v']
-  scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
-                                        (texVarT' v   vt ) t
-  scross w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
-  spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
-                    (texVarT' v  vt ) s
-                    (texVarT' v' vt') t
-  splus w v vt v' vt' s t = case_ <> texVar w <> keyword " of" :
-                  alts (keyword "inl " <> texVar v) s
-                       (keyword "inr " <> texVar v') t
-  swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) : s
-     where c = if b then fst_ else snd_
-  sbot v = [texVar v]
-  szero w vs  = [keyword "dump " <> whenShowTypes (texCtx' vs) <> in_ <> texVar w]
-  sone w t = let'' (cmd0 "diamond") (texVar w) : t
-  sxchg _ t = t
-  stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
-  stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v) : s
-  soffer v w ty s = (keyword "offer " <> texVarT' v ty) : s
-  sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v) : s
-  signore w ty s = (keyword "ignore " <> texVar w) : s
-  salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w) : s 
-  swhat a = [texVar a]
-  let'' w    v = let_ <> w <> "=" <> v
- texVarT' x y | showTypes = texVarT x y
-              | otherwise = texVar x                            
- whenShowTypes | showTypes = id                            
-               | otherwise = const "?"
+   sf :: Deriv -> SeqFinal TeX [TeX]
+   sf (Deriv ts vs _) = SeqFinal {..} where
+      sty ts t  = texType 0 ts t
+      sax v v' _ = [texVar v <> " ↔ " <> texVar v']
+      scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
+                                            (texVarT' v   vt ) t
+      scross w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
+      spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
+                        (texVarT' v  vt ) s
+                        (texVarT' v' vt') t
+      splus w v vt v' vt' s t = case_ <> texVar w <> keyword " of" :
+                      alts (keyword "inl " <> texVar v) s
+                           (keyword "inr " <> texVar v') t
+      swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) : s
+         where c = if b then fst_ else snd_
+      sbot v = [texVar v]
+      szero w vs  = [keyword "dump " <> whenShowTypes (texCtx' vs) <> in_ <> texVar w]
+      sone w t = let'' (cmd0 "diamond") (texVar w) : t
+      sxchg _ t = t
+      stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
+      stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v) : s
+      soffer v w ty s = (keyword "offer " <> texVarT' v ty) : s
+      sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v) : s
+      signore w ty s = (keyword "ignore " <> texVar w) : s
+      salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w) : s 
+      swhat a = [texVar a]
+      let'' w    v = let_ <> w <> "=" <> v
+   texVarT' x y | showTypes = texVarT x y
+                | otherwise = texVar x                            
+   whenShowTypes | showTypes = id                            
+                 | otherwise = const "?"
+   myBlock sep xs | showTypes = xblock sep xs
+                  | otherwise = brac (punctuate ";" $ map mconcat xs)
+   alts :: TeX -> [TeX] -> TeX -> [TeX] -> [TeX]
+   alts x a y b = [indent <> myBlock (tex "l@{}l") [[x,mapsto a],
+                                                    [y,mapsto b]]]
+
+   connect z x a y b = connect_ <> z : alts x a y b
+   mapsto :: [TeX] -> TeX
+   mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
      
 texVarT [] t = t
 texVarT ('?':_) t = t
@@ -136,16 +138,16 @@ prn p k = if p > k then paren else id
 texCtx :: [String] -> [(String,Type)] ->  TeX
 texCtx ts vs = do
   -- uncomment to show the typing context
-  -- mconcat $ intersperse "," (map texVar $ reverse ts) >>  textual ";"
+  -- commas (map texVar $ reverse ts) >>  textual ";"
   texCtx' (over (mapped._2) (texType 0 ts) vs)
 
 
-texCtx' vs = mconcat $ intersperse "," [texVarT v t | (v,t) <- vs]
+texCtx' vs = commas [texVarT v t | (v,t) <- vs]
     
 texLayout :: Layout -> TeX
 texLayout (a `Then`b) = texLayout a <> "+" <> texLayout b
 texLayout (Bit a) = texLayout a <> "+1" 
-texLayout (Pointer) = "1"
+texLayout (Pointer _) = "1"
 texLayout (MetaL t) = "|" <> texClosedType t <> "|"
 texLayout (Union a b) = texLayout a <> "⊔" <> texLayout b
 texLayout Empty = "0"
@@ -165,7 +167,7 @@ texType p vs (TVar b x) = texVar (vs!!x) <> texNeg b
 texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
 texType p vs (Meta b x as) = textual x <> as' <> texNeg b
-  where as' = if null as then mempty else  brack (mconcat $ intersperse "," $ map (texType 0 vs) as)
+  where as' = if null as then mempty else  brack (commas $ map (texType 0 vs) as)
 
 texNeg True = mempty
 texNeg False = tex "^" <> braces "⊥"
@@ -206,7 +208,7 @@ doNothings [] = []
 texHeapPart h r = commas $ map (maybe "…" id) $ doNothings $ heapPart h r
 
 texHeap :: SymHeap -> TeX
-texHeap h = mconcat $ intersperse ", " [textual r <> "↦" <> texHeapPart h (Named t r) | Named t r <- M.keys h, displayed t]
+texHeap h = commas [textual r <> "↦" <> texHeapPart h (Named t r) | Named t r <- M.keys h, displayed t]
   where displayed (MetaL (Meta _ x _)) | x `elem` ["Γ","Δ"] = False
         displayed Empty = False
         displayed _ = True
@@ -216,11 +218,12 @@ texSystem (cls,h) = do
   "H=…," <>texHeap h <>";"
   "C=ξ," <> commas (map pClosure cls)
 
-commas = mconcat . intersperse ", "
+punctuate p = mconcat . intersperse p
+commas = punctuate ", "
 
 pClosure :: Closure SymRef -> TeX
 pClosure (seq,env,typeEnv) = 
-  brac (block' $ texUntypedProg unknownTypeEnv (map fst env) seq)  <> brack (commas $ [texVar' nm r | (nm,r) <- env])
+  brac (texUntypedProg unknownTypeEnv (map fst env) seq)  <> brack (commas $ [texVar' nm r | (nm,r) <- env])
   
 texVar' :: String -> SymRef -> TeX  
 texVar' "" r = "…"

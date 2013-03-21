@@ -86,7 +86,7 @@ pClosedType = pType 0 (repeat "<VAR>")
 pLayout :: Layout -> Doc
 pLayout (a `Then`b) = pLayout a <> "+" <> pLayout b
 pLayout (Bit a) = pLayout a <> "+1" 
-pLayout (Pointer) = "1"
+pLayout (Pointer _) = "1"
 pLayout (MetaL t) = "|" <> pClosedType t <> "|"
 pLayout (Union a b) = pLayout a <> "⊔" <> pLayout b
 pLayout Empty = "0"
