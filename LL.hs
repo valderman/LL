@@ -256,6 +256,15 @@ runSystem :: IsHeap h => System h -> System h
 runSystem s | Just s' <- stepSystem s = runSystem s'
 runSystem s = s
 
+stepClosure :: IsHeap h => Int -> System h -> Maybe (System h)
+stepClosure i (cls,h) | i < length cls = do (h',c') <- runClosure h c
+                                            return (clsL ++ c' ++ clsR,h')
+                      | otherwise      = Nothing
+  where (clsL,c:clsR) = splitAt i cls
+
+noClosures :: System h -> Int
+noClosures (cls,h) = length cls
+
 -- | Types which can be applied a 'Subst'
 class Substitute a where
   (∙) :: Subst -> a -> a
