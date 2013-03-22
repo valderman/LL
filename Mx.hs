@@ -36,7 +36,7 @@ deriv2 (a,Nothing) = displayMath $ deriv' a
 deriv2 (a,Just b) = displayMath $ deriv' a >> cmd0 "hspace{1cm}" >> deriv' b
 
 program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = math (block (texProg tvs vs s))
+program (Deriv tvs vs s) = treeRender (texProg tvs vs s)
 
 amRule (seq,mseq) = case msys1 of
   Nothing -> cmd "text" "no rule for" <> program seq
@@ -94,7 +94,6 @@ allReductions displayer = mapM_ redRule
 todo = cmd "marginpar"
 
 main = render $ latexDocument "article" ["11pt"] preamble $ @"
-
 @maketitle
 
 @section{Introduction}

@@ -50,7 +50,7 @@ texSeq showProg = foldSeq sf where
   swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
   rul :: TeX -> [Derivation] -> Derivation
   rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
-  maybeProg = if showProg then block' (texProg ts vs seq) else mempty
+  maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
 
 
 keyword :: String -> TeX 
@@ -77,53 +77,64 @@ xblock format bod@(firstRow:_) = do
 indent :: TeX
 indent = cmd "hspace" $ tex "1em"
 
+data Block = Split TeX [(TeX,Block)] | Final TeX | Instr TeX Block
 
 texProg = texProg' True
 texUntypedProg :: [Name] -> [Name] -> Seq -> TeX
-texUntypedProg ts vs s = math $ punctuate ";" $ texProg' False ts (zip vs (repeat $ error "accessing type when texing untyped term")) s
+texUntypedProg ts vs s = math $ linearize $ texProg' False ts (zip vs (repeat $ error "accessing type when texing untyped term")) s
 
-texProg' :: Bool -> [Name] -> [(Name,Type)] -> Seq -> [TeX]
+linearize :: Block -> TeX
+linearize (Final t) = t
+linearize (Instr h t) = h <> "; " <> linearize t
+linearize (Split h xs) = h <> brac (punctuate "; " [x<>cmd0 "mapsto"<> linearize ts | (x,ts) <- xs])
+
+
+treeRender t = math $ block' $ treeRender' t
+treeRender' :: Block -> [TeX]
+treeRender' (Final t) = [t]
+treeRender' (Split h xs) = [h,
+                           indent <> xblock (tex "l@{}l") [[x,mapsto (treeRender' a)] | (x,a) <- xs]]
+treeRender' (Instr h t) = h : treeRender' t
+
+mapsto :: [TeX] -> TeX
+mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
+
+
+connect z x a y b = Split (connect_ <> z) [(x,a),(y,b)]
+
+texProg' :: Bool -> [Name] -> [(Name,Type)] -> Seq -> Block
 texProg' showTypes = foldSeq sf where
-   sf :: Deriv -> SeqFinal TeX [TeX]
+   sf :: Deriv -> SeqFinal TeX Block
    sf (Deriv ts vs _) = SeqFinal {..} where
       sty ts t  = texType 0 ts t
-      sax v v' _ = [texVar v <> " ↔ " <> texVar v']
+      sax v v' _ = Final $ texVar v <> " ↔ " <> texVar v'
       scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
                                             (texVarT' v   vt ) t
-      scross w v vt v' vt' t = (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) : t
+      scross w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) t
       spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
                         (texVarT' v  vt ) s
                         (texVarT' v' vt') t
-      splus w v vt v' vt' s t = case_ <> texVar w <> keyword " of" :
-                      alts (keyword "inl " <> texVar v) s
-                           (keyword "inr " <> texVar v') t
-      swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) : s
+      splus w v vt v' vt' s t = Split (case_ <> texVar w <> keyword " of")
+                      [(keyword "inl " <> texVar v,s),
+                       (keyword "inr " <> texVar v',t)]
+      swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
-      sbot v = [texVar v]
-      szero w vs  = [keyword "dump " <> whenShowTypes (texCtx' vs) <> in_ <> texVar w]
-      sone w t = let'' (cmd0 "diamond") (texVar w) : t
+      sbot v = Final $ texVar v
+      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' vs) <> in_ <> texVar w
+      sone w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t
-      stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB) : s
-      stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v) : s
-      soffer v w ty s = (keyword "offer " <> texVarT' v ty) : s
-      sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v) : s
-      signore w ty s = (keyword "ignore " <> texVar w) : s
-      salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w) : s 
-      swhat a = [texVar a]
-      let'' w    v = let_ <> w <> "=" <> v
+      stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s
+      stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v)  s
+      soffer v w ty s = Instr (keyword "offer " <> texVarT' v ty)  s
+      sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
+      signore w ty s = Instr (keyword "ignore " <> texVar w)  s
+      salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
+      swhat a = Final $ texVar a
+      let'' w    v t = Instr (let_ <> w <> "=" <> v) t
    texVarT' x y | showTypes = texVarT x y
                 | otherwise = texVar x                            
    whenShowTypes | showTypes = id                            
                  | otherwise = const "?"
-   myBlock sep xs | showTypes = xblock sep xs
-                  | otherwise = brac (punctuate ";" $ map mconcat xs)
-   alts :: TeX -> [TeX] -> TeX -> [TeX] -> [TeX]
-   alts x a y b = [indent <> myBlock (tex "l@{}l") [[x,mapsto a],
-                                                    [y,mapsto b]]]
-
-   connect z x a y b = connect_ <> z : alts x a y b
-   mapsto :: [TeX] -> TeX
-   mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
      
 texVarT [] t = t
 texVarT ('?':_) t = t
