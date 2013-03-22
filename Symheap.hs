@@ -5,7 +5,7 @@
 
 module Symheap where
 
-import Data.List (find,mapAccumL)
+import Data.List (find,mapAccumL,(\\))
 import qualified Data.Map as M
 import Data.Map (Map)
 import Data.Monoid
@@ -45,12 +45,18 @@ instance Num SymCount where
   SymCount x - SymCount y = SymCount $ x <> "-" <> y
 
 allocAt :: SymRef -> Layout -> SymHeap -> SymHeap
-allocAt r t = case t of 
+allocAt r t h = (case t of 
       -- Empty -> id -- I want to see empty things
       a `Then` b -> allocAt r a . allocAt (shift a r) b
       Bit b -> allocAtom r New . allocAt (next r) b
-      Pointer _ -> allocAtom r (Delay (SymCount "n") Nothing)       
-      t -> allocAtom r (NewMeta t)
+      Pointer _ -> allocAtom r (Delay (SymCount n) Nothing)  -- FIXME: the variable name should be unique
+      t -> allocAtom r (NewMeta t)) h
+  where (n:_) = anyVarName \\ takenVarNames h
+
+anyVarName = ["n","m","o"]
+      
+takenVarNames :: SymHeap -> [String]
+takenVarNames h = [n | Delay (SymCount n) _ <- M.elems h]
 
 allocAtom r t = M.alter (\_ -> Just t) r
 

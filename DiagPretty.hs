@@ -28,7 +28,9 @@ lk r = do
 
 link :: Expr ObjectRef -> Expr ObjectRef -> D ()
 link source target = do   
-  delay $ mpRaw "drawarrow " <> out (Center ▸ source) <> "{down}..." <> out (NW ▸ target) <> "{down};\n"
+  delay $ if_else (ypart (Center ▸ source - S ▸ target) .>. 0 ) 
+              (mpRaw "drawarrow " <> out (Center ▸ source) <> "{down}..." <> out (NW ▸ target) <> "{down};\n")
+              (mpRaw "drawarrow " <> out (Center ▸ source) <> "{down}..." <> out (SW ▸ target) <> "{up};\n")
 
 boxIt o = do
   x <- o

@@ -19,20 +19,17 @@ import Symheap
 infix 1 `for`
 x `for` lens = over lens x
 
-par = cmd0 "parr"
-amp = cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt" 
+par = math $ cmd0 "parr"
+amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt" 
 
-smallcaps :: TeX -> TeX
-smallcaps x = braces (cmd0 "sc" <> x)
-
-rulText = cmd "text" . smallcaps 
+ruleName = math . cmd "text" . smallcaps 
 
 texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
 texSeq showProg = foldSeq sf where
  sf (Deriv ts vs seq) = SeqFinal {..} where
   sty = texType 0
-  sax v v' _ = rul (rulText "Ax") []
-  scut v _ _ s _ t = rul (rulText "Cut") [s,t]
+  sax v v' _ = rul (ruleName "Ax") []
+  scut v _ _ s _ t = rul (ruleName "Cut") [s,t]
   scross w v vt v' vt' t =  rul "⊗" [t]
   spar w _ vt _ vt' s t = rul par [s,t]
   splus w _ vt _ vt' s t = rul "⊕" [s,t]
@@ -40,13 +37,13 @@ texSeq showProg = foldSeq sf where
   sbot v = rul "⊥" []
   szero w vs = rul "0" []
   sone w t = rul "1" [t]
-  sxchg _ t = rul (rulText "Exch.") [t]
+  sxchg _ t = t --rul (ruleName "Exch.") [t] -- uncomment to display the exchange rules
   stapp w _ _ tyB s = rul "∀" [s]
   stunpack tw w _ s = rul "∃" [s]
   soffer w _ ty s = rul "?" [s] 
   sdemand w _ ty s = rul "!" [s]
-  signore w ty s = rul (rulText "Weaken") [s]
-  salias w w' ty s = rul (rulText "Contract") [s]
+  signore w ty s = rul (ruleName "Weaken") [s]
+  salias w w' ty s = rul (ruleName "Contract") [s]
   swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
   rul :: TeX -> [Derivation] -> Derivation
   rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
@@ -157,8 +154,8 @@ texCtx' vs = commas [texVarT v t | (v,t) <- vs]
     
 texLayout :: Layout -> TeX
 texLayout (a `Then`b) = texLayout a <> "+" <> texLayout b
-texLayout (Bit a) = texLayout a <> "+1" 
-texLayout (Pointer _) = "1"
+texLayout (Bit a) = "1+" <> texLayout a
+texLayout (Pointer a) = cmd0 "rightarrow" <> texLayout a
 texLayout (MetaL t) = "|" <> texClosedType t <> "|"
 texLayout (Union a b) = texLayout a <> "⊔" <> texLayout b
 texLayout Empty = "0"
@@ -188,7 +185,7 @@ texNeg False = tex "^" <> braces "⊥"
 
 unknownTypeEnv = repeat "VAR"
 
-texClosedType = texType 0 unknownTypeEnv
+texClosedType = math . texType 0 unknownTypeEnv
 texRef Null = cmd "mathsf" "NULL"
 texRef (Named _ x) = textual x
 texRef (Shift t x) = texRef x <> "+" <> texLayout t
@@ -234,12 +231,12 @@ commas = punctuate ", "
 
 pClosure :: Closure SymRef -> TeX
 pClosure (seq,env,typeEnv) = 
-  brac (texUntypedProg unknownTypeEnv (map fst env) seq)  <> brack (commas $ [texVar' nm r | (nm,r) <- env])
+  brac (texUntypedProg unknownTypeEnv (map fst env) seq) <> brack (commas $ [texVar' nm r | (nm,r) <- env])
   
 texVar' :: String -> SymRef -> TeX  
 texVar' "" r = "…"
-texVar' ('?':x) r = textual x
-texVar' x r = textual x <> "=" <> texRef r
+texVar' ('?':x) r = texVar x
+texVar' x r = texVar x <> "=" <> texRef r
   
 
 

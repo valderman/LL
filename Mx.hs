@@ -1,5 +1,6 @@
-{-# OPTIONS_GHC -XTypeSynonymInstances -XOverloadedStrings -XRecursiveDo -pgmF marxup -F #-}
+{-# OPTIONS_GHC -XTypeFamilies -XTypeSynonymInstances -XOverloadedStrings -XRecursiveDo -pgmF marxup -F #-}
 
+import MarXup
 import MarXup.Latex
 import MarXup.Tex
 import MarXup.DerivationTrees
@@ -27,17 +28,23 @@ preamble = do
                     ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
-deriv :: Bool -> Deriv -> Tex Label
+-- | Render a derivation tree. 
+deriv :: Bool -- ^ Show terms?
+         -> Deriv -> Tex Label
 deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 
+-- | Render a derivation tree, showing terms.
 deriv' = deriv True
 
+-- | Render some (related) derivation trees
 deriv2 (a,Nothing) = displayMath $ deriv' a
 deriv2 (a,Just b) = displayMath $ deriv' a >> cmd0 "hspace{1cm}" >> deriv' b
 
+-- | Render a derivation as a program (term)
 program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = treeRender (texProg tvs vs s)
 
+-- | Render abstract machine rules
 amRule (seq,mseq) = case msys1 of
   Nothing -> cmd "text" "no rule for" <> program seq
   Just sys1 -> rul sys0 sys1 >> follow 
@@ -57,6 +64,8 @@ toSystem' h =  toSystem h . fillTypes
 comment :: Tex a -> TeX
 comment x = ""
 
+allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" (Meta True "A" [TVar True 0])]
+
 allRules displayer = mapM_ showRule 
   [(axRule,Nothing)
   ,(cutRule,Nothing)
@@ -73,7 +82,6 @@ allRules displayer = mapM_ showRule
           displayer input
           newline        
                      
-
 allReductions displayer = mapM_ redRule 
    [(amp<>"⊕",cutWithPlus True),
     (math par<>"⊗",cutParCross),
@@ -92,6 +100,21 @@ allReductions displayer = mapM_ redRule
           newline
 
 todo = cmd "marginpar"
+
+
+instance Element Type where
+  type Target Type = TeX
+  element = texClosedType
+
+instance Element Layout where
+  type Target Layout = TeX
+  element = math . texLayout
+
+
+tA = meta "A"
+tB = meta "B"
+
+
 
 main = render $ latexDocument "article" ["11pt"] preamble $ @"
 @maketitle
@@ -121,16 +144,174 @@ abstract machine able to run programs written for it.
 
 @todo{π-calculus as a low-level programming language: not quite. We fill the niche}
 
-@section{Typing rules}
+@section{Types}
+
+Explanation of the types:
+@itemize{
+@item @id(tA :⊗: tB): both @tA and @tB. The program chooses when to use either of them.
+@item @id(tA :|: tB): both @tA and @tB. The context chooses when to use either of them.
+@item @id(tA :⊕: tB): either @tA and @tB. The context chooses which one.
+@item @id(tA :&: tB): both @tA and @tB. The program chooses which one.
+}
+The neutrals are respectively @One, @Bot, @Zero and @Top.
+
+TODO: quantifiers and exponentials
+
+
+@section{Terms and Typing rules}
+
+We have a judgement @deriv'(Deriv [] [gamma] whatA) with only hypotheses, no conclusion.
+Remarks: 
+@itemize{
+@item 
+In fact, it is as if there were a (single and meaningless) @Bot conclusion: @math{Γ ⊢ a
+  : ⊥}.  Essentially the programs are written in CPS.  Because the
+  return type is always the same (@Bot), writing it is redundant, so we omit
+  it.
+
+@item 
+As usual in LL, we have only elimination rules; because
+introduction rules are recovered using @ruleName{Ax} and @ruleName{Cut}.
+
+@item
+In sum, when we have an set of hypothesis, if the program is
+  ``fed'' inputs for all of them but one, the last one will ``spit
+  out'' a result. (In fact, where and how data is read/written cannot
+  be predicted from the shallow structure of the sequent, one must to
+  a deep analysis of the types.)
+
+}
 @allRules(deriv2)
+
+Explanation of the rules:
+@itemize{
+
+@item @ruleName{Ax} 
+plugs @math{x} and @math{y} together.  
+Remark: we do not know from the rule in isolation the ``direction of
+  travel'' of information.  Indeed, negation is involutive; so we can
+  just reverse the rule by substituting 
+   @neg(tA) for 
+   @tA
+
+  However, if @tA is a closed basic type, we can interpret the @emph{instance}
+  of the rule to be communication in a specific direction.
+
+@item @ruleName{Cut} 
+creates a new communication channel of type @tA;
+  naming the ends @math{x} and @math{y}. Programs ``talking'' on either end
+  execute in parallel.
+
+  Note that the communication channel is ``one-shot''; but the type of
+  the channel may be a list/stream/what have you. There may even be
+  back and forth communication if the type involes eg. a linear arrows.
+
+  (iirc, Wadler 2012 makes the opposite choice).
+
+@item @math{⊗}   Essentially no-op. Just gives names to more hypothesis.
+@item @par: executes two processes in parallel. Note that the
+  only with possible communication is via @math{z}; the parts @math{Γ} and @math{Δ}
+  can be seen as separate memories in the rhs. The situation is
+  similar for @ruleName{Cut}.
+
+
+@item @math{⊕}: does case analysis; very similar to the usual rule for disjunction.
+
+@item @amp: choses a side
+
+@item @One: Another kind of nop.
+
+@item @Bot: terminate the program
+
+@item Because there is no elim rule for @Top, @Zero can never be constructed.
+}
+TODO: exponentials.
+
 
 @section{Cut-elimination rules}
 @allReductions(deriv False)
 
-@section{Program reduction rules}
+
+
+@subsection{Cut-elimination as program reduction}
 @allReductions(program)
 
+
+
 @section{Abstract machine rules}
+
+Problems of the reduction rules:
+@itemize{
+@item they are synchronous (eg. @Top/@Bot are eliminated @emph{at the same time})
+@item they force arbitrary sequentialisation. (eg. Par/Tensor is asymetric)
+}
+
+The idea of the AM is to delay cut-elimination in order to get a more
+efficient execution (as in eg. Krivine's abstract machine). (One might
+say that the AM realises ``cut-preservation''.) Concurrent semantics
+naturally arise.
+
+The AM reduces/executes a number of closures concurrently. (Each
+closure can be thought of as a process.)  A closure is a sequent
+together with an environment. An environment has for each variable
+of type @tA in the context a pointer to a memory area of layout @mkLayout(tA).
+(Each variable can be thought of as a channel.) 
+
+We can meaningfully execute open programs, contrary to what happens in the cut-elimination view of execution. This is similar to the situation in the lambda calculus.
+
+The layout of each type in memory is the following.
+@displayMath{
+@array[]{ccc}[[element t,element (neg t),element (mkLayout t)] | t <- allPosTypes]
+}
+
+\begin{align*}
+  \layout{A⊗B} = \layout{A \pa B}  &= \layout A · \layout B\\
+  \layout{A ⊕ B} = \layout{A \& B} &= \text{1 bit of info + 1 bit indicating that the data is ready} · (\layout A \mid \layout B)\\
+  \layout{α} = \layout{\p{α}} &= ρ[α] \\
+  \layout{!\p A} = \layout{?A} &= \text{pointer to a closure (with $A$ as last variable) + ready flag + reference count; aka. a thunk} \\
+  \layout{∀α.A} = \layout{∃α.A} &= \text{cell} + \layout{A} \\
+  \layout{T} &= \epsilon & T ∈ \braces{⊤,⊥,0,1}
+\end{align*}
+
+Note that @mkLayout(tA) = @mkLayout(neg tA), but the data is used differently, see below.
+
+
+Operational behaviour of the rules:
+@itemize{
+@item 0: crash
+@item 1: continue
+@item ⊥: terminate (delete the closure)
+@item ⊕: wait for the data to be ready; then chose a branch according
+  to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.
+@item \&-L: Allocate $\layout A$ and initialise it. Write the tag and the pointer. Continue.
+@item $x:(A ⊗ B)$: add an entry in the context for $y:B$, at location
+  $x+\layout A$ (No communication occurs!)
+@item $A \pa B$: split the environment and spawn a new closure. (No communication either)
+@item $∀$. Write the (pointer to) representation of the concrete type $B$ (found in the code) to the 1st cell.
+\item $∃$. Wait for the type representation to be ready. Copy the
+  (pointer to) the representation to the type environment. Free the
+  type variable from the memory. Rename the linear variable (as in
+  $⊗$). NOTE: It is tempting to avoid the sync. point here, however
+  because the type variable will be copied around, this rule must be
+  responsible for freeing the memory (or we need garbage collection;
+  yuck).
+@item Cut: similar to $\pa$ but connects the two closures directly together.
+@item Ax: Copy the data between the closures. For type variables, wait
+  for the type to be ready, use the type representation from the
+  environment. Release then the used (pointer to) type representation.
+@item ?: place a pointer to the closure $a$ in the zone pointed by
+  $x:?A$, mark as ready; terminate.
+@item !: wait for ready. Allocate and initialise memory of $\layout A$, spawn a
+  closure from the zone pointed by $x:!A$, link it with $x$ and
+  continue. Decrement reference count.
+@item Contract: copy the pointer to the thunk, increment reference
+  count.  Note this is easy in the AM compared to the cut-elim.
+\item Weaken: discard the pointer, decrement reference count.
+}
+
+Don't forget about recursively decrementing counts upon deallocation.
+
+
 @allRules(amRule)
 
 
