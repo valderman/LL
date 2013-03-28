@@ -26,7 +26,7 @@ data Type = Type :⊕: Type
              | Quest (Type)
              | Meta Bool String [Type] --  A meta-variable, with types with types occuring in it.
   deriving Eq
-           
+
 data Layout = Layout `Then` Layout 
             | Bit Layout
             | Pointer Layout
@@ -46,6 +46,8 @@ mkLayout t = case mkPositive t of
               Meta _ _ _ -> MetaL (mkPositive t)
               TVar _ _ -> error "cannot know layout of var"
 a ⊸ b = neg a :|: b
+a ⅋ b = a :|: b
+
 dum = meta "dummy type" 
 
 positiveType t = case t of

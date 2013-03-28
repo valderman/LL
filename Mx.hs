@@ -110,11 +110,11 @@ instance Element Layout where
   type Target Layout = TeX
   element = math . texLayout
 
-
 tA = meta "A"
 tB = meta "B"
 
-
+norm :: TeX -> TeX
+norm x = math $ "|" <> x <> "|"
 
 main = render $ latexDocument "article" ["11pt"] preamble $ @"
 @maketitle
@@ -259,22 +259,20 @@ of type @tA in the context a pointer to a memory area of layout @mkLayout(tA).
 
 We can meaningfully execute open programs, contrary to what happens in the cut-elimination view of execution. This is similar to the situation in the lambda calculus.
 
+The heap is divided in a number of cells. 
+@itemize{
+  @item Cells not ready
+  @item tag cells (if ready, points to a bit)
+  @item polymorphic cells (if ready, points to a concrete type and a concrete value)
+  @item thunk cells (can be pointed to by many clients. if ready, points to a (quasi) closure)
+}
+
 The layout of each type in memory is the following.
 @displayMath{
 @array[]{ccc}[[element t,element (neg t),element (mkLayout t)] | t <- allPosTypes]
 }
 
-\begin{align*}
-  \layout{A⊗B} = \layout{A \pa B}  &= \layout A · \layout B\\
-  \layout{A ⊕ B} = \layout{A \& B} &= \text{1 bit of info + 1 bit indicating that the data is ready} · (\layout A \mid \layout B)\\
-  \layout{α} = \layout{\p{α}} &= ρ[α] \\
-  \layout{!\p A} = \layout{?A} &= \text{pointer to a closure (with $A$ as last variable) + ready flag + reference count; aka. a thunk} \\
-  \layout{∀α.A} = \layout{∃α.A} &= \text{cell} + \layout{A} \\
-  \layout{T} &= \epsilon & T ∈ \braces{⊤,⊥,0,1}
-\end{align*}
-
-Note that @mkLayout(tA) = @mkLayout(neg tA), but the data is used differently, see below.
-
+Note that @norm{@tA} = @norm{@neg(tA)}, but the data is used differently, see below.
 
 Operational behaviour of the rules:
 @itemize{
@@ -283,33 +281,33 @@ Operational behaviour of the rules:
 @item ⊥: terminate (delete the closure)
 @item ⊕: wait for the data to be ready; then chose a branch according
   to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.
-@item \&-L: Allocate $\layout A$ and initialise it. Write the tag and the pointer. Continue.
-@item $x:(A ⊗ B)$: add an entry in the context for $y:B$, at location
-  $x+\layout A$ (No communication occurs!)
-@item $A \pa B$: split the environment and spawn a new closure. (No communication either)
-@item $∀$. Write the (pointer to) representation of the concrete type $B$ (found in the code) to the 1st cell.
-\item $∃$. Wait for the type representation to be ready. Copy the
+@item &-L: Write the tag and the pointer. Deallocate if the other possibility uses less memory.
+@item ⊗: add an entry in the context for @tB, at location
+  @math{n + @mkLayout(tA)} (No communication occurs!)
+@item ⅋: split the environment and spawn a new closure. (No communication either)
+@item ∀. Write the (pointer to) representation of the concrete type @tB (found in the code) to the 1st cell.
+@item ∃. Wait for the type representation to be ready. Copy the
   (pointer to) the representation to the type environment. Free the
   type variable from the memory. Rename the linear variable (as in
-  $⊗$). NOTE: It is tempting to avoid the sync. point here, however
+  ⊗). NOTE: It is tempting to avoid the sync. point here, however
   because the type variable will be copied around, this rule must be
   responsible for freeing the memory (or we need garbage collection;
   yuck).
-@item Cut: similar to $\pa$ but connects the two closures directly together.
-@item Ax: Copy the data between the closures. For type variables, wait
+@item @ruleName{Cut}: similar to @par but connects the two closures directly together.
+@item @ruleName{Ax}: Copy the data between the closures. For type variables, wait
   for the type to be ready, use the type representation from the
   environment. Release then the used (pointer to) type representation.
-@item ?: place a pointer to the closure $a$ in the zone pointed by
-  $x:?A$, mark as ready; terminate.
-@item !: wait for ready. Allocate and initialise memory of $\layout A$, spawn a
-  closure from the zone pointed by $x:!A$, link it with $x$ and
+@item ?: place a pointer to the closure @math{a} in the zone pointed by
+  @math{x:A}, mark as ready; terminate.
+@item !: wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a
+  closure from the zone pointed by @math{x:!A}, link it with @math{x} and
   continue. Decrement reference count.
-@item Contract: copy the pointer to the thunk, increment reference
+@item @ruleName{Contract}: copy the pointer to the thunk, increment reference
   count.  Note this is easy in the AM compared to the cut-elim.
-\item Weaken: discard the pointer, decrement reference count.
+@item @ruleName{Weaken}: discard the pointer, decrement reference count.
+Don't forget about recursively decrementing counts upon deallocation.
 }
 
-Don't forget about recursively decrementing counts upon deallocation.
 
 
 @allRules(amRule)
