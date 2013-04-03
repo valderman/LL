@@ -7,6 +7,7 @@ module TexPretty where
 
 import Control.Lens
 import LL 
+import AM
 import MarXup.Tex
 import MarXup.Latex
 import MarXup.DerivationTrees

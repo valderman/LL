@@ -8,6 +8,7 @@ module Pretty where
 import Text.PrettyPrint.HughesPJ hiding ((<>))
 import Data.Monoid
 import LL
+import AM
 import Control.Lens
 import Symheap
 import qualified Data.Map as M

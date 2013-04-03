@@ -7,6 +7,7 @@ module DiagPretty where
 
 import Control.Applicative
 import LL 
+import AM
 import MarXup.Tex
 import MarXup.Latex
 import MarXup.Diagrams

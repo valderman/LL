@@ -11,6 +11,7 @@ import Data.Map (Map)
 import Data.Monoid
 import Data.String
 import LL
+import AM
 
 data SymRef = Named Layout String | Shift Layout SymRef | Next SymRef | Null
 instance Eq SymRef where
