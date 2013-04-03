@@ -113,6 +113,9 @@ instance Element Layout where
 
 tA = meta "A"
 tB = meta "B"
+arr = meta "a"
+keys = meta "k"
+vals = meta "v"
 
 norm :: TeX -> TeX
 norm x = math $ "|" <> x <> "|"
@@ -313,6 +316,19 @@ Don't forget about recursively decrementing counts upon deallocation.
 
 @allRules(amRule)
 
+@section{Change the world?}
+
+Assume the following interface, where @arr is an absract type of arrays; 
+@keys is a type of indices in the array and @vals a type of values.
+
+@itemize{
+ @item get : @id(arr ⊗ keys ⊸ arr ⊗ vals)
+ @item set : @id(arr ⊗ keys ⊗ vals ⊸ arr ⊗ vals)
+ @item withArray : @id((arr ⊗ tgamma ⊸ arr ⊗ tdelta) ⊸ (tgamma ⊸ tdelta))
+}
+
+The with array function can create a single array with both @arr and @neg(arr)
+pointing to the same memory area.
 
 @section{Related Work}
 

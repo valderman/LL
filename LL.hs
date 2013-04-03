@@ -33,9 +33,14 @@ data Type = Type :⊕: Type
 
 -- Type-construction helper functions
 a ⅋ b = a :|: b
+a ⊗ b = a :⊗: b
+a ⊕ b = a :⊕: b
+a & b = a :&: b
 a ⊸ b = neg a ⅋ b
 meta x = Meta True x []
 var = TVar True
+infixr 6 ⊗,&
+infixr 5 ⅋, ⊸, ⊕
 
 type Forced x = x
 dum = meta "dummy type"
