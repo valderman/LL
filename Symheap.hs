@@ -13,13 +13,16 @@ import Data.String
 import LL
 import AM
 
+-- | A reference into the SymHeap
 data SymRef = Named Layout String | Shift Layout SymRef | Next SymRef | Null
+
 instance Eq SymRef where
   Null == Null = True
   Named _ x == Named _ y = x == y
   Shift _ x == Shift _ y = x == y
   Next x == Next y = x == y
   _ == _ = False
+  
 instance Ord SymRef where
   compare Null Null = EQ
   compare (Named _ x) (Named _ y) = compare x y
@@ -32,6 +35,8 @@ instance Ord SymRef where
   compare _ _ = GT
 
 type SymHeap = Map SymRef (Cell SymRef)
+
+-- | Symbolic reference count.
 newtype SymCount = SymCount String
 
 instance IsRef SymRef where
@@ -45,6 +50,8 @@ instance Num SymCount where
   SymCount x + SymCount y = SymCount $ x <> "+" <> y
   SymCount x - SymCount y = SymCount $ x <> "-" <> y
 
+
+-- | Allocate at r, the amount given by t in h
 allocAt :: SymRef -> Layout -> SymHeap -> SymHeap
 allocAt r t h = (case t of 
       -- Empty -> id -- I want to see empty things
@@ -84,4 +91,5 @@ toSystem h0 (Deriv _ ctx a) = ([closure],heap)
                   goodType _ = False
 
 
-
+derivToSystem' :: Deriv -> System SymHeap
+derivToSystem' = derivToSystem

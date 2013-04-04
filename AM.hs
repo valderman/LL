@@ -33,8 +33,6 @@ mkLayout t = case mkPositive t of
               Meta _ _ _ -> MetaL (mkPositive t)
               TVar _ _ -> error "cannot know layout of var"
 
--- Abstract Machine
-
 -- | A Cell of the Heap
 data Cell ref where
   Freed :: Cell ref
@@ -95,6 +93,7 @@ e !!+ v = snd (e!!v)
 
 runClosure :: IsHeap h => h -> Closure (Ref h) -> Maybe (h,[Closure (Ref h)])
 runClosure h (Plus x y v a b,e,te)
+--   | Redirect r <- ... Plus x y v a b,...r.
   | Tag c <- h!(e!!+v) = Just (replace (e!!+v) Freed h,
                               [(if c then a else b,increment v (if c then x else y) e,te)])
 runClosure h (Cross ty x y v a,e,te)
@@ -209,4 +208,81 @@ derivToSystem :: IsHeap h => Deriv -> System h
 derivToSystem (Deriv _ ctx a) = ([closure],heap)
   where closure = (a,zip (map fst ctx) refs,[])
         (heap,refs) = mapAccumL (flip alloc) emptyHeap (map snd ctx)
- 
+ {-
+
+type RefMap ref =  Map ref ref
+
+newtype Comparator ref a = ErrorT String (State (RefMap ref)) a
+  deriving (Monad, MonadState (RefMap ref), MonadError String)
+
+unify :: Ord ref => ref -> ref -> Comparator ref ()
+unify r1 r2 = do
+  r' <- M.lookup r1 <$> get
+  case r' of
+    Nothing -> modify (M.insert r1 r2)
+    Just r'' -> assert r'' r2
+    
+assert x x' = when (x /= x') (fail "not equal")
+    
+              
+              
+compareHeaps () h () h' = case x of
+  
+contentsOfAt :: Layout -> SymRef -> [SymRef]
+contentsOf _ Null = []
+contentsOf (Next x) = contentsOf 1 x
+contentsOf (Shift l x) = contentsOf l x
+contentsOf Empty (Named l x) = ...
+contentsOf (0) (Named l x) = ...
+
+  
+  
+  
+fetch :: SymRef -> SymHeap -> [Cell SymRef]  
+fetch (Named l s)  
+    
+
+compareClosures (s,e,te) h (s',e',te') h' = do
+  assert s s'
+  assert te te'
+  forM_ (zip e e') $ \((v,x),(v',x')) -> do
+    assert v v'
+    unify x x'
+    compareHeaps (fetch x h) (fetch x' h')
+    
+    
+-}    
+
+{-
+Not correct since Ax. can create graphs!
+
+-- Invariant: a blocked system will have only new cells in the
+-- heap. (!except for exponentials)
+        
+        
+-- | From a blocked system, recover the tree-structure of closures.        
+mkTree :: [Closure] -> Tree Closure
+mkTree = error "todo"
+
+-- | Rename variables in sequents so they form a meaningful cut
+-- structure.  In the output: the 1st variable communicates with the
+-- parent; the others with each of the children in order.
+-- For the root, we assume the input has a dummy 1st variable.
+recoverCutStructure :: Tree Closure -> Tree Seq
+recoverCutStructure (Node c []) = Node c []
+recoverCutStructure (Node c@(_,_:e,_) cs) = Node c (zipWith placeFirst (map snd e) cs)
+
+-- | Place the given reference in the 1st position in the env in the
+-- closure, and adapt the subtrees.
+placeFirst :: ref -> Tree Closure -> Tree Closure
+placeFirst = error "todo"
+
+
+mkCuts :: Tree Seq -> Seq
+mkCuts = error "todo"
+
+sequentialize :: System h -> Seq
+sequentialize = error "todo" -- mkCuts . recoverCutStructure . mkTree
+      
+toInfer = meta "type cut on to recover"
+ -}

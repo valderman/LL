@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -XTypeFamilies -XTypeSynonymInstances -XOverloadedStrings -XRecursiveDo -pgmF marxup -F #-}
 
+import Pretty
 import MarXup
 import MarXup.Latex
 import MarXup.Tex
@@ -293,14 +294,13 @@ Operational behaviour of the rules:
 @item ∃. Wait for the type representation to be ready. Copy the
   (pointer to) the representation to the type environment. Free the
   type variable from the memory. Rename the linear variable (as in
-  ⊗). NOTE: It is tempting to avoid the sync. point here, however
-  because the type variable will be copied around, this rule must be
-  responsible for freeing the memory (or we need garbage collection;
+  ⊗). NOTE: It is tempting to avoid the sync. point here and instead have 
+  one when the type-variable is accessed. However
+  because the type variable will be copied around (when a closure is spawned), 
+  then this rule must be responsible for freeing the memory (or we need garbage collection;
   yuck).
 @item @ruleName{Cut}: similar to @par but connects the two closures directly together.
-@item @ruleName{Ax}: Copy the data between the closures. For type variables, wait
-  for the type to be ready, use the type representation from the
-  environment. Release then the used (pointer to) type representation.
+@item @ruleName{Ax}: Copy the data between the closures; when it's ready.
 @item ?: place a pointer to the closure @math{a} in the zone pointed by
   @math{x:A}, mark as ready; terminate.
 @item !: wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a
@@ -315,6 +315,14 @@ Don't forget about recursively decrementing counts upon deallocation.
 
 
 @allRules(amRule)
+
+@section{Ax. alternative}
+
+It is a bit disheartening that the axioms do not ``fizzle'' immediately, 
+but stick around to copying things. They stop at polymorphic values and exponentials.
+The best we can do is to also stop them at additives --- multiplicatives are communication-less.
+
+To do this we'd need another kind of Tag cell that would say ``look somewhere else''.
 
 @section{Change the world?}
 
