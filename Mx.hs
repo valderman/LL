@@ -82,9 +82,12 @@ existComment = @"Wait for the type representation to be ready. Copy the
   yuck).@"
      
 -- | Print all derivation rules               
-typeRules = forM_ allRules $ \r -> case r of
-          [a] -> displayMath $ deriv'' a
-          [a,b] -> displayMath $ deriv'' a >> cmd0 "hspace{1cm}" >> deriv'' b
+typeRules = env "center" $ do
+  forM_ allRules $ \r -> do 
+       case r of
+          [a] -> math $ deriv'' a
+          [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
+       newline  
 
 deriv'' (x,_) = deriv' x
                
