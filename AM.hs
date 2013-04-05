@@ -208,7 +208,27 @@ derivToSystem :: IsHeap h => Deriv -> System h
 derivToSystem (Deriv _ ctx a) = ([closure],heap)
   where closure = (a,zip (map fst ctx) refs,[])
         (heap,refs) = mapAccumL (flip alloc) emptyHeap (map snd ctx)
- {-
+ 
+
+data Key = Cl Int | Ref Int
+data Node = NCell (Cell Int) | NCl -- could be more precise: the code of all closures will be considered equivalent.
+type GrData = (Node,Key,[Key])
+
+systemGr :: System Heap -> [GrData]
+systemGr (cls,h) = zipWith closureGr cls [0..] ++ concat (zipWith cellGr h [0..])
+
+closureGr :: Closure Int -> Int -> GrData
+closureGr (s,e,_) i = (NCl,Cl i,[Ref x | (_,x) <- e])
+
+cellGr :: Cell Int -> Int -> [GrData]
+cellGr (Delay _ Nothing) i = cellGr New i 
+                        -- Remark that the ref-count is not important
+                        -- (already encoded in the graph structure).
+cellGr (Delay _ (Just cl)) i = closureGr cl (negate i) : cellGr New i
+cellGr (Q t r) i = [(NCell (Q t 0),Ref i,[Ref r])]
+cellGr atom i = [(NCell atom,Ref i,[])]
+
+{-
 
 type RefMap ref =  Map ref ref
 
