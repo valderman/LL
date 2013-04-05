@@ -50,7 +50,7 @@ toSystem' h =  toSystem h . fillTypes
 comment :: Tex a -> TeX
 comment x = ""
 
-allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" (Meta True "A" [TVar True 0])]
+allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
 
 
 allRules = 
@@ -147,7 +147,9 @@ vals = meta "v"
 norm :: TeX -> TeX
 norm x = math $ "|" <> x <> "|"
 
-main = render $ latexDocument "article" ["11pt"] preamble $ @"
+nothing _ = mempty
+
+main = render $ latexDocument "article" ["10pt"] preamble $ @"
 @maketitle
 
 @section{Introduction}
@@ -179,15 +181,16 @@ abstract machine able to run programs written for it.
 
 Explanation of the types:
 @itemize{
-@item @id(tA :⊗: tB): both @tA and @tB. The program chooses when to use either of them.
-@item @id(tA :|: tB): both @tA and @tB. The context chooses when to use either of them.
-@item @id(tA :⊕: tB): either @tA and @tB. The context chooses which one.
-@item @id(tA :&: tB): both @tA and @tB. The program chooses which one.
+@item @id(tA ⊗ tB): both @tA and @tB. The program chooses when to use either of them.
+@item @id(tA ⅋ tB): both @tA and @tB. The context chooses when to use either of them.
+@item @id(tA ⊕ tB): either @tA and @tB. The context chooses which one.
+@item @id(tA & tB): both @tA and @tB. The program chooses which one.
+@item @id(Forall "α" tAofAlpha): Usual polymorphic type.
+@item @id(Exists "α" tAofAlpha): Usual existential.
+@item @id(Bang tA): As many @tA 's as one wants.
+@item @id(Quest tA): Must produce as many @tA as the context wants.
 }
 The neutrals are respectively @One, @Bot, @Zero and @Top.
-
-TODO: quantifiers and exponentials
-
 
 @section{Terms and Typing rules}
 
