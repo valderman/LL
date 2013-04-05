@@ -15,6 +15,7 @@ import LL
 import AM
 import Rules
 import DiagPretty
+import Control.Monad
 
 preamble :: Tex ()
 preamble = do
@@ -38,26 +39,9 @@ deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 -- | Render a derivation tree, showing terms.
 deriv' = deriv True
 
--- | Render some (related) derivation trees
-deriv2 (a,Nothing) = displayMath $ deriv' a
-deriv2 (a,Just b) = displayMath $ deriv' a >> cmd0 "hspace{1cm}" >> deriv' b
-
 -- | Render a derivation as a program (term)
 program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = treeRender (texProg tvs vs s)
-
--- | Render abstract machine rules
-amRule (seq,mseq) = case msys1 of
-  Nothing -> cmd "text" "no rule for" <> program seq
-  Just sys1 -> rul sys0 sys1 >> follow 
-    where follow = case mseq of
-            Nothing -> return ()
-            Just seq' -> rul sys2 sys3
-             where sys2 = toSystem' h seq'
-                   h = snd sys1
-                   sys3 = runSystem sys2
-  where sys0 = toSystem' emptyHeap seq
-        msys1 = stepSystem sys0
 
 rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return ()
 
@@ -68,22 +52,64 @@ comment x = ""
 
 allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" (Meta True "A" [TVar True 0])]
 
-allRules displayer = mapM_ showRule 
-  [(axRule,Nothing)
-  ,(cutRule,Nothing)
-  ,(parRule,Just crossRule)
-  ,(withRule True,Just plusRule)
-  ,(botRule,Just oneRule)    
-  ,(zeroRule,Nothing)
-  ,(forallRule,Just existRule)
-  ,(offerRule,Just demandRule) 
-  ,(ignoreRule,Nothing) 
-  ,(aliasRule,Nothing)  
+
+allRules = 
+  [[(axRule, "Copy the data between the closures; when it's ready.")]
+  ,[(cutRule, "similar to ⅋ but connects the two closures directly together.")]
+  ,[(parRule, "split the environment and spawn a new closure. (No communication)"),
+    (crossRule, "add an entry in the context for @tB, at location @math{n + @mkLayout(tA)} (No communication)")]
+  ,[(withRule True,"Write the tag and the pointer. Deallocate if the other possibility uses less memory."),
+    (plusRule,"wait for the data to be ready; then chose a branch according to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.")]
+  ,[(botRule,"terminate (delete the closure)"),
+    (oneRule,"continue")]  
+  ,[(zeroRule,"crash")]
+  ,[(forallRule,"Write the (pointer to) representation of the concrete type @tB (found in the code) to the 1st cell.")
+   ,(existRule,existComment)]
+  ,[(offerRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
+    (demandRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
+                  the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")] 
+  ,[(ignoreRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
+  ,[(aliasRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
   ] 
- where showRule input = do
-          displayer input
-          newline        
-                     
+
+existComment = @"Wait for the type representation to be ready. Copy the
+  (pointer to) the representation to the type environment. Free the
+  type variable from the memory. Rename the linear variable (as in
+  ⊗). NOTE: It is tempting to avoid the sync. point here and instead have 
+  one when the type-variable is accessed. However
+  because the type variable will be copied around (when a closure is spawned), 
+  then this rule must be responsible for freeing the memory (or we need garbage collection;
+  yuck).@"
+     
+-- | Print all derivation rules               
+typeRules = forM_ allRules $ \r -> case r of
+          [a] -> displayMath $ deriv'' a
+          [a,b] -> displayMath $ deriv'' a >> cmd0 "hspace{1cm}" >> deriv'' b
+
+deriv'' (x,_) = deriv' x
+               
+operationalRules = itemize $ forM_ allRules $ amRule' emptyHeap
+                  
+amRule' :: SymHeap -> [(Deriv,TeX)] -> TeX
+amRule' _ [] = ""
+amRule' h0 ((seq,comment):seqs) = do
+  item
+  @"Rule: @seqName(derivSequent seq) @"
+  displayMath $ deriv' seq
+  comment
+  newline
+  case msys1 of
+     Nothing -> cmd "text" "no rule for" <> program seq
+     Just sys1 -> rul sys0 sys1 >> amRule' (snd sys1) seqs
+  
+  where sys0 = toSystem' h0 seq
+        msys1 = stepSystem sys0
+
+-- | Render abstract machine rules
+amRule = amRule' emptyHeap
+
+  
+  
 allReductions displayer = mapM_ redRule 
    [(amp<>"⊕",cutWithPlus True),
     (math par<>"⊗",cutParCross),
@@ -186,7 +212,8 @@ In sum, when we have an set of hypothesis, if the program is
   a deep analysis of the types.)
 
 }
-@allRules(deriv2)
+
+@typeRules
 
 Explanation of the rules:
 @itemize{
@@ -264,6 +291,7 @@ of type @tA in the context a pointer to a memory area of layout @mkLayout(tA).
 
 We can meaningfully execute open programs, contrary to what happens in the cut-elimination view of execution. This is similar to the situation in the lambda calculus.
 
+@subsection{Heap structure}
 The heap is divided in a number of cells. 
 @itemize{
   @item Cells not ready
@@ -279,42 +307,9 @@ The layout of each type in memory is the following.
 
 Note that @norm{@tA} = @norm{@neg(tA)}, but the data is used differently, see below.
 
-Operational behaviour of the rules:
-@itemize{
-@item 0: crash
-@item 1: continue
-@item ⊥: terminate (delete the closure)
-@item ⊕: wait for the data to be ready; then chose a branch according
-  to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.
-@item &-L: Write the tag and the pointer. Deallocate if the other possibility uses less memory.
-@item ⊗: add an entry in the context for @tB, at location
-  @math{n + @mkLayout(tA)} (No communication occurs!)
-@item ⅋: split the environment and spawn a new closure. (No communication either)
-@item ∀. Write the (pointer to) representation of the concrete type @tB (found in the code) to the 1st cell.
-@item ∃. Wait for the type representation to be ready. Copy the
-  (pointer to) the representation to the type environment. Free the
-  type variable from the memory. Rename the linear variable (as in
-  ⊗). NOTE: It is tempting to avoid the sync. point here and instead have 
-  one when the type-variable is accessed. However
-  because the type variable will be copied around (when a closure is spawned), 
-  then this rule must be responsible for freeing the memory (or we need garbage collection;
-  yuck).
-@item @ruleName{Cut}: similar to @par but connects the two closures directly together.
-@item @ruleName{Ax}: Copy the data between the closures; when it's ready.
-@item ?: place a pointer to the closure @math{a} in the zone pointed by
-  @math{x:A}, mark as ready; terminate.
-@item !: wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a
-  closure from the zone pointed by @math{x:!A}, link it with @math{x} and
-  continue. Decrement reference count.
-@item @ruleName{Contract}: copy the pointer to the thunk, increment reference
-  count.  Note this is easy in the AM compared to the cut-elim.
-@item @ruleName{Weaken}: discard the pointer, decrement reference count.
-Don't forget about recursively decrementing counts upon deallocation.
-}
+@subsection{Operational behaviour}
 
-
-
-@allRules(amRule)
+@operationalRules
 
 @section{Ax. alternative}
 

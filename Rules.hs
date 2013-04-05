@@ -1,5 +1,7 @@
 module Rules where
-
+import MarXup
+import MarXup.Tex
+import MarXup.Latex
 import LL
 import Pretty
 import Symheap
@@ -30,7 +32,6 @@ offerRule  = Deriv ["Θ"] [("?γ",Bang (meta "Δ")),("z",Quest (meta "A"))] $ Of
 demandRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Demand "x" dum 1 whatB
 ignoreRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore 1 whatA
 aliasRule  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias 1 "z'" whatA
-
 
 
 

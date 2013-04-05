@@ -26,30 +26,49 @@ amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt"
 
 ruleName = math . cmd "text" . smallcaps 
 
+seqName (Exchange _ _) = ruleName "Exch."
+seqName (Ax _ ) = ruleName "Ax"
+seqName (Cut _ _ _ _ _ _) = ruleName "Cut"
+seqName (Cross _ _ _ _ _) = "⊗"
+seqName (Par _ _ _ _ _ _) = "⅋"
+seqName (Plus  _ _ _ _ _) = "⊕"
+seqName (With _ b _ _) = math $ (amp<>tex"_"<>if b then "1" else "2")
+seqName (SOne _ _) = "1"
+seqName (SZero _) = "0"
+seqName SBot = "⊥"
+seqName (TApp _ _ _ _ _) = "∀"
+seqName (TUnpack _ _ _) = "∃"
+seqName (Offer _ _ _) = "?"
+seqName (Demand _ _ _ _) = "!"
+seqName (Ignore _ _) = ruleName "Weaken"
+seqName (Alias _ _ _) = ruleName "Contract"
+
+
 texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
 texSeq showProg = foldSeq sf where
  sf (Deriv ts vs seq) = SeqFinal {..} where
   sty = texType 0
-  sax v v' _ = rul (ruleName "Ax") []
-  scut v _ _ s _ t = rul (ruleName "Cut") [s,t]
-  scross w v vt v' vt' t =  rul "⊗" [t]
-  spar w _ vt _ vt' s t = rul par [s,t]
-  splus w _ vt _ vt' s t = rul "⊕" [s,t]
-  swith b w _ _ s = rul  (amp<>tex"_"<>if b then "1" else "2") [s]
-  sbot v = rul "⊥" []
-  szero w vs = rul "0" []
-  sone w t = rul "1" [t]
-  sxchg _ t = t --rul (ruleName "Exch.") [t] -- uncomment to display the exchange rules
-  stapp w _ _ tyB s = rul "∀" [s]
-  stunpack tw w _ s = rul "∃" [s]
-  soffer w _ ty s = rul "?" [s] 
-  sdemand w _ ty s = rul "!" [s]
-  signore w ty s = rul (ruleName "Weaken") [s]
-  salias w w' ty s = rul (ruleName "Contract") [s]
+  sax v v' _ = rul []
+  scut v _ _ s _ t = rul [s,t]
+  scross w v vt v' vt' t = rul [t]
+  spar w _ vt _ vt' s t = rul [s,t]
+  splus w _ vt _ vt' s t = rul [s,t]
+  swith b w _ _ s = rul [s]
+  sbot v = rul []
+  szero w vs = rul []
+  sone w t = rul [t]
+  sxchg _ s = s -- rul [s] -- uncomment to display the exchange rules
+  stapp w _ _ tyB s = rul [s]
+  stunpack tw w _ s = rul [s]
+  soffer w _ ty s = rul [s] 
+  sdemand w _ ty s = rul [s]
+  signore w ty s = rul [s]
+  salias w w' ty s = rul [s]
   swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
-  rul :: TeX -> [Derivation] -> Derivation
-  rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
+  rul :: [Derivation] -> Derivation
+  rul subs = Node (Rule () Simple mempty (seqName seq) (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
+
 
 
 keyword :: String -> TeX 
