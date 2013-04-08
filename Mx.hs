@@ -82,12 +82,14 @@ existComment = @"Wait for the type representation to be ready. Copy the
   yuck).@"
      
 -- | Print all derivation rules               
-typeRules = env "center" $ do
-  forM_ allRules $ \r -> do 
-       case r of
-          [a] -> math $ deriv'' a
-          [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
-       newline  
+typeRules = figure "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
+    env "center" $ do
+    forM_ allRules $ \r -> do 
+         case r of
+            [a] -> math $ deriv'' a
+            [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
+         newline  
+         cmd0 "vspace{1em}"
 
 deriv'' (x,_) = deriv' x
                
@@ -123,8 +125,8 @@ allReductions displayer = mapM_ redRule
     ("Weaken",cutIgnore)]
 
   where redRule (name,input) = do
-          name
           displayMath $ do 
+            cmd "text" name
             displayer input
             cmd0 "Longrightarrow"
             displayer (eval input)
@@ -266,14 +268,14 @@ creates a new communication channel of type @tA;
 TODO: exponentials.
 
 
-@section{Cut-elimination rules}
-@allReductions(deriv False)
+@figure{Cut-elimination rules}{
+  @allReductions(deriv False)
+}
 
 
-
-@subsection{Cut-elimination as program reduction}
+@figure{Program reduction rules}{
 @allReductions(program)
-
+}
 
 
 @section{Abstract machine rules}
@@ -367,7 +369,6 @@ departs fundamentally from the tradition of functional programming.
 
 
 @section{Discussion}
-
 Could we make a purely demand-driven version of the machine? That is, 
 instead of waiting, call the code of the closure responsible for giving the data.
 
