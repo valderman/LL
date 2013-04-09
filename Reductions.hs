@@ -2,6 +2,10 @@ module Reductions where
 import Data.Monoid
 import LL
 import Rules
+import Pretty
+
+cutAx = Deriv ["Θ"] [gamma,("w",neg $ meta "A")] $
+              Cut "x" "y" (meta "A") 1 whatA (Ax dum)
 
 cutWithPlus b = Deriv ["Θ"] [gamma,delta]
                 (Cut "z" "_z" (meta "A" :⊕: meta "B") 1 

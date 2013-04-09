@@ -116,8 +116,10 @@ amRule = amRule' emptyHeap
   
   
 allReductions displayer = mapM_ redRule 
-   [(amp<>"⊕",cutWithPlus True),
+   [
+    ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),
+    (amp<>"⊕",cutWithPlus True),
     ("!?", cutBang),
     ("1⊥",cutUnit),
     ("∀∃",cutQuant),
@@ -175,6 +177,10 @@ who despise theoreticians.
 Very much in the spirit of this conference, this paper aims to build
 another bridge between logicians and engineers. 
 
+
+Landin gave an intuitive syntax for the lambda-calculus.
+We attempt to make a linear language a member of the family of 700.
+We revist an old idea (LL) in the light of an even older idea (ISWIM).
 
 We provide an interpretation
 of linear logic as an programming language with ISWIM syntax, together with an
@@ -264,8 +270,10 @@ creates a new communication channel of type @tA;
 @item @Bot: terminate the program
 
 @item Because there is no elim rule for @Top, @Zero can never be constructed.
+
+@item !: offer a way to give as many @tA as needed.
+@item ?: demand an @tA.
 }
-TODO: exponentials.
 
 
 @figure{Cut-elimination rules}{
@@ -287,7 +295,7 @@ Problems of the reduction rules:
 }
 
 The idea of the AM is to delay cut-elimination in order to get a more
-efficient execution (as in eg. Krivine's abstract machine). (One might
+efficient execution (as in eg. SECD or Krivine's abstract machine). (One might
 say that the AM realises ``cut-preservation''.) Concurrent semantics
 naturally arise.
 

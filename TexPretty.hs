@@ -75,7 +75,6 @@ keyword :: String -> TeX
 keyword = mathsf . tex
 let_ = keyword "let "
 case_ = keyword "case "
-in_ = keyword " in "
 connect_ = keyword "connect "
 [fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
@@ -103,7 +102,8 @@ texUntypedProg ts vs s = math $ linearize $ texProg' False ts (zip vs (repeat $ 
 
 linearize :: Block -> TeX
 linearize (Final t) = t
-linearize (Instr h t) = h <> "; " <> linearize t
+linearize (Instr h t) = h <> ";" -- keyword " in " 
+                          <> linearize t
 linearize (Split h xs) = h <> brac (punctuate "; " [x<>cmd0 "mapsto"<> linearize ts | (x,ts) <- xs])
 
 
@@ -128,7 +128,7 @@ texProg' showTypes = foldSeq sf where
       sax v v' _ = Final $ texVar v <> " ↔ " <> texVar v'
       scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
                                             (texVarT' v   vt ) t
-      scross w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) t
+      scross w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w) t
       spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
                         (texVarT' v  vt ) s
                         (texVarT' v' vt') t
@@ -138,7 +138,7 @@ texProg' showTypes = foldSeq sf where
       swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
       sbot v = Final $ texVar v
-      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' vs) <> in_ <> texVar w
+      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' vs) <> keyword " in " <> texVar w
       sone w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t
       stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s
