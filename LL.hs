@@ -93,7 +93,7 @@ data Seq = Exchange Permutation (Seq) -- Permute variables
          | SOne Int (Seq) -- Rename to ...
          | SZero Int         -- Rename to Crash/Loop
          | SBot              -- Rename to Terminate
-         | What Name
+         | What Name [Int]
            
          | TApp (Forced Type) Name Int Type (Seq)
          | TUnpack Name Int (Seq)
@@ -293,7 +293,7 @@ data SeqFinal t a = SeqFinal
      , sdemand :: (Name ->  Name -> t -> a -> a)
      , signore :: (Name -> t -> a -> a)
      , salias :: (Name -> Name -> t -> a -> a)
-     , swhat :: (Name -> a)
+     , swhat :: (Name -> [Name] -> a)
      }
 
 foldSeq :: (Deriv -> SeqFinal t a)
@@ -339,7 +339,7 @@ foldSeq sf ts0 vs0 s0 =
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       (Alias x w' s) -> salias w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
-      What x -> swhat x
+      What x ws -> swhat x [fst (vs !! w) | w <- ws]
    where fty = sty ts 
          fctx = over (mapped._2) fty
          SeqFinal{..} = sf (Deriv ts vs seq)
@@ -367,7 +367,7 @@ fillTypes' = foldSeq sf where
     sdemand _ v ty s = Demand v ty x s
     signore _ _ s = Ignore x s
     salias _ w' _ s = Alias x w' s
-    swhat a = What a
+    swhat a _  = What a xs where What _ xs = seq
     x = varOf seq
     
 -- | Fill in the forced types in the derivation.

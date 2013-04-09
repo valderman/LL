@@ -70,7 +70,7 @@ pSeq = foldSeq sf where
   sdemand v w ty s = "demand " <> text v <> " : " <> ty $$ s
   signore w ty s = "ignore " <> text w $$ s
   salias w w' ty s = "let " <> text w' <> " = alias " <> text w <> " : " <> ty $$ s
-  swhat a = braces $ pCtx ts vs
+  swhat a _ = braces $ pCtx ts vs
        
 instance Show Seq where
   show = render . pSeq [] []

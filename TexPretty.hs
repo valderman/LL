@@ -64,7 +64,7 @@ texSeq showProg = foldSeq sf where
   sdemand w _ ty s = rul [s]
   signore w ty s = rul [s]
   salias w w' ty s = rul [s]
-  swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
+  swhat a _ = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
   rul :: [Derivation] -> Derivation
   rul subs = Node (Rule () Simple mempty (seqName seq) (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
@@ -147,7 +147,8 @@ texProg' showTypes = foldSeq sf where
       sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
       signore w ty s = Instr (keyword "ignore " <> texVar w)  s
       salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
-      swhat a = Final $ texVar a
+      swhat a [] = Final $ texVar a
+      swhat a ws = Final $ texVar a <> brack (commas $ map texVar ws)
       let'' w    v t = Instr (let_ <> w <> "=" <> v) t
    texVarT' x y | showTypes = texVarT x y
                 | otherwise = texVar x                            

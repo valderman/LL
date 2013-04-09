@@ -5,12 +5,12 @@ import Rules
 import Pretty
 
 cutAx = Deriv ["Θ"] [gamma,("w",neg $ meta "A")] $
-              Cut "x" "y" (meta "A") 1 whatA (Ax dum)
+              Cut "x" "y" (meta "A") 1 (What "a" [0]) (Ax dum)
 
 cutWithPlus b = Deriv ["Θ"] [gamma,delta]
                 (Cut "z" "_z" (meta "A" :⊕: meta "B") 1 
-                (With "x" b 0 (What "a")) 
-                (Plus "_x" "_y" 0 (What "b") (What "c")))
+                (With "x" b 0 (whatA)) 
+                (Plus "_x" "_y" 0 (whatB) (whatC)))
               
 cutParCross = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
               (Cut "z" "_z" (meta "A" :⊗: meta "B") 2 

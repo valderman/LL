@@ -12,10 +12,10 @@ tdelta = meta "Δ"
 gamma = ("?γ",tgamma)
 delta = ("?δ",tdelta)
 
-whatA = What "a"
-whatB = What "b"
-whatC = What "c"
-whatD = What "d"
+whatA = What "a" []
+whatB = What "b" []
+whatC = What "c" []
+whatD = What "d" []
 
 tAofAlpha = Meta True "A" [var 0]
 
@@ -24,7 +24,7 @@ axRule     = Deriv ["Θ"] [("x",meta "A"),("y",neg (meta "A"))] (Ax dum)
 cutRule    = Deriv ["Θ"] [gamma,delta] (Cut "x" "y" (meta "A") 1 whatA whatB)
 crossRule  = Deriv ["Θ"] [gamma, ("z",meta "A" :⊗: meta "B"),delta] (Cross dum "x" "y" 1 whatA)
 parRule    = Deriv ["Θ"] [gamma, ("z",meta "A" :|: meta "B"),delta] (Par dum "x" "y" 1 whatA whatB)
-withRule b = Deriv ["Θ"] [gamma,("z",meta "A" :&: meta "B")] (With "x" b 1 (What "a"))
+withRule b = Deriv ["Θ"] [gamma,("z",meta "A" :&: meta "B")] (With "x" b 1 whatA)
 plusRule   = Deriv ["Θ"] [gamma,("z",meta "A" :⊕: meta "B")] (Plus "x" "y" 1 whatA whatB)
 oneRule    = Deriv ["Θ"] [gamma,("x",One)] (SOne 1 whatA)
 zeroRule   = Deriv ["Θ"] [gamma,("x",Zero)] (SZero 1)
