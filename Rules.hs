@@ -11,6 +11,7 @@ tdelta = meta "Δ"
 
 gamma = ("?γ",tgamma)
 delta = ("?δ",tdelta)
+xi    = ("?ξ",meta "Ξ")
 
 whatA = What "a" []
 whatB = What "b" []
@@ -30,7 +31,7 @@ oneRule    = Deriv ["Θ"] [gamma,("x",One)] (SOne 1 whatA)
 zeroRule   = Deriv ["Θ"] [gamma,("x",Zero)] (SZero 1)
 botRule    = Deriv ["Θ"] [("x",Bot)] SBot
 forallRule = Deriv ["Θ"] [gamma,("z",Forall "α" tAofAlpha)] $ TApp dum "x" 1 (meta "B") whatA
-existRule  = Deriv ["Θ"] [gamma,("z",Exists "α" tAofAlpha)] $ TUnpack "x" 1 whatA
+existsRule  = Deriv ["Θ"] [gamma,("z",Exists "α" tAofAlpha)] $ TUnpack "x" 1 whatA
 offerRule  = Deriv ["Θ"] [("?γ",Bang (meta "Δ")),("z",Quest (meta "A"))] $ Offer "_x" 1 whatA
 demandRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Demand "x" dum 1 whatB
 ignoreRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore 1 whatA

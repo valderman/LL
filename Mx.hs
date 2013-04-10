@@ -64,7 +64,7 @@ allRules =
     (oneRule,"continue")]  
   ,[(zeroRule,"crash")]
   ,[(forallRule,"Write the (pointer to) representation of the concrete type @tB (found in the code) to the 1st cell.")
-   ,(existRule,existComment)]
+   ,(existsRule,existComment)]
   ,[(offerRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
     (demandRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
                   the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")] 
@@ -115,7 +115,7 @@ amRule = amRule' emptyHeap
 
   
   
-allReductions displayer = mapM_ redRule 
+allReductions displayer = mapM_ redRule $
    [
     ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),
@@ -124,9 +124,9 @@ allReductions displayer = mapM_ redRule
     ("1⊥",cutUnit),
     ("∀∃",cutQuant),
     ("Contract",cutContract),
-    ("Weaken",cutIgnore),
-    ("κ⊕",pushPlus)
+    ("Weaken",cutIgnore)
     ]
+   ++ pushRules
 
   where redRule (name,input) = do
           displayMath $ do 
