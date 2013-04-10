@@ -26,7 +26,8 @@ data Type = Type :⊕: Type
              | Exists Name Type
              | Bang Type
              | Quest Type
-             | Meta Bool String [Type] --  A meta-variable, with types occuring in it.
+             | Meta Bool String [Type] -- 'meta' type (just for the paper, not found in actual code)
+                                       --  2nd arg are the types occuring in it.
   deriving Eq
 
 
@@ -79,9 +80,9 @@ mkPositive t = if positiveType t then t else neg t
 
 type Permutation = [Int]
 
--- | Sequents. A 'forced type' is a type which is fully determined by
+-- | Sequents. A 'Forced Type' is a type which is fully determined by
 -- the context. They can be filled in by the function 'fillTypes' below.
-data Seq = Exchange Permutation (Seq) -- Permute variables
+data Seq = Exchange Permutation Seq -- Permute variables
          | Ax (Forced Type) -- Exactly 2 vars
          | Cut Name Name (Type) Int (Seq) (Seq) -- new vars in position 0
            
@@ -90,10 +91,10 @@ data Seq = Exchange Permutation (Seq) -- Permute variables
          | Plus Name Name Int (Seq) (Seq) -- Rename to Case
          | With Name Bool Int (Seq) -- Rename to Choose
            
-         | SOne Int (Seq) -- Rename to ...
+         | SOne Int Seq      -- Rename to ...
          | SZero Int         -- Rename to Crash/Loop
          | SBot              -- Rename to Terminate
-         | What Name [Int]
+         | What Name [Int]   -- 'meta' program (just for the paper, not found in actual code)
            
          | TApp (Forced Type) Name Int Type (Seq)
          | TUnpack Name Int (Seq)
@@ -217,6 +218,9 @@ cut :: Int -> -- ^ size of the context
 
 -- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
+
+cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
+cut n w w' ty γ (Cross ty' v v' x s) t | x > 0 = Cross ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
 cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u) 
 -- TODO: other commutation rules.
 cut 2 _ _ ty 1 (Ax _) a = a
@@ -234,7 +238,7 @@ cut n _ _ (Bang ty)
 cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
 cut n _ _ ty γ (Offer w 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer w 0 b) a)))
 cut n _ _ ty γ SBot (SOne 0 a) = a
-cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ]) (cut' n w w' (neg ty) (n-γ) b a)
+cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ]) (cut n w w' (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
 
 ignore 0 a = a
@@ -268,16 +272,16 @@ subst π t = case t of
   (Demand w ty x a) -> Demand w ty (f x) (s a)
   (Alias x w a) -> Alias (f x) w (s' x a)
   (Ignore x a) -> Ignore (f x) (del x a)
-  (SOne x a) -> SOne (f x) (s a)
+  (SOne x a) -> SOne (f x) (del x a)
   (SZero x) -> SZero (f x)
   SBot -> SBot
+  What nm xs -> What nm (map f xs)
   a -> Exchange π a
  where f = (π!!)
        s = subst π
        s' x = subst (l++x:r)
-              where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else x) π
-       del x = subst (l++r)
-              where (l,_:r) = splitAt x $ map (\y -> if y > x then y-1 else x) π
+              where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else y) π
+       del x = subst $ map (\y -> if y > x then y-1 else y) $ filter (/= x) π
 
 
 ----------------------------------        
@@ -379,5 +383,5 @@ fillTypes' = foldSeq sf where
     x = varOf seq
     
 -- | Fill in the forced types in the derivation.
-fillTypes (Deriv ts vs s) = (Deriv ts vs (fillTypes' ts vs s))    
+fillTypes (Deriv ts vs s) = Deriv ts vs (fillTypes' ts vs s)  
 
