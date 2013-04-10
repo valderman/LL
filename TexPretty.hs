@@ -64,9 +64,9 @@ texSeq showProg = foldSeq sf where
   sdemand w _ ty s = rul [s]
   signore w ty s = rul [s]
   salias w w' ty s = rul [s]
-  swhat a _ = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
+  swhat a _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
   rul :: [Derivation] -> Derivation
-  rul subs = Node (Rule () Simple mempty (seqName seq) (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
+  rul subs = Node (Rule () Simple mempty (seqName seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
 
 
@@ -126,8 +126,8 @@ texProg' showTypes = foldSeq sf where
    sf (Deriv ts vs _) = SeqFinal {..} where
       sty ts t  = texType 0 ts t
       sax v v' _ = Final $ texVar v <> " ↔ " <> texVar v'
-      scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
-                                            (texVarT' v   vt ) t
+      scut v v' vt' s vt t = connect mempty (texVarT' v   vt') s
+                                            (texVarT' v'  vt ) t
       scross w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w) t
       spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
                         (texVarT' v  vt ) s
@@ -138,7 +138,7 @@ texProg' showTypes = foldSeq sf where
       swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
       sbot v = Final $ texVar v
-      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' vs) <> keyword " in " <> texVar w
+      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
       sone w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t
       stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s
@@ -165,14 +165,15 @@ texVar nm = textual nm
              
 prn p k = if p > k then paren else id
        
-texCtx :: [String] -> [(String,Type)] ->  TeX
-texCtx ts vs = do
-  -- uncomment to show the typing context
+texCtx :: Bool -> [String] -> [(String,Type)] ->  TeX
+texCtx showVars ts vs = do
+  -- uncomment to show the types context
   -- commas (map texVar $ reverse ts) >>  textual ";"
-  texCtx' (over (mapped._2) (texType 0 ts) vs)
+  texCtx' showVars (over (mapped._2) (texType 0 ts) vs)
 
 
-texCtx' vs = commas [texVarT v t | (v,t) <- vs]
+texCtx' True vs = commas [texVarT v t | (v,t) <- vs]
+texCtx' False vs = commas [t | (v,t) <- vs]
     
 texLayout :: Layout -> TeX
 texLayout (a `Then`b) = texLayout a <> "+" <> texLayout b
