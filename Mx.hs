@@ -24,8 +24,8 @@ preamble = do
   usepackage [] "amsmath"
   usepackage [] "amssymb" -- extra symbols such as □ 
   usepackage [] "cmll" -- for the operator "par"
+  usepackage ["a4paper","margin=2cm"] "geometry"
   cmd "input" (tex "unicodedefs")
-  
   title "Linear Logic: I see what it means!"
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
                     ("Josef Svenningsson","",ch)]
@@ -124,7 +124,9 @@ allReductions displayer = mapM_ redRule
     ("1⊥",cutUnit),
     ("∀∃",cutQuant),
     ("Contract",cutContract),
-    ("Weaken",cutIgnore)]
+    ("Weaken",cutIgnore),
+    ("κ⊕",pushPlus)
+    ]
 
   where redRule (name,input) = do
           displayMath $ do 
@@ -276,14 +278,14 @@ creates a new communication channel of type @tA;
 }
 
 
-@figure{Cut-elimination rules}{
+@section{Cut-elimination rules}
   @allReductions(deriv False)
-}
 
 
-@figure{Program reduction rules}{
-@allReductions(program)
-}
+
+@section{Program reduction rules}
+  @allReductions(program)
+
 
 
 @section{Abstract machine rules}

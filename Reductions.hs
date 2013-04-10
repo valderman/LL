@@ -32,5 +32,6 @@ cutQuant = Deriv ["Θ"] [gamma,delta] $
            Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
 
 
-
+pushPlus = Deriv ["Θ"] [gamma,("w",meta "A" :⊕: meta "B"),delta] 
+           (Cut "z" "_z" (meta "C") 2 (Plus "x" "y" 2 whatA whatB) whatC)
 

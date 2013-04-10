@@ -114,6 +114,7 @@ varOf (Par   _ _ _ x _ _) = x
 varOf (Plus _ _ x _ _) = x
 varOf (With _ _ x _) = x
 varOf (SOne x _) = x
+varOf (SZero x) = x
 varOf (TApp _ _ x _ _) = x
 varOf (TUnpack _ x _) = x
 varOf (Offer _ x _) = x
@@ -194,39 +195,46 @@ applyS f t = case t of
 ---------------------------------------
 -- Cut-elimination machinery
 
+-- | One step to eliminate the principal cut.
 eval :: Deriv -> Deriv
 eval (Deriv ts vs (Cut w w' ty γ a b)) = Deriv ts vs $ cut (length vs) w w' ty γ a b
 
 remove0 π = [x-1 | x <- π, x > 0]
 
--- Hereditary cut
+cut' n = Cut
+
 cut :: Int -> -- ^ size of the context
        Name -> 
        Name -> 
        Type -> 
        Int -> -- ^ where to cut it
-       (Seq) -> (Seq) -> (Seq)
--- FIXME: in the absence of "What" cut can be eliminated so these recursive calls terminate. Otherwise, we have a problem. 
--- At the moment it seems we never use hereditary cut, so this should probably go away.
+       Seq -> Seq -> Seq
+-- FIXME: in the absence of "What" cut can be eliminated so these
+-- recursive calls terminate. Otherwise, we have a problem.  At the
+-- moment it seems we never use hereditary cut, so this should
+-- probably go away.
+       
+
 -- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
+cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u) 
+-- TODO: other commutation rules.
 cut 2 _ _ ty 1 (Ax _) a = a
 cut n _ _ (ta :⊗: tb) 
-           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove0 π++[length π-1..n-1]) $ cut n w w' ta γ 
+           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove0 π++[length π-1..n-1]) $ cut' n w w' ta γ 
                                                           a  
-                                                          (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut (n-γ+1) w w' tb δ b c )
+                                                          (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b c )
    where δ = γδ - γ
 cut n _ _ (ta :⊕: tb) 
-           γ (With z c 0 a) (Plus w w' 0 s t) = cut n z (if c then w else w') (if c then ta else tb) γ a (if c then s else t)
+           γ (With z c 0 a) (Plus w w' 0 s t) = cut' n z (if c then w else w') (if c then ta else tb) γ a (if c then s else t)
 cut n _ _ (Exists v ty) 
-           γ (TApp _ z 0 t a) (TUnpack w 0 b) = cut n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
+           γ (TApp _ z 0 t a) (TUnpack w 0 b) = cut' n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
 cut n _ _ (Bang ty) 
-           γ (Offer z 0 a) (Demand w _ 0 b) = cut n z w ty γ a b
+           γ (Offer z 0 a) (Demand w _ 0 b) = cut' n z w ty γ a b
 cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
-cut n _ _ ty γ (Offer w 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut (n+γ) w w' ty γ (Offer w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut (n+1) w w' ty γ (Offer w 0 b) a)))
-  -- cut n w ty γ (Offer 0 b) (cut (n+1) w' ty γ (Offer 0 b) a)
+cut n _ _ ty γ (Offer w 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer w 0 b) a)))
 cut n _ _ ty γ SBot (SOne 0 a) = a
-cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ]) (cut n w w' (neg ty) (n-γ) b a)
+cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ]) (cut' n w w' (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
 
 ignore 0 a = a
