@@ -2,11 +2,17 @@ module Reductions where
 import Data.Monoid
 import LL
 import Rules
+import Pretty
+import TexPretty 
+import MarXup.Tex
+
+cutAx = Deriv ["Θ"] [gamma,("w",neg $ meta "A")] $
+              Cut "x" "y" (meta "A") 1 (What "a" [0]) (Ax dum)
 
 cutWithPlus b = Deriv ["Θ"] [gamma,delta]
                 (Cut "z" "_z" (meta "A" :⊕: meta "B") 1 
-                (With "x" b 0 (What "a")) 
-                (Plus "_x" "_y" 0 (What "b") (What "c")))
+                (With "x" b 0 (whatA)) 
+                (Plus "_x" "_y" 0 (whatB) (whatC)))
               
 cutParCross = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
               (Cut "z" "_z" (meta "A" :⊗: meta "B") 2 
@@ -28,5 +34,27 @@ cutQuant = Deriv ["Θ"] [gamma,delta] $
            Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
 
 
+pushRules :: [(TeX,Deriv)]
+pushRules
+ = [(textual "κ"<>seqName s, Deriv ["Θ"] (derivContext d ++ [xi]) 
+      (Cut "z" "_z" (meta "C") 
+           l
+           (subst [1..l] 
+            s) whatC))
+   | d <- map fillTypes [
+       parRule,
+       crossRule,
+       oneRule,
+       plusRule,
+       withRule True,
+       zeroRule,
+       forallRule,
+       existsRule,
+       offerRule,
+       demandRule],
+     let l = length $ derivContext d
+         s = derivSequent d
+   ]
 
+   
 

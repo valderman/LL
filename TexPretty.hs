@@ -7,6 +7,8 @@ module TexPretty where
 
 import Control.Lens
 import LL 
+import AM
+import MarXup
 import MarXup.Tex
 import MarXup.Latex
 import MarXup.DerivationTrees
@@ -24,37 +26,55 @@ amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt"
 
 ruleName = math . cmd "text" . smallcaps 
 
+seqName (Exchange _ _) = ruleName "Exch."
+seqName (Ax _ ) = ruleName "Ax"
+seqName (Cut _ _ _ _ _ _) = ruleName "Cut"
+seqName (Cross _ _ _ _ _) = "⊗"
+seqName (Par _ _ _ _ _ _) = "⅋"
+seqName (Plus  _ _ _ _ _) = "⊕"
+seqName (With _ b _ _) = math $ (amp<>tex"_"<>if b then "1" else "2")
+seqName (SOne _ _) = "1"
+seqName (SZero _) = "0"
+seqName SBot = "⊥"
+seqName (TApp _ _ _ _ _) = "∀"
+seqName (TUnpack _ _ _) = "∃"
+seqName (Offer _ _ _) = "?"
+seqName (Demand _ _ _ _) = "!"
+seqName (Ignore _ _) = ruleName "Weaken"
+seqName (Alias _ _ _) = ruleName "Contract"
+
+
 texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
 texSeq showProg = foldSeq sf where
  sf (Deriv ts vs seq) = SeqFinal {..} where
   sty = texType 0
-  sax v v' _ = rul (ruleName "Ax") []
-  scut v _ _ s _ t = rul (ruleName "Cut") [s,t]
-  scross w v vt v' vt' t =  rul "⊗" [t]
-  spar w _ vt _ vt' s t = rul par [s,t]
-  splus w _ vt _ vt' s t = rul "⊕" [s,t]
-  swith b w _ _ s = rul  (amp<>tex"_"<>if b then "1" else "2") [s]
-  sbot v = rul "⊥" []
-  szero w vs = rul "0" []
-  sone w t = rul "1" [t]
-  sxchg _ t = t --rul (ruleName "Exch.") [t] -- uncomment to display the exchange rules
-  stapp w _ _ tyB s = rul "∀" [s]
-  stunpack tw w _ s = rul "∃" [s]
-  soffer w _ ty s = rul "?" [s] 
-  sdemand w _ ty s = rul "!" [s]
-  signore w ty s = rul (ruleName "Weaken") [s]
-  salias w w' ty s = rul (ruleName "Contract") [s]
-  swhat a = Node (Rule () None mempty mempty (texCtx ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
-  rul :: TeX -> [Derivation] -> Derivation
-  rul n subs = Node (Rule () Simple mempty n (texCtx ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
+  sax v v' _ = rul []
+  scut v _ _ s _ t = rul [s,t]
+  scross w v vt v' vt' t = rul [t]
+  spar w _ vt _ vt' s t = rul [s,t]
+  splus w _ vt _ vt' s t = rul [s,t]
+  swith b w _ _ s = rul [s]
+  sbot v = rul []
+  szero w vs = rul []
+  sone w t = rul [t]
+  sxchg _ s = s -- rul [s] -- uncomment to display the exchange rules
+  stapp w _ _ tyB s = rul [s]
+  stunpack tw w _ s = rul [s]
+  soffer w _ ty s = rul [s] 
+  sdemand w _ ty s = rul [s]
+  signore w ty s = rul [s]
+  salias w w' ty s = rul [s]
+  swhat a _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
+  rul :: [Derivation] -> Derivation
+  rul subs = Node (Rule () Simple mempty (seqName seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
+
 
 
 keyword :: String -> TeX 
 keyword = mathsf . tex
 let_ = keyword "let "
 case_ = keyword "case "
-in_ = keyword " in "
 connect_ = keyword "connect "
 [fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
@@ -82,7 +102,8 @@ texUntypedProg ts vs s = math $ linearize $ texProg' False ts (zip vs (repeat $ 
 
 linearize :: Block -> TeX
 linearize (Final t) = t
-linearize (Instr h t) = h <> "; " <> linearize t
+linearize (Instr h t) = h <> ";" -- keyword " in " 
+                          <> linearize t
 linearize (Split h xs) = h <> brac (punctuate "; " [x<>cmd0 "mapsto"<> linearize ts | (x,ts) <- xs])
 
 
@@ -105,9 +126,9 @@ texProg' showTypes = foldSeq sf where
    sf (Deriv ts vs _) = SeqFinal {..} where
       sty ts t  = texType 0 ts t
       sax v v' _ = Final $ texVar v <> " ↔ " <> texVar v'
-      scut v v' vt' s vt t = connect mempty (texVarT' v'  vt') s
-                                            (texVarT' v   vt ) t
-      scross w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w <> in_) t
+      scut v v' vt' s vt t = connect mempty (texVarT' v   vt') s
+                                            (texVarT' v'  vt ) t
+      scross w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w) t
       spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
                         (texVarT' v  vt ) s
                         (texVarT' v' vt') t
@@ -117,7 +138,7 @@ texProg' showTypes = foldSeq sf where
       swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
       sbot v = Final $ texVar v
-      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' vs) <> in_ <> texVar w
+      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
       sone w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t
       stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s
@@ -126,7 +147,8 @@ texProg' showTypes = foldSeq sf where
       sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
       signore w ty s = Instr (keyword "ignore " <> texVar w)  s
       salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
-      swhat a = Final $ texVar a
+      swhat a [] = Final $ texVar a
+      swhat a ws = Final $ texVar a <> brack (commas $ map texVar ws)
       let'' w    v t = Instr (let_ <> w <> "=" <> v) t
    texVarT' x y | showTypes = texVarT x y
                 | otherwise = texVar x                            
@@ -143,14 +165,15 @@ texVar nm = textual nm
              
 prn p k = if p > k then paren else id
        
-texCtx :: [String] -> [(String,Type)] ->  TeX
-texCtx ts vs = do
-  -- uncomment to show the typing context
+texCtx :: Bool -> [String] -> [(String,Type)] ->  TeX
+texCtx showVars ts vs = do
+  -- uncomment to show the types context
   -- commas (map texVar $ reverse ts) >>  textual ";"
-  texCtx' (over (mapped._2) (texType 0 ts) vs)
+  texCtx' showVars (over (mapped._2) (texType 0 ts) vs)
 
 
-texCtx' vs = commas [texVarT v t | (v,t) <- vs]
+texCtx' True vs = commas [texVarT v t | (v,t) <- vs]
+texCtx' False vs = commas [t | (v,t) <- vs]
     
 texLayout :: Layout -> TeX
 texLayout (a `Then`b) = texLayout a <> "+" <> texLayout b

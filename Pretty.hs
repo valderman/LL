@@ -2,12 +2,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Pretty where
 
 import Text.PrettyPrint.HughesPJ hiding ((<>))
 import Data.Monoid
 import LL
+import AM
 import Control.Lens
 import Symheap
 import qualified Data.Map as M
@@ -15,6 +17,8 @@ import Data.List (intercalate)
 
 ------------------------------------
 -- Pretty printing of sequents
+
+
 
 instance Show (Deriv) where
   show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq ts vs s
@@ -69,10 +73,11 @@ pSeq = foldSeq sf where
   sdemand v w ty s = "demand " <> text v <> " : " <> ty $$ s
   signore w ty s = "ignore " <> text w $$ s
   salias w w' ty s = "let " <> text w' <> " = alias " <> text w <> " : " <> ty $$ s
-  swhat a = braces $ pCtx ts vs
+  swhat a _ = braces $ pCtx ts vs
        
-instance Show Seq where
-  show = render . pSeq [] []
+deriving instance Show Seq
+-- instance Show Seq where
+--   show = render . pSeq [] []
 
 pCtx ts vs = pCtx' (over (mapped._2) (pType 0 ts) vs)
 
