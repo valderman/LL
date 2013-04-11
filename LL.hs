@@ -200,8 +200,6 @@ applyS f t = case t of
 eval :: Deriv -> Deriv
 eval (Deriv ts vs (Cut w w' ty γ a b)) = Deriv ts vs $ cut (length vs) w w' ty γ a b
 
-remove0 π = [x-1 | x <- π, x > 0]
-
 cut' n = Cut
 
 cut :: Int -> -- ^ size of the context
@@ -221,7 +219,8 @@ cut :: Int -> -- ^ size of the context
 
 cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
 cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Exchange ([γ..n-1] ++ [0..γ-1]) $ Par ty' v v' ((n-γ)+x-1) (Cut w w' (neg ty) (n-γ) s t) u 
--- cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Par ty' v v' (x-1) s (Cut w w' ty (γ-x) t u)
+cut n w w' ty γ (Exchange π (Par ty' v v' x s t)) u | π!!x > 0 = exchange ((remove 0 π) ++ [γ..n-1])  $ 
+                                                                Par ty' v v' x s (Cut w w' ty (γ-x) (exchange ([1..γ-x] ++ [0]) t) u)
 cut n w w' ty γ (Cross ty' v v' x s) t | x > 0 = Cross ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
 cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u) 
 cut n w w' ty γ (With v c x s) t | x > 0 = With v c (x-1) (Cut w w' ty γ s t)
@@ -232,8 +231,9 @@ cut n w w' ty γ (Offer v x s) t | x > 0 = Offer v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Demand v ty' x s) t | x > 0 = Demand v ty' (x-1) (Cut w w' ty γ s t)
 -- TODO: other commutation rules.
 cut 2 _ _ ty 1 (Ax _) a = a
+-- FIXME: side condition π!!x == 0
 cut n _ _ (ta :⊗: tb) 
-           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove0 π++[length π-1..n-1]) $ cut' n w w' ta γ 
+           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove 0 π++[length π-1..n-1]) $ cut' n w w' ta γ 
                                                           a  
                                                           (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b c )
    where δ = γδ - γ
@@ -283,13 +283,16 @@ subst π t = case t of
   (SOne x a) -> SOne (f x) (del x a)
   (SZero x) -> SZero (f x)
   SBot -> SBot
-  What nm xs -> What nm (map f xs)
+  -- What nm xs -> What nm (map f xs)
   a -> Exchange π a
  where f = (π!!)
        s = subst π
        s' x = subst (l++x:r)
               where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else y) π
-       del x = subst $ map (\y -> if y > x then y-1 else y) $ filter (/= x) π
+       del x = subst (remove x π) 
+
+remove y π = [if x > y then x-1 else x | x <- π, x /= y]
+
 
 
 ----------------------------------        
