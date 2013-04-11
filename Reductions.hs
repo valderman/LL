@@ -52,8 +52,11 @@ pushRules = (textual "κ⅋0", altParPush) :
        zeroRule,
        forallRule,
        existsRule,
-       offerRule,
-       demandRule],
+       questRule,
+       bangRule,
+       weakenRule,
+       contractRule
+       ],
      let l = length $ derivContext d
          s = derivSequent d
    ]

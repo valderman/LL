@@ -65,11 +65,11 @@ allRules =
   ,[(zeroRule,"crash")]
   ,[(forallRule,"Write the (pointer to) representation of the concrete type @tB (found in the code) to the 1st cell.")
    ,(existsRule,existComment)]
-  ,[(offerRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
-    (demandRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
+  ,[(questRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
+    (bangRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
                   the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")] 
-  ,[(ignoreRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
-  ,[(aliasRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
+  ,[(weakenRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
+  ,[(contractRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
   ] 
 
 existComment = @"Wait for the type representation to be ready. Copy the
@@ -115,7 +115,7 @@ amRule = amRule' emptyHeap
 
   
   
-allReductions displayer = mapM_ redRule $
+allReductions displayer = env "center" $ mapM_ redRule $
    [
     ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),
@@ -129,12 +129,15 @@ allReductions displayer = mapM_ redRule $
    ++ pushRules
 
   where redRule (name,input) = do
-          displayMath $ do 
-            cmd "text" name
+          name
+          newline
+          cmd0 "vspace{3pt}"
+          cmd "fbox" $ math $ do 
             displayer input
             cmd0 "Longrightarrow"
             displayer (eval input)
           newline
+          cmd0 "vspace{1em}"
 
 todo = cmd "marginpar"
 
