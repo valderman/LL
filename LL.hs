@@ -10,6 +10,7 @@ module LL where
 
 import Data.Monoid
 import Control.Lens
+import Data.List (elemIndex, insert)
 
 -- | Type of names. These are just comments for pretty-printing
 -- purposes; internally the code relies only on deBrujn indices.
@@ -82,12 +83,13 @@ type Permutation = [Int]
 
 -- | Sequents. A 'Forced Type' is a type which is fully determined by
 -- the context. They can be filled in by the function 'fillTypes' below.
-data Seq = Exchange Permutation Seq -- Permute variables
-         | Ax (Forced Type) -- Exactly 2 vars
+data Seq = Ax (Forced Type) -- Exactly 2 vars
          | Cut Name Name (Type) Int (Seq) (Seq) -- new vars in position 0
            
          | Cross (Forced Type) Name Name Int (Seq) 
-         | Par (Forced Type) Name Name Int (Seq) (Seq) -- splits at given pos.
+         | Par (Forced Type) Name Name Int -- Variable worked on
+                                       [Int] -- these variables go to the left 
+                                       Seq (Seq) 
          | Plus Name Name Int (Seq) (Seq) -- Rename to Case
          | With Name Bool Int (Seq) -- Rename to Choose
            
@@ -111,7 +113,7 @@ data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], deri
 -- always exactly one.
 varOf (Cut _ _ _ x _ _) = x
 varOf (Cross _ _ _ x _) = x
-varOf (Par   _ _ _ x _ _) = x
+varOf (Par   _ _ _ x _ _ _) = x
 varOf (Plus _ _ x _ _) = x
 varOf (With _ _ x _) = x
 varOf (SOne x _) = x
@@ -176,10 +178,9 @@ apply f t = case t of
   
 applyS :: Subst -> Seq -> Seq
 applyS f t = case t of
-  (Exchange π a) -> Exchange π (s a)
   Cut w w' ty x a b -> Cut w w' (f ∙ ty) x (s a) (s b)
   Cross ty w w' x a -> Cross ty w w' x (s a)         
-  Par ty w w' x a b -> Par ty w w' x (s a) (s b)
+  Par ty w w' x xs a b -> Par ty w w' x xs (s a) (s b)
   Plus w w' x a b -> Plus w w' x (s a) (s b)
   With w c x a -> With w c x (s a)
   SOne x a -> SOne x (s a) 
@@ -219,8 +220,9 @@ cut :: Int -> -- ^ size of the context
 -- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 
-cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
+-- cut n w w' ty γ (Par ty' v x s t) u | x > 0 = Par ty' v (x-1) 
 cut n w w' ty γ (Cross ty' v v' x s) t | x > 0 = Cross ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
+cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
 cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u) 
 cut n w w' ty γ (With v c x s) t | x > 0 = With v c (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (SZero x) t | x > 0 = SZero (x-1) 
@@ -230,11 +232,11 @@ cut n w w' ty γ (Offer v x s) t | x > 0 = Offer v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Demand v ty' x s) t | x > 0 = Demand v ty' (x-1) (Cut w w' ty γ s t)
 -- TODO: other commutation rules.
 cut 2 _ _ ty 1 (Ax _) a = a
-cut n _ _ (ta :⊗: tb) 
-           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove0 π++[length π-1..n-1]) $ cut' n w w' ta γ 
-                                                          a  
-                                                          (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b c )
-   where δ = γδ - γ
+-- cut n _ _ (ta :⊗: tb) 
+--            γδ (Par _ _ _ γ a b) (Cross _ w w' 0 c) = exchange (remove0 π++[length π-1..n-1]) $ cut' n w w' ta γ 
+--                                                           a  
+--                                                           (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b c )
+--    where δ = γδ - γ
 cut n _ _ (ta :⊕: tb) 
            γ (With z c 0 a) (Plus w w' 0 s t) = cut' n z (if c then w else w') (if c then ta else tb) γ a (if c then s else t)
 cut n _ _ (Exists v ty) 
@@ -254,7 +256,7 @@ alias [] a = a
 alias (x:xs) a = Alias x mempty $ alias xs a
 
 isPos (Ax _) = True
-isPos (Exchange _ (Par _ _ _ _ _ _)) = True
+isPos (Par _ _ _ _ _ _ _) = True
 isPos (With _ _  _ _) = True
 isPos (Offer _ _ _) = True
 isPos (TApp _ _ _ _ _) = True
@@ -262,32 +264,35 @@ isPos SBot = True
 isPos _ = False
 
 inverse :: Permutation -> Permutation
-inverse π = [π!!x | x <- [0..length π-1]]
+inverse π = [found $ elemIndex x π | x <- [0..length π-1]]
+  where found (Just x) = x
 
 exchange = subst
 -- | Application of variables-only substitution
 subst π t = case t of
   (Ax ty) -> (Ax ty)
-  (Cross ty w w' x c) -> Cross ty w w' (f x) (s' x c)
-  Exchange ρ a -> subst (map f ρ) a
+  (Cut w w' ty x t u) -> Cut w w' ty (f x) (s t) (s u)
+  (Par ty w w' x xs s t) -> Par ty w w' (f x) (map f xs) (keep (x:xs) `subst` s) ((s' 0 $ del (x:xs) $ π) `subst` t)
+  (Cross ty w w' x c) -> Cross ty w w' (f x) (s' x π `subst` c)
   (With w c x a) -> With w c (f x) (s a) 
   (Plus w w' x a b) -> Plus w w' (f x) (s a) (s b)
   (TApp tp w x t a) -> TApp tp w (f x) t (s a)
   (TUnpack w x a) -> TUnpack w (f x) (s a)
   (Offer w x a) -> Offer w (f x) (s a)
   (Demand w ty x a) -> Demand w ty (f x) (s a)
-  (Alias x w a) -> Alias (f x) w (s' x a)
-  (Ignore x a) -> Ignore (f x) (del x a)
-  (SOne x a) -> SOne (f x) (del x a)
+  (Alias x w a) -> Alias (f x) w (s' x π `subst` a)
+  (Ignore x a) -> Ignore (f x) (del [x] π `subst` a)
+  (SOne x a) -> SOne (f x) (del [x] π `subst` a)
   (SZero x) -> SZero (f x)
   SBot -> SBot
   What nm xs -> What nm (map f xs)
-  a -> Exchange π a
  where f = (π!!)
        s = subst π
-       s' x = subst (l++x:r)
-              where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else y) π
-       del x = subst $ map (\y -> if y > x then y-1 else y) $ filter (/= x) π
+       s' x ρ = (l++x:r)
+                  where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else y) ρ
+       del [] ρ = ρ
+       del (x:xs) ρ = map (\y -> if y > x then y-1 else y) $ filter (/= x) $ del xs ρ
+       keep xs = map f xs
 
 
 ----------------------------------        
@@ -301,7 +306,6 @@ data SeqFinal t a = SeqFinal
      , spar   :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
      , swith :: (Bool -> Name -> Name -> t -> a -> a)
      , splus :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
-     , sxchg :: (Permutation -> a -> a)
      , stapp :: (Name -> t -> Name -> t -> a -> a)
      , stunpack :: (Name -> Name -> Name -> a -> a)
      , sbot :: (Name -> a)
@@ -329,8 +333,10 @@ foldSeq sf ts0 vs0 s0 =
         where (v0,v1) = splitAt x vs
       (Cross _ v v' x t) -> scross w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
         where (v0,(w,~(vt :⊗: vt')):v1) = splitAt x vs
-      (Par _ v v' x s t) -> spar w v (fty vt) v' (fty vt') (recurse ts (v0++[(v,vt)]) s) (recurse ts ((v',vt'):v1) t)
+      (Par _ v v' x xs s t) -> spar w v (fty vt) v' (fty vt') (recurse ts ((v,vt):w0) s) (recurse ts ((v',vt'):w1) t)
         where (v0,(w,~(vt :|: vt')):v1) = splitAt x vs
+              w0 = [w | (i,w) <- zip [0..] vs , i `elem` xs]
+              w1 = [w | (i,w) <- zip [0..] vs, not (i `elem` xs) && i /= x]
       (Plus v v' x s t) -> splus w v (fty vt) v' (fty vt') (recurse ts (v0++(v,vt ):v1) s) (recurse ts (v0++(v',vt'):v1) t)
         where (v0,(w,~(vt :⊕: vt')):v1) = splitAt x vs
       (With v b x t) -> swith b w v (fty wt) $ recurse ts (v0++(v,wt):v1) t
@@ -342,7 +348,6 @@ foldSeq sf ts0 vs0 s0 =
          where (v0,(w,~Zero):v1) = splitAt x vs
       (SOne x t) -> sone w $ recurse ts (v0++v1) t
         where (v0,(w,~One):v1) = splitAt x vs
-      (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t        
       (TApp _ v x tyB s) -> stapp w (sty (v:ts) tyA) v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
         where (v0,(w,~(Forall _ tyA)):v1) = splitAt x vs
               ty = subst0 tyB ∙ tyA
@@ -372,13 +377,12 @@ fillTypes' = foldSeq sf where
     sax _ _ t = Ax t
     scut v v' _ s vt t = Cut v v' vt x s t
     scross _ v ty v' ty' s = Cross ty v v' x s 
-    spar _ v ty v' ty' s t = Par ty v v' x s t
+    spar _ v ty v' ty' s t = Par ty v v' x xs s t where Par _ _ _ _ xs _ _ = seq
     splus _ v vt v' vt' s t = Plus v v' x s t
     swith b _ v _ t = With v b x t
     sbot _ = SBot
     szero _ _ = SZero x
     sone _ t = SOne x t
-    sxchg p t = Exchange p t
     stapp _ tp v tyB s = TApp tp v x tyB s
     stunpack _ _ v s = TUnpack v x s
     soffer _ v _ s = Offer v x s
