@@ -1,6 +1,5 @@
 
 mainTest: Mx.pdf
-	rm -f *.mps
 
 %-delayed.mp: %.mp
 	rm -f $@
@@ -15,7 +14,7 @@ mainTest: Mx.pdf
 	ghc --make $<
 	./$*
 
-%.hspp: %.hs *.hs
+%.hspp: %.hs
 	ghc -E $<
 
 simpleTest:

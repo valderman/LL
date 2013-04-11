@@ -26,10 +26,11 @@ amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt"
 
 ruleName = math . cmd "text" . smallcaps 
 
+seqName (Exchange _ _) = ruleName "Exch."
 seqName (Ax _ ) = ruleName "Ax"
 seqName (Cut _ _ _ _ _ _) = ruleName "Cut"
 seqName (Cross _ _ _ _ _) = "⊗"
-seqName (Par _ _ _ _ _ _ _) = "⅋"
+seqName (Par _ _ _ _ _ _) = "⅋"
 seqName (Plus  _ _ _ _ _) = "⊕"
 seqName (With _ b _ _) = math $ (amp<>tex"_"<>if b then "1" else "2")
 seqName (SOne _ _) = "1"
@@ -56,6 +57,7 @@ texSeq showProg = foldSeq sf where
   sbot v = rul []
   szero w vs = rul []
   sone w t = rul [t]
+  sxchg _ s = s -- rul [s] -- uncomment to display the exchange rules
   stapp w _ _ tyB s = rul [s]
   stunpack tw w _ s = rul [s]
   soffer w _ ty s = rul [s] 

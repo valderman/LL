@@ -16,7 +16,7 @@ cutWithPlus b = Deriv ["Θ"] [gamma,delta]
               
 cutParCross = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
               (Cut "z" "_z" (meta "A" :⊗: meta "B") 2 
-               (Par dum "_x" "_y" 0 [1] whatA whatB)
+               (Exchange [1,0,2] $ Par dum "_x" "_y" 1 whatA whatB)
                (Cross dum "x" "y" 0 whatC))
 
 cutBang = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $

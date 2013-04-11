@@ -99,11 +99,10 @@ runClosure h (Plus x y v a b,e,te)
 runClosure h (Cross ty x y v a,e,te)
   = Just (h,[(a,el++[(x,z),(y,shift (mkLayout (te∙ty)) z)] ++ er,te)])
   where (el,(_,z):er) = splitAt v e
-runClosure h (Par ty x y v vs a b,e,te)
-  = Just (h,[(a,(x,z):el,te)
-            ,(b,(y,shift (mkLayout (te∙ty)) z):er,te)])
-    where (_,(_,z):_) = splitAt v e
-          (el,er) = parHelp e v vs
+runClosure h (Par ty x y v a b,e,te)
+  = Just (h,[(a,el++[(x,z)],te)
+            ,(b,[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
+    where (el,(_,z):er) = splitAt v e
 runClosure h (With x t v a,e,te)
   = Just (replace (e!!+v) (Tag t) h,[(a,increment v x e,te)])
   -- FIXME: free the part which is unused (half of the time)
@@ -120,6 +119,8 @@ runClosure h (TApp tp x v ty a,e,te)
 runClosure h (TUnpack x v a,e,te)
   | Q ty p <- h!w = Just (replace w Freed h,[(a,el++[(x,p)]++er,ty:te)])
   where (el,(_,w):er) = splitAt v e
+runClosure h (Exchange π a,e,te)
+  = Just (h,[(a,[e!!x | x <- π],te)])
 runClosure h (Ax (Bang ty),[(_,w),(_,x)],te)
   | d@(Delay n cl) <- h!x = Just (replace w d (replace x Freed h),[])
 runClosure h (Ax (TVar True v),e,te)
@@ -162,16 +163,17 @@ increment :: IsRef ref => Int -> Name -> Env ref -> Env ref
 increment n nm e = let (l,(_,x):r) = splitAt n e
                     in l ++ (nm,next x) : r
 
-
 copy'' :: Type -> Seq
 copy'' (t1 :⊕: t2) = Plus "" ""  0 (copy'' t1) (copy'' t2) -- FIXME: probably a With is necessary here
--- FIXME copy'' (t1 :⊗: t2) = Cross t1 "" "" 0 $                     Par t1 "" "" 1 (copy'' t1) (copy'' t2)
+copy'' (t1 :⊗: t2) = Cross t1 "" "" 0 $
+                     Exchange [0,2,1] $
+                     Par t1 "" "" 1 (copy'' t1) (copy'' t2)
 copy'' Zero = error "Impossible"
 copy'' One = SOne 0 SBot
 copy'' t@(TVar True _) = Ax t
 copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t
-copy'' t = exchange [1,0] $ copy'' (neg t)
+copy'' t = Exchange [1,0] $ copy'' (neg t)
 
 sizeOf :: Layout -> Int
 sizeOf (Bit t) = 1 + sizeOf t
