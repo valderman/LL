@@ -220,6 +220,8 @@ cut :: Int -> -- ^ size of the context
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 
 cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
+cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Exchange ([γ..n-1] ++ [0..γ-1]) $ Par ty' v v' ((n-γ)+x-1) (Cut w w' (neg ty) (n-γ) s t) u 
+-- cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Par ty' v v' (x-1) s (Cut w w' ty (γ-x) t u)
 cut n w w' ty γ (Cross ty' v v' x s) t | x > 0 = Cross ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
 cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u) 
 cut n w w' ty γ (With v c x s) t | x > 0 = With v c (x-1) (Cut w w' ty γ s t)
@@ -244,7 +246,7 @@ cut n _ _ (Bang ty)
 cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
 cut n _ _ ty γ (Offer w 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer w 0 b) a)))
 cut n _ _ ty γ SBot (SOne 0 a) = a
-cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ]) (cut n w w' (neg ty) (n-γ) b a)
+cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w w' (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
 
 ignore 0 a = a
@@ -276,7 +278,7 @@ subst π t = case t of
   (TUnpack w x a) -> TUnpack w (f x) (s a)
   (Offer w x a) -> Offer w (f x) (s a)
   (Demand w ty x a) -> Demand w ty (f x) (s a)
-  (Alias x w a) -> Alias (f x) w (s' x a)
+  (Alias x w a) -> Alias (f x) w (s' 0 a)
   (Ignore x a) -> Ignore (f x) (del x a)
   (SOne x a) -> SOne (f x) (del x a)
   (SZero x) -> SZero (f x)

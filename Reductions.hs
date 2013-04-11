@@ -34,12 +34,14 @@ cutQuant = Deriv ["Θ"] [gamma,delta] $
            Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
 
 
+altParPush = Deriv ["Θ"] (derivContext parRule ++ [xi]) (Cut "z" "_z" (meta "C") 3 (Par dum "_x" "_y" 2 whatA whatB) whatB)
+
 pushRules :: [(TeX,Deriv)]
-pushRules
- = [(textual "κ"<>seqName s, Deriv ["Θ"] (derivContext d ++ [xi]) 
+pushRules = (textual "κ⅋0", altParPush) :
+   [(textual "κ"<>seqName s, Deriv ["Θ"] (derivContext d ++ [xi]) 
       (Cut "z" "_z" (meta "C") 
            l
-           (subst [1..l] 
+           (subst ([1..l] ++ [0])
             s) whatC))
    | d <- map fillTypes [
        parRule,
