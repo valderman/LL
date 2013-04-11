@@ -229,13 +229,16 @@ cut n w w' ty γ (TApp tp v x ty' s) t | x > 0 = TApp tp v (x-1) ty' (Cut w w' t
 cut n w w' ty γ (TUnpack v x s) t | x > 0 = TUnpack v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Offer v x s) t | x > 0 = Offer v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Demand v ty' x s) t | x > 0 = Demand v ty' (x-1) (Cut w w' ty γ s t)
--- TODO: other commutation rules.
+cut n w w' ty γ (Ignore x s) t | x > 0 = Ignore (x-1) (Cut w w' ty (γ-1) s t)
+cut n w w' ty γ (Alias x v s) t | x > 0 = Alias (x-1) v (Cut w w' ty (γ+1) s t)
+
+
 cut 2 _ _ ty 1 (Ax _) a = a
 -- FIXME: side condition π!!x == 0
 cut n _ _ (ta :⊗: tb) 
            γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove 0 π++[length π-1..n-1]) $ cut' n w w' ta γ 
                                                           a  
-                                                          (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b c )
+                                                          (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b (exchange ([1,0]++[2..n-γ]) c))
    where δ = γδ - γ
 cut n _ _ (ta :⊕: tb) 
            γ (With z c 0 a) (Plus w w' 0 s t) = cut' n z (if c then w else w') (if c then ta else tb) γ a (if c then s else t)
