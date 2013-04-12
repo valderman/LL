@@ -120,11 +120,11 @@ allReductions displayer = env "center" $ mapM_ redRule $
     ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),
     (amp<>"⊕",cutWithPlus True),
-    ("!?", cutBang),
-    ("1⊥",cutUnit),
-    ("∀∃",cutQuant),
-    ("Contract",cutContract),
-    ("Weaken",cutIgnore)
+    ("?!", cutBang),
+    ("⊥!",cutUnit),
+    ("∃∀",cutQuant),
+    ("?Contract",cutContract),
+    ("?Weaken",cutIgnore)
     ]
    ++ pushRules
 
