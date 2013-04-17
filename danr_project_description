@@ -1,0 +1,19 @@
+
+In this project we will explore the inherent parallelisation of the linear
+logic language Mx of Bernardy and Svenningsson by a compilation to Erlang: a
+distributed, functional language with built-in message-passing. Since many-core
+processors are not yet abundantly available, we will instead distribute the
+work on many computers. The parallelisation is apparent in the primitives
+connect and connect via. Furthermore, the Ax typing rule connects two programs,
+which suggests that a message-passing language is an appropriate target.
+
+As a first step, the MALL fragment will be implemented, and then the features of
+MALLq with exponentials will be added. Further work from there include:
+    * supporting data types like lists (or even general algebraic data types),
+    * calling primitive erlang functions (for instance arithmetic operations), and
+    * allowing some parts of the program to be run sequentially.
+
+Also, if time permits and no other project implements this, a parser for a
+sugared version of Mx can be implemented to be able to painlessly write
+programs for this language.
+
