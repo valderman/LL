@@ -1,5 +1,7 @@
+import AM
 import LL
 import Pretty
+import Symheap
 import SysStepper
 
 t0 = Forall "α" $ Forall "β" $ (a :⊗: b) ⊸ (b :⊗: a)
@@ -40,7 +42,7 @@ expTest = Deriv ["α"] [("x",neg (Bang (var 0) ⊸ (Bang (var 0) :⊗: Bang (var
 
 -- | Test exchange
 exchTest = Deriv ["a","b","c"] [("x",var 0),("y",One),("z",neg (var 0))] $
-           Exchange [1,2,0] $ SOne 0 $ ax
+           Exchange [1,2,0] $ SOne 0 ax
 
 -- | Testing cuts
 cutTest = Deriv [] [("x",Zero)] $
@@ -63,7 +65,7 @@ bType n = two :⊗: bType (n-1)
 
 semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
             Plus "t" "u" 0
-              (What "a")
+              (What "a" [])
               (SOne 0 $
                Plus "v" "w" 0
                (SOne 0 $
@@ -71,6 +73,6 @@ semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
                   (With "m" True 0 SBot)
                   (With "n" False 0 SBot)
                )
-               (What "c"))
+               (What "c" []))
 --p = Deriv [] [("x",bType b),("y",bType b),("z",neg (bType b))] $
-    
+

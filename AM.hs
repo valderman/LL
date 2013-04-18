@@ -24,23 +24,23 @@ data Layout = Layout `Then` Layout
 
 mkLayout :: Type -> Layout
 mkLayout t = case mkPositive t of
-              One -> Empty
-              Zero -> Empty
-              a :⊗: b -> mkLayout a `Then` mkLayout b
-              a :⊕: b -> Bit (mkLayout a `Union` mkLayout b)
-              Bang x  -> Pointer (mkLayout x)
-              Exists _ _ -> Pointer (MetaL $ meta "Polymorphic")
-              Meta _ _ _ -> MetaL (mkPositive t)
-              TVar _ _ -> error "cannot know layout of var"
+              One      -> Empty
+              Zero     -> Empty
+              a :⊗: b  -> mkLayout a `Then` mkLayout b
+              a :⊕: b  -> Bit (mkLayout a `Union` mkLayout b)
+              Bang x   -> Pointer (mkLayout x)
+              Exists{} -> Pointer (MetaL $ meta "Polymorphic")
+              Meta{}   -> MetaL (mkPositive t)
+              TVar{}   -> error "cannot know layout of var"
 
 -- | A Cell of the Heap
 data Cell ref where
-  Freed :: Cell ref
-  Tag   :: Bool -> Cell ref
-  New   :: Cell ref
-  Delay :: RefCount ref -> Maybe (Closure ref) -> Cell ref
-  Q     :: Type -> ref -> Cell ref -- 1st arg should be a monotype
-  NewMeta :: Layout -> Cell ref
+    Freed   :: Cell ref
+    Tag     :: Bool -> Cell ref
+    New     :: Cell ref
+    Delay   :: RefCount ref -> Maybe (Closure ref) -> Cell ref
+    Q       :: Type -> ref -> Cell ref -- 1st arg should be a monotype
+    NewMeta :: Layout -> Cell ref
 
 countRefs New = 0
 countRefs (Delay n _) = n
