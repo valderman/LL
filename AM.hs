@@ -11,7 +11,9 @@
 module AM where 
 
 import LL
-import Data.List (mapAccumL)
+import Data.List (mapAccumL, elemIndex)
+import Data.Graph
+import Data.Tree
 
 -- | Layout of a type in the heap
 data Layout = Layout `Then` Layout 
@@ -273,36 +275,48 @@ compareClosures (s,e,te) h (s',e',te') h' = do
     
 -}    
 
-{-
-Not correct since Ax. can create graphs!
-
 -- Invariant: a blocked system will have only new cells in the
 -- heap. (!except for exponentials)
-        
+   {-     
+type Cl = Closure Int
+                
+mkGraph :: [Cl] -> [((),Int,[Int])]
+mkGraph cls = map mkOne cls'
+  where cls' :: [(Cl,Int)]
+        cls' = zip cls [0..]
+        mkOne (cl@(_,e,_),ix) = ((),ix,connected)
+          where 
+            connected :: [Int]
+            connected = [ix' | ((_,e',_),ix') <- cls', (_,x') <- e', (_,x) <- e, x == x']
         
 -- | From a blocked system, recover the tree-structure of closures.        
-mkTree :: [Closure] -> Tree Closure
-mkTree = error "todo"
+mkTree :: [Cl] -> Tree Cl
+mkTree cls = fmap (cls!!) t
+  where [t] = dff $ fst $ graphFromEdges' $ mkGraph cls
+        -- there can be only one tree because we do not have mix.
 
 -- | Rename variables in sequents so they form a meaningful cut
 -- structure.  In the output: the 1st variable communicates with the
 -- parent; the others with each of the children in order.
--- For the root, we assume the input has a dummy 1st variable.
-recoverCutStructure :: Tree Closure -> Tree Seq
+-- For the root, we assume that the input has a dummy 1st variable.
+recoverCutStructure :: Tree Cl -> Tree Cl
 recoverCutStructure (Node c []) = Node c []
-recoverCutStructure (Node c@(_,_:e,_) cs) = Node c (zipWith placeFirst (map snd e) cs)
+recoverCutStructure (Node c@(_,_:e,_) cs) = Node c (map recoverCutStructure $ 
+                                                    zipWith placeFirst (map snd e) cs)
 
 -- | Place the given reference in the 1st position in the env in the
 -- closure, and adapt the subtrees.
-placeFirst :: ref -> Tree Closure -> Tree Closure
-placeFirst = error "todo"
-
-
-mkCuts :: Tree Seq -> Seq
-mkCuts = error "todo"
+placeFirst :: Int -> Tree Cl -> Tree Cl
+placeFirst x (Node (s,e,te) ts) = Node (Exchange ρ s, [e!!j | j <- ρ], te) ts
+  where Just i = elemIndex x (map snd e)
+        ρ = i:[0..i-1]++[i+1..length e]
+  
+mkCuts :: Tree Cl -> Deriv
+mkCuts (Node (s,e,te) []) = s
+mkCuts (Node (s,_:e,te) ts) = (Cut "_" "_" dum, [])
 
 sequentialize :: System h -> Seq
 sequentialize = error "todo" -- mkCuts . recoverCutStructure . mkTree
       
 toInfer = meta "type cut on to recover"
- -}
+-}
