@@ -21,7 +21,7 @@ import Data.List (intercalate)
 
 
 instance Show (Deriv) where
-  show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq ts vs s
+  show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq True ts vs s
 
 prn p k = if p > k then parens else id
 
@@ -46,34 +46,38 @@ pType p vs (Meta b s xs) = if_ b ("~" <>) $ text s <> args
 instance Show Type where
   show x = render $ pType 0 ["v" <> show i | i <- [0..]] x
 
-pSeq :: [Name] -> [(Name,Type)] -> Seq -> Doc
-pSeq = foldSeq sf where
- sf (Deriv ts vs _) = SeqFinal {..} where
-  sty = pType 0
-  sax v v' _ = text v <> " ↔ " <> text v'
-  scut v v' vt s vt' t = "connect " <>
-                                "{"<> vcat [text v  <> " : " <> vt  <> " in " <> s <> ";",
-                                            text v' <> " : " <> vt' <> " in " <> t] <>"}"
-  scross w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
-  spar w v vt v' vt' s t = "connect "<>text w <>
-                                "{"<> vcat [text v  <> " : " <> vt <> " in " <> s <> ";",
-                                            text v' <> " : " <> vt' <> " in " <> t] <>"}"
-  splus w v vt v' vt' s t = "case " <> text w <> " of {" <> 
-                          vcat ["inl " <> text v <> " ↦ " <> s<> ";", 
-                                "inr " <> text v' <> " ↦ " <> t]<> "}"
-  swith b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
-     where c = if b then "fst" else "snd"
-  sbot v = text v 
-  szero w vs = "dump " <> pCtx' vs <> " in " <> text w
-  sone w t = "let ◇ = " <> text w <> " in " $$ t
-  sxchg _ t = t
-  stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
-  stunpack tw w v s = "let ⟨" <> text tw <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
-  soffer v w ty s = "offer " <> text v <> " : " <> ty $$ s
-  sdemand v w ty s = "demand " <> text v <> " : " <> ty $$ s
-  signore w ty s = "ignore " <> text w $$ s
-  salias w w' ty s = "let " <> text w' <> " = alias " <> text w <> " : " <> ty $$ s
-  swhat a _ = braces $ pCtx ts vs
+pSeq :: Bool -> [Name] -> [(Name,Type)] -> Seq -> Doc
+pSeq showTypes = foldSeq sf where
+   sf (Deriv ts vs _) = SeqFinal {..} where
+        sty = pType 0
+        sax v v' _ = text v <> " ↔ " <> text v'
+        scut v v' vt s vt' t = "connect " <>
+                                      "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
+                                                  varT v' vt' <> " in " <> t] <>"}"
+        scross w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
+        spar w v vt v' vt' s t = "connect "<>text w <>
+                                      "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
+                                                  varT v' vt' <> " in " <> t] <>"}"
+        splus w v vt v' vt' s t = "case " <> text w <> " of {" <> 
+                                vcat ["inl " <> text v <> " ↦ " <> s<> ";", 
+                                      "inr " <> text v' <> " ↦ " <> t]<> "}"
+        swith b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
+           where c = if b then "fst" else "snd"
+        sbot v = text v 
+        szero w vs = "dump " <> whenShowTypes (pCtx' vs) <> " in " <> text w
+        sone w t = "let ◇ = " <> text w <> " in " $$ t
+        sxchg _ t = t
+        stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
+        stunpack tw w v s = "let ⟨" <> whenShowTypes (text tw) <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
+        soffer v w ty s = "offer " <> varT v ty $$ s
+        sdemand v w ty s = "demand " <> varT v ty $$ s
+        signore w ty s = "ignore " <> text w $$ s
+        salias w w' ty s = "let " <> text w' <> " = alias " <> varT w ty $$ s
+        swhat a _ = braces $ pCtx ts vs
+   varT x y | showTypes = text x <> " : " <> y
+            | otherwise = text x                            
+   whenShowTypes | showTypes = id                            
+                 | otherwise = const "?"
        
 deriving instance Show Seq
 -- instance Show Seq where
@@ -128,7 +132,7 @@ pSystem (cls,h) = hang "Heap:" 2 (pHeap h) $$
 pClosure :: Closure SymRef -> Doc
 pClosure (seq,env,typeEnv) = 
          hang "Closure:" 2 (vcat [
-            hang "Code:" 2 (pSeq (zipWith const typeNames typeEnv) (mkEnvDummy env) seq),
+            hang "Code:" 2 (pSeq False (zipWith const typeNames typeEnv) (mkEnvDummy env) seq),
             hang "Env: " 2 (cat $ punctuate ", " [text nm <> " = " <> pRef r | (nm,r) <- env]),
             hang "TypeEnv:" 2 (cat $ punctuate ", " $ map pClosedType typeEnv)])
 
