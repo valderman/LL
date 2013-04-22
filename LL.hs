@@ -270,9 +270,12 @@ inverse :: Permutation -> Permutation
 inverse π = [π!!x | x <- [0..length π-1]]
 
 exchange = subst
+
+isIdentity π = π == [0..length π-1]
 -- | Application of variables-only substitution
+subst π t | isIdentity π = t
 subst π t = case t of
-  (Ax ty) -> (Ax ty)
+  (Ax ty) -> (Ax (neg ty)) -- because the identity case was handled above.
   (Cross ty w w' x c) -> Cross ty w w' (f x) (s' x c)
   Exchange ρ a -> subst (map f ρ) a
   (With w c x a) -> With w c (f x) (s a) 
