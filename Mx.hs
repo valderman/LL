@@ -141,6 +141,8 @@ allReductions displayer = env "center" $ mapM_ redRule $
 
 todo = cmd "marginpar"
 
+pole :: TeX
+pole = "⊥" <> tex "{\\kern -1ex}" <> "⊥"
 
 instance Element Type where
   type Target Type = TeX
@@ -339,6 +341,17 @@ but stick around to copying things. They stop at polymorphic values and exponent
 The best we can do is to also stop them at additives --- multiplicatives are communication-less.
 
 To do this we'd need another kind of Tag cell that would say ``look somewhere else''.
+
+@section{Phase Space}
+
+We define:
+
+@itemize{
+@item @math{M = @brac{closures in a context}}
+@item @math{1 = empty set}
+@item @math{· = concatenation of closure lists (and heap).}
+@item @math{@pole = any tree of axiom closures}
+}
 
 @section{Change the world?}
 
