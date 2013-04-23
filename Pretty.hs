@@ -70,9 +70,9 @@ pSeq showTypes = foldSeq sf where
         stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
         stunpack tw w v s = "let ⟨" <> whenShowTypes (text tw) <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
         soffer v w ty s = "offer " <> varT v ty $$ s
-        sdemand v w ty s = "demand " <> varT v ty $$ s
+        sdemand v w ty s = "let" <+> text w <+> "=" <+> text "demand" <+> varT v ty <+> "in" $$ s
         signore w ty s = "ignore " <> text w $$ s
-        salias w w' ty s = "let " <> text w' <> " = alias " <> varT w ty $$ s
+        salias w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
         swhat a _ = braces $ pCtx ts vs
    varT x y | showTypes = text x <> " : " <> y
             | otherwise = text x                            
