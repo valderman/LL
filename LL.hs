@@ -9,7 +9,7 @@
 module LL where
 
 import Data.Monoid
-import Control.Lens
+import Control.Lens hiding ((&))
 
 -- | Type of names. These are just comments for pretty-printing
 -- purposes; internally the code relies only on deBrujn indices.
@@ -18,11 +18,11 @@ type Name = String
 -- | Types
 data Type = Type :⊕: Type
              | Type :⊗: Type
-             | Type :|: Type -- ⅋ 
+             | Type :|: Type -- ⅋
              | Type :&: Type
              | Zero | One | Top | Bot
              | TVar Bool Int -- False if the variable is negated.
-             | Forall Name Type 
+             | Forall Name Type
              | Exists Name Type
              | Bang Type
              | Quest Type
@@ -47,7 +47,7 @@ type Forced x = x
 dum = meta "dummy type"
 
 -- | Linear negation
-neg :: Type -> Type       
+neg :: Type -> Type
 neg (x :⊗: y) = neg x :|: neg y
 neg (x :|: y) = neg x :⊗: neg y
 neg (x :⊕: y) = neg x :&: neg y
@@ -68,7 +68,7 @@ positiveType t = case t of
   One -> True
   Zero -> True
   _ :⊗: _ -> True
-  _ :⊕: _ -> True            
+  _ :⊕: _ -> True
   Bang _ -> True
   Exists _ _ -> True
   Meta b _ _ -> b -- strictly speaking, this is wrong since we do not know the instance of the meta-type.
@@ -85,17 +85,17 @@ type Permutation = [Int]
 data Seq = Exchange Permutation Seq -- Permute variables
          | Ax (Forced Type) -- Exactly 2 vars
          | Cut Name Name (Type) Int (Seq) (Seq) -- new vars in position 0
-           
-         | Cross (Forced Type) Name Name Int (Seq) 
+
+         | Cross (Forced Type) Name Name Int (Seq)
          | Par (Forced Type) Name Name Int (Seq) (Seq) -- splits at given pos.
          | Plus Name Name Int (Seq) (Seq) -- Rename to Case
          | With Name Bool Int (Seq) -- Rename to Choose
-           
+
          | SOne Int Seq      -- Rename to ...
          | SZero Int         -- Rename to Crash/Loop
          | SBot              -- Rename to Terminate
          | What Name [Int]   -- 'meta' program (just for the paper, not found in actual code)
-           
+
          | TApp (Forced Type) Name Int Type (Seq)
          | TUnpack Name Int (Seq)
 
@@ -127,7 +127,7 @@ varOf (Alias x _ _) = x
 -- Substitution machinery
 
 
--- | Type-variables substitutions               
+-- | Type-variables substitutions
 type Subst = [Type]
 
 subst0 x = x:map var [0..]
@@ -135,19 +135,19 @@ subst0 x = x:map var [0..]
 -- | Types which can be applied a 'Subst'
 class Substitute a where
   (∙) :: Subst -> a -> a
-         
+
 instance Substitute (Type)  where
   (∙) = apply
-        
+
 instance Substitute (Seq) where
   (∙) = applyS
-        
+
 instance (Substitute a, Substitute b) => Substitute (a,b) where
   f ∙ (x,y) = (f∙x, f∙y)
 
 instance (Substitute a) => Substitute [a] where
   f ∙ xs = map (f ∙) xs
-             
+
 
 wk :: Subst
 wk = map var [1..]
@@ -173,16 +173,16 @@ apply f t = case t of
   Meta b x ns -> Meta b x (f ∙ ns)
  where s = apply f
        s' = apply (var 0 : wk ∙ f)
-  
+
 applyS :: Subst -> Seq -> Seq
 applyS f t = case t of
   (Exchange π a) -> Exchange π (s a)
   Cut w w' ty x a b -> Cut w w' (f ∙ ty) x (s a) (s b)
-  Cross ty w w' x a -> Cross ty w w' x (s a)         
+  Cross ty w w' x a -> Cross ty w w' x (s a)
   Par ty w w' x a b -> Par ty w w' x (s a) (s b)
   Plus w w' x a b -> Plus w w' x (s a) (s b)
   With w c x a -> With w c x (s a)
-  SOne x a -> SOne x (s a) 
+  SOne x a -> SOne x (s a)
   TApp tp w x ty a -> TApp ((var 0:wk∙f)∙tp) w x (f ∙ ty) (s a)
   TUnpack w x a -> TUnpack w x (s' a)
   Offer w x a -> Offer w x (s a)
@@ -192,7 +192,7 @@ applyS f t = case t of
   a -> a
  where s = applyS f
        s' = applyS (var 0 : wk ∙ f)
-       
+
 ---------------------------------------
 -- Cut-elimination machinery
 
@@ -203,28 +203,28 @@ eval (Deriv ts vs (Cut w w' ty γ a b)) = Deriv ts vs $ cut (length vs) w w' ty 
 cut' n = Cut
 
 cut :: Int -> -- ^ size of the context
-       Name -> 
-       Name -> 
-       Type -> 
+       Name ->
+       Name ->
+       Type ->
        Int -> -- ^ where to cut it
        Seq -> Seq -> Seq
 -- FIXME: in the absence of "What" cut can be eliminated so these
 -- recursive calls terminate. Otherwise, we have a problem.  At the
 -- moment it seems we never use hereditary cut, so this should
 -- probably go away.
-       
+
 
 -- cut n w ty γ (Cut w' ty' δ a b) c = cut n w ty γ (cut γ w' ty' δ a b) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 
 cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
-cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Exchange ([γ..n-1] ++ [0..γ-1]) $ Par ty' v v' ((n-γ)+x-1) (Cut w w' (neg ty) (n-γ) s t) u 
-cut n w w' ty γ (Exchange π (Par ty' v v' x s t)) u | π!!x > 0 = exchange ((remove 0 π) ++ [γ..n-1])  $ 
+cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Exchange ([γ..n-1] ++ [0..γ-1]) $ Par ty' v v' ((n-γ)+x-1) (Cut w w' (neg ty) (n-γ) s t) u
+cut n w w' ty γ (Exchange π (Par ty' v v' x s t)) u | π!!x > 0 = exchange ((remove 0 π) ++ [γ..n-1])  $
                                                                 Par ty' v v' x s (Cut w w' ty (γ-x) (exchange ([1..γ-x] ++ [0]) t) u)
 cut n w w' ty γ (Cross ty' v v' x s) t | x > 0 = Cross ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
-cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u) 
+cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u)
 cut n w w' ty γ (With v c x s) t | x > 0 = With v c (x-1) (Cut w w' ty γ s t)
-cut n w w' ty γ (SZero x) t | x > 0 = SZero (x-1) 
+cut n w w' ty γ (SZero x) t | x > 0 = SZero (x-1)
 cut n w w' ty γ (TApp tp v x ty' s) t | x > 0 = TApp tp v (x-1) ty' (Cut w w' ty γ s t)
 cut n w w' ty γ (TUnpack v x s) t | x > 0 = TUnpack v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Offer v x s) t | x > 0 = Offer v (x-1) (Cut w w' ty γ s t)
@@ -235,16 +235,16 @@ cut n w w' ty γ (Alias x v s) t | x > 0 = Alias (x-1) v (Cut w w' ty (γ+1) s t
 
 cut 2 _ _ ty 1 (Ax _) a = a
 -- FIXME: side condition π!!x == 0
-cut n _ _ (ta :⊗: tb) 
-           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove 0 π++[length π-1..n-1]) $ cut' n w w' ta γ 
-                                                          a  
+cut n _ _ (ta :⊗: tb)
+           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove 0 π++[length π-1..n-1]) $ cut' n w w' ta γ
+                                                          a
                                                           (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b (exchange ([1,0]++[2..n-γ]) c))
    where δ = γδ - γ
-cut n _ _ (ta :⊕: tb) 
+cut n _ _ (ta :⊕: tb)
            γ (With z c 0 a) (Plus w w' 0 s t) = cut' n z (if c then w else w') (if c then ta else tb) γ a (if c then s else t)
-cut n _ _ (Exists v ty) 
+cut n _ _ (Exists v ty)
            γ (TApp _ z 0 t a) (TUnpack w 0 b) = cut' n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
-cut n _ _ (Bang ty) 
+cut n _ _ (Bang ty)
            γ (Offer z 0 a) (Demand w _ 0 b) = cut' n z w ty γ a b
 cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
 cut n _ _ ty γ (Offer w 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer w 0 b) a)))
@@ -278,7 +278,7 @@ subst π t = case t of
   (Ax ty) -> (Ax (neg ty)) -- because the identity case was handled above.
   (Cross ty w w' x c) -> Cross ty w w' (f x) (s' x c)
   Exchange ρ a -> subst (map f ρ) a
-  (With w c x a) -> With w c (f x) (s a) 
+  (With w c x a) -> With w c (f x) (s a)
   (Plus w w' x a b) -> Plus w w' (f x) (s a) (s b)
   (TApp tp w x t a) -> TApp tp w (f x) t (s a)
   (TUnpack w x a) -> TUnpack w (f x) (s a)
@@ -295,15 +295,15 @@ subst π t = case t of
        s = subst π
        s' x = subst (l++x:r)
               where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else y) π
-       del x = subst (remove x π) 
+       del x = subst (remove x π)
 
 remove y π = [if x > y then x-1 else x | x <- π, x /= y]
 
 
 
-----------------------------------        
+----------------------------------
 -- Paramorphism for sequents.
-        
+
 data SeqFinal t a = SeqFinal
      { sty :: [Name] -> Type -> t
      , sax :: (Name -> Name -> Type -> a)
@@ -331,10 +331,10 @@ foldSeq :: (Deriv -> SeqFinal t a)
      -> Seq
      -> a
 
-foldSeq sf ts0 vs0 s0 = 
+foldSeq sf ts0 vs0 s0 =
  recurse ts0 vs0 s0 where
  recurse ts vs seq = case seq of
-      Ax _ -> sax v0 v1 vt where [(v0,_),(v1,vt)] = vs 
+      Ax _ -> sax v0 v1 vt where [(v0,_),(v1,vt)] = vs
       (Cut v v' vt x s t) -> scut v v' (fty (neg vt)) (recurse ts ((v,neg vt):v0) s)
                                        (fty      vt ) (recurse ts ((v',vt):v1) t)
         where (v0,v1) = splitAt x vs
@@ -353,7 +353,7 @@ foldSeq sf ts0 vs0 s0 =
          where (v0,(w,~Zero):v1) = splitAt x vs
       (SOne x t) -> sone w $ recurse ts (v0++v1) t
         where (v0,(w,~One):v1) = splitAt x vs
-      (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t        
+      (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t
       (TApp _ v x tyB s) -> stapp w (sty (v:ts) tyA) v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
         where (v0,(w,~(Forall _ tyA)):v1) = splitAt x vs
               ty = subst0 tyB ∙ tyA
@@ -366,10 +366,10 @@ foldSeq sf ts0 vs0 s0 =
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       (Ignore x s) -> signore w (fty tyA) $ recurse ts (v0++v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
-      (Alias x w' s) -> salias w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s 
+      (Alias x w' s) -> salias w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       What x ws -> swhat x [fst (vs !! w) | w <- ws]
-   where fty = sty ts 
+   where fty = sty ts
          fctx = over (mapped._2) fty
          SeqFinal{..} = sf (Deriv ts vs seq)
 
@@ -382,7 +382,7 @@ fillTypes' = foldSeq sf where
     sty _ t = t
     sax _ _ t = Ax t
     scut v v' _ s vt t = Cut v v' vt x s t
-    scross _ v ty v' ty' s = Cross ty v v' x s 
+    scross _ v ty v' ty' s = Cross ty v v' x s
     spar _ v ty v' ty' s t = Par ty v v' x s t
     splus _ v vt v' vt' s t = Plus v v' x s t
     swith b _ v _ t = With v b x t
@@ -398,7 +398,7 @@ fillTypes' = foldSeq sf where
     salias _ w' _ s = Alias x w' s
     swhat a _  = What a xs where What _ xs = seq
     x = varOf seq
-    
+
 -- | Fill in the forced types in the derivation.
-fillTypes (Deriv ts vs s) = Deriv ts vs (fillTypes' ts vs s)  
+fillTypes (Deriv ts vs s) = Deriv ts vs (fillTypes' ts vs s)
 
