@@ -83,4 +83,46 @@ semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
                  (With "n" False 0 SBot)
               )
 --p = Deriv [] [("x",bType b),("y",bType b),("z",neg (bType b))] $
+--
+
+swap = Deriv [] [("swap",neg $ Forall "α" $ Forall "β" $ (a :⊗: b) ⊸ (b :⊗: a))]
+   $ TUnpack "swap'" 0
+   $ TUnpack "swap''" 0
+   $ Cross dum "input" "output" 0
+   $ Cross dum "a_in" "b_in" 0
+   $ Exchange [1,2,0]
+   $ Par dum "b_out" "a_out" 1 (Ax dum) (Ax dum)
+  where
+    a = var 1
+    b = var 0
+
+use_swap_once = Deriv ["a","b"] [("in",a⊗b),("out",neg (b⊗a))]
+    $ Cut "mkswap" "swap" t0 0 (derivSequent swap)
+    $ TApp dum "swap'" 0 a
+    $ TApp dum "swap''" 0 b
+    $ Exchange [1,0,2]
+    $ Par dum "u" "v" 1 (Ax dum) (Ax dum)
+  where
+    a = var 0
+    b = var 1
+
+use_swap_twice = Deriv ["a","b"] [("input",a⊗b),("out",neg (a⊗b))]
+    $ Cut "mkswap" "swapfun" (Bang t0) 0 (Offer "swappers" 0 $ derivSequent swap)
+    $ Alias 0 "swapfun'"
+    $ Exchange [0,2,1,3]
+    $ Cut "flop" "glop" (b⊗a) 2
+        ( Demand "swap" dum 1
+        $ TApp dum "swap'" 1 a
+        $ TApp dum "swap''" 1 b
+        $ Exchange [2,1,0]
+        $ Par dum "u" "v" 1 (Ax dum) (Ax dum)
+        )
+        ( Demand "swap" dum 1
+        $ TApp dum "swap'" 1 b
+        $ TApp dum "swap''" 1 a
+        $ Par dum "u" "v" 1 (Ax dum) (Ax dum)
+        )
+  where
+    a = var 0
+    b = var 1
 
