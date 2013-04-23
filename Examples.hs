@@ -77,18 +77,10 @@ semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
                   (With "m" True 0 SBot)
                   (With "n" False 0 SBot)
                ))
-              (SOne 0 $
-               Plus "v" "w" 0
-               (SOne 0 $
-                Par (neg two) "k" "l" 0
-                  (With "m" True 0 SBot)
-                  (With "n" False 0 SBot)
-               )
-               (SOne 0 $
-                Par (neg two) "k" "l" 0
-                  (With "m" False 0 SBot)
-                  (With "n" False 0 SBot)
-               )
+              (Par (neg two) "k" "l" 2
+                 (SOne 0 $
+                  Ax two)
+                 (With "n" False 0 SBot)
               )
 --p = Deriv [] [("x",bType b),("y",bType b),("z",neg (bType b))] $
 
