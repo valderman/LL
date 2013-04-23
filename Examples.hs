@@ -65,7 +65,18 @@ bType n = two :⊗: bType (n-1)
 
 semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
             Plus "t" "u" 0
-              (What "a" [])
+              (SOne 0 $
+               Plus "v" "w" 0
+               (SOne 0 $ 
+                Par (neg two) "k" "l" 0
+                  (With "m" True 0 SBot)
+                  (With "n" True 0 SBot)
+               )
+               (SOne 0 $
+                Par (neg two) "k" "l" 0 
+                  (With "m" True 0 SBot)
+                  (With "n" False 0 SBot)
+               ))
               (SOne 0 $
                Plus "v" "w" 0
                (SOne 0 $
@@ -73,6 +84,11 @@ semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
                   (With "m" True 0 SBot)
                   (With "n" False 0 SBot)
                )
-               (What "c" []))
+               (SOne 0 $
+                Par (neg two) "k" "l" 0
+                  (With "m" False 0 SBot)
+                  (With "n" False 0 SBot)
+               )
+              )
 --p = Deriv [] [("x",bType b),("y",bType b),("z",neg (bType b))] $
 
