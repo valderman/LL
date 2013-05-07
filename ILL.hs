@@ -16,8 +16,8 @@ data ILL where
 
 fromILL :: Int -> ILL -> Seq
 fromILL γ (Var) = Ax dum
-fromILL γ (Lam nm t body) = Cross dum " fx " nm 0 $ exchange ([1..γ-1] ++ [0]) $ fromILL body
-fromILL γδ (App γ f a) = Cut "a" "_a" dum γ (unCross γ $ fromILL f) (fromILL a)
+fromILL γ (Lam nm t body) = Cross dum " fx " nm 0 $ exchange ([1..γ-1] ++ [0]) $ fromILL (γ+1) body
+fromILL γδ (App γ f a) = Cut "a" "_a" dum γ (unCross γ $ fromILL γ f) (fromILL (γδ-γ) a)
 
 unCross γ s = Cut "x" "_x" dum γ s (Exchange [1,0,2] $ Par dum "a" "b" 1 (Ax dum) (Ax dum))
 
