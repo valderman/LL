@@ -1,4 +1,7 @@
 
+erlangTest: Compilation.pdf
+	rm -f *.mps
+
 mainTest: Mx.pdf
 	rm -f *.mps
 
@@ -7,7 +10,7 @@ mainTest: Mx.pdf
 	mpost $<
 	mpost $<
 
-%.pdf: %.tex %-delayed.mp 
+%.pdf: %.tex %-delayed.mp
 	pdflatex $<
 	pdflatex $<
 
@@ -15,7 +18,7 @@ mainTest: Mx.pdf
 	ghc --make $<
 	./$*
 
-%.hspp: %.hs 
+%.hspp: %.hs
 	ghc -E $<
 
 simpleTest:

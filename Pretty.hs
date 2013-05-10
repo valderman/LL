@@ -36,7 +36,7 @@ pType p vs Zero = "0"
 pType p vs One = "1"
 pType p vs Top = "⊤"
 pType p vs Bot = "⊥"
-pType p vs (TVar True x) = text $ vs!!x 
+pType p vs (TVar True x) = text $ vs!!x
 pType p vs (TVar False x) = "~" <> text (vs!!x)
 pType p vs (Bang t) = prn p 4 $ "!" <> pType 4 vs t
 pType p vs (Quest t) = prn p 4 $ "?" <> pType 4 vs t
@@ -58,27 +58,27 @@ pSeq showTypes = foldSeq sf where
         spar w v vt v' vt' s t = "connect "<>text w <>
                                       "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
                                                   varT v' vt' <> " in " <> t] <>"}"
-        splus w v vt v' vt' s t = "case " <> text w <> " of {" <> 
-                                vcat ["inl " <> text v <> " ↦ " <> s<> ";", 
+        splus w v vt v' vt' s t = "case " <> text w <> " of {" <>
+                                vcat ["inl " <> text v <> " ↦ " <> s<> ";",
                                       "inr " <> text v' <> " ↦ " <> t]<> "}"
         swith b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
            where c = if b then "fst" else "snd"
-        sbot v = text v 
+        sbot v = text v
         szero w vs = "dump " <> whenShowTypes (pCtx' vs) <> " in " <> text w
         sone w t = "let ◇ = " <> text w <> " in " $$ t
         sxchg _ t = t
         stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
         stunpack tw w v s = "let ⟨" <> whenShowTypes (text tw) <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
-        soffer v w ty s = "offer " <> varT v ty $$ s
+        soffer v w ty s = "offer" <+> varT v ty <+> text "as" <+> varT w ty <+> text "in" $$ s
         sdemand v w ty s = "let" <+> text w <+> "=" <+> text "demand" <+> varT v ty <+> "in" $$ s
         signore w ty s = "ignore " <> text w $$ s
         salias w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
         swhat a _ = braces $ pCtx ts vs
    varT x y | showTypes = text x <> " : " <> y
-            | otherwise = text x                            
-   whenShowTypes | showTypes = id                            
+            | otherwise = text x
+   whenShowTypes | showTypes = id
                  | otherwise = const "?"
-       
+
 deriving instance Show Seq
 -- instance Show Seq where
 --   show = render . pSeq [] []
@@ -94,7 +94,7 @@ pClosedType = pType 0 (repeat "<VAR>")
 
 pLayout :: Layout -> Doc
 pLayout (a `Then`b) = pLayout a <> "+" <> pLayout b
-pLayout (Bit a) = pLayout a <> "+1" 
+pLayout (Bit a) = pLayout a <> "+1"
 pLayout (Pointer _) = "1"
 pLayout (MetaL t) = "|" <> pClosedType t <> "|"
 pLayout (Union a b) = pLayout a <> "⊔" <> pLayout b
@@ -110,7 +110,7 @@ pHeapPart h r = case v of
     Nothing -> "..."
     Just c -> pCell c <> pHeapPart h (Next r) <> pHeapPart h (Shift (error "yada") r)
   where v = M.lookup r h
-        
+
 pCell :: Cell SymRef -> Doc
 pCell c = case c of
       New -> "[ ]"
@@ -130,13 +130,13 @@ pSystem (cls,h) = hang "Heap:" 2 (pHeap h) $$
                   hang "Closures:" 2 (vcat $ map pClosure cls)
 
 pClosure :: Closure SymRef -> Doc
-pClosure (seq,env,typeEnv) = 
+pClosure (seq,env,typeEnv) =
          hang "Closure:" 2 (vcat [
             hang "Code:" 2 (pSeq False (zipWith const typeNames typeEnv) (mkEnvDummy env) seq),
             hang "Env: " 2 (cat $ punctuate ", " [text nm <> " = " <> pRef r | (nm,r) <- env]),
             hang "TypeEnv:" 2 (cat $ punctuate ", " $ map pClosedType typeEnv)])
 
-sshow = putStrLn . render . pSystem  
+sshow = putStrLn . render . pSystem
 
 -- TODO: Dummy definitions to be able to print the code. Needs a proper solution
 typeNames = ["α","β","γ","δ","ε","ζ","η","ι","κ","λ","μ"]

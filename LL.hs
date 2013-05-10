@@ -105,7 +105,11 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | Alias Int Name (Seq)
 
 -- | A full derivation
-data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], derivSequent :: Seq}
+data Deriv = Deriv
+    { derivTypeVars :: [Name]
+    , derivContext :: [(Name,Type)]
+    , derivSequent :: Seq
+    }
 
 -- | The variable that the sequent operates on. Remark that there is
 -- always exactly one.

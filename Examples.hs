@@ -1,3 +1,5 @@
+module Examples where
+
 import AM
 import LL
 import Pretty
@@ -7,27 +9,27 @@ import SysStepper
 t0 = Forall "α" $ Forall "β" $ (a :⊗: b) ⊸ (b :⊗: a)
   where a = var 1
         b = var 0
-        
-        
-ctx = [("x",var 0 :⊗: var 1),("y",var 0 ⊸ TVar False 1)]  
+
+
+ctx = [("x",var 0 :⊗: var 1),("y",var 0 ⊸ TVar False 1)]
 
 s0 = Deriv ["a","b"] ctx $
        Cross dum "v" "w" 0 $
        Exchange [0,2,1] $
        par "x" "y" 1 ax
              ax
-bool = One :⊕: One        
+bool = One :⊕: One
 
 s1 = Deriv [] [("x",bool), ("y",neg (bool :⊗: bool))] $
-       Plus "m" "n" 0 (SOne 0 $ Par dum "a" "b" 0 (With "c" True  0 SBot) (With "d" True  0 SBot)) 
-              (SOne 0 $ Par dum "a" "b" 0 (With "c" False 0 SBot) (With "d" False 0 SBot)) 
+       Plus "m" "n" 0 (SOne 0 $ Par dum "a" "b" 0 (With "c" True  0 SBot) (With "d" True  0 SBot))
+              (SOne 0 $ Par dum "a" "b" 0 (With "c" False 0 SBot) (With "d" False 0 SBot))
 
 test = Deriv [] [("x",neg t0)]  $
        TUnpack "y" 0 $
        TUnpack "z" 0 $
-       Cross dum "m" "n" 0 $ 
-       Cross dum "o" "p" 0 $ 
-       Exchange [1,2,0] $ 
+       Cross dum "m" "n" 0 $
+       Cross dum "o" "p" 0 $
+       Exchange [1,2,0] $
        Par dum "a" "b" 1 ax ax
 
 ax = Ax dum
@@ -67,13 +69,13 @@ semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
             Plus "t" "u" 0
               (SOne 0 $
                Plus "v" "w" 0
-               (SOne 0 $ 
+               (SOne 0 $
                 Par (neg two) "k" "l" 0
                   (With "m" True 0 SBot)
                   (With "n" True 0 SBot)
                )
                (SOne 0 $
-                Par (neg two) "k" "l" 0 
+                Par (neg two) "k" "l" 0
                   (With "m" True 0 SBot)
                   (With "n" False 0 SBot)
                ))
