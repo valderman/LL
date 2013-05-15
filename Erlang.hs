@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards #-}
 module Erlang where
 
 import Control.Applicative hiding (empty)
@@ -12,27 +12,20 @@ import Examples
 
 import LL hiding ((&))
 
--- Names for channels
-type Env = [String]
-
-comp :: Deriv -> Code
-comp (Deriv _ ctx s) = runReader (evalStateT m init) init
-  where
-    Erl m = compile s
-    init = makeContext (map fst ctx)
-
-newtype Erl a = Erl (StateT Env (Reader Env) a)
-  deriving (Functor,Applicative,Monad,MonadReader Env,MonadState Env)
-
+-- | A slightly weird representation of erlang expressions
 data Code
-    = NewChannel String
+    = NewChannel
     | Spawn Code
-    | Tell String Pattern
-    | Ask Pattern String
-    | Assign String String
-    | Case String [(Pattern,Code)]
+    | String :! Pattern
+    | Ask Name
+    | Pattern := Code
+    | Var Name
+    | Case Code [(Pattern,Code)]
     | Crash
     | Then Code Code
+
+infix 3 :!
+infixr 2 :=
 
 instance Show Code where
     show = render . pc
@@ -48,18 +41,18 @@ pc c = pp c <> dot
 
 pp :: Code -> Doc
 pp c = case c of
-    NewChannel n -> text n <+> equals <+> text "newChannel" <> parens empty
+    NewChannel -> text "newChannel" <> parens empty
     Spawn n ->
         text "spawn" <> parens (hang
             (text "fun" <+> parens empty <+> arrow) 4
             (pp n) $$ text "end")
-    Tell n p -> text "tell" <> parens (text n <> comma <> pt p)
-    Ask p n  -> pt p <+> equals <+> text "ask" <> parens (text n)
-    Assign l r -> text l <+> equals <+> text r
-    Case n brs -> hang (text "case" <+> text n <+> text "of") 4
+    n :! p -> text "tell" <> parens (text n <> comma <> pt p)
+    Ask n  -> text "ask" <> parens (text n)
+    l := r -> pt l <+> equals <+> pp r
+    Case s brs -> hang (text "case" <+> pp s <+> text "of") 4
         (vcat (punctuate semi [ hang (pt p <+> arrow) 4 (pp b) | (p,b) <- brs ]))
         $$ text "end"
-    Crash -> text "crash"
+    Crash -> text "error" <> parens (text "crash")
     Then d e -> pp d <> comma $$ pp e
 
 pt :: Pattern -> Doc
@@ -69,9 +62,18 @@ pt p = case p of
     PLeft -> text "left"
     PRight -> text "right"
 
+infixr 0 |>
+
 (|>) :: Code -> Code -> Code
 Then a b |> c = Then a (b |> c)
 a        |> c = Then a c
+
+infixr 1 |||
+
+infixr 5 &
+
+(|||) :: Code -> Code -> Code
+a ||| b = Spawn a |> b
 
 chunk :: [Code] -> Code
 chunk = foldr1 (|>)
@@ -89,105 +91,107 @@ tt = PTup []
 (&) :: Pattern -> Pattern -> Pattern
 p1 & p2 = PTup [p1,p2]
 
--- | Eliminates a name at some position
-elim :: Int -> (String -> Erl a) -> Erl a
-elim i k = do
-    (l,s:r) <- asks (splitAt i)
-    local (const (l ++ r)) (k s)
+-- | Compile a derivation to Erlang
+compile :: Deriv -> Code
+compile = compileDeriv . erlangUnique
 
--- | Introduces a name at some position
-introduce :: Name -> Int -> (String -> Erl a) -> Erl a
-introduce n i k = do
-    s <- make n
-    env <- ask
-    let (l,r) = splitAt (i `mod` 1 + length env) env
-    local (const (l ++ [s] ++ r)) (k s)
+-- | Compile a derivation to Erlang, without renamings
+compileDeriv :: Deriv -> Code
+compileDeriv (Deriv ts vs s) = foldSeq (const SeqFinal {..}) ts vs s
+  where
+    sxchg _ c = c
 
-make :: String -> Erl String
-make n = do
-    seen <- get
-    let s = makeName n seen
-    modify (s:)
-    return s
+    sax a b t
+        | positiveType t = a :! PVar b
+        | otherwise      = b :! PVar a
 
--- | Introduces many names at some positions
---   To avoid confusion, let the list be sorted descendingly
-introduces :: [(Name,Int)] -> ([String] -> Erl a) -> Erl a
-introduces []         k = k []
-introduces ((n,i):xs) k =
-    introduce n i $ \ s ->
-    introduces xs $ \ ss ->
-    k (s:ss)
+    scut x y _tx cx _ty cy = chunk
+        [ PVar x := NewChannel
+        , PVar y := Var x
+        , cx ||| cy
+        ]
 
-compileAndPair :: Seq -> Name -> Erl (Name,Code)
-compileAndPair seq n = (,) n <$> compile seq
+    scross z x _ y _ c = PVar x & PVar y := Ask z |> c
 
-compile :: Seq -> Erl Code
-compile seq = case seq of
-    Exchange perm s -> local (\ env -> [ env !! p | p <- perm ]) (compile s)
+    spar z x _ y _ cx cy = chunk
+        [ PVar x := NewChannel
+        , PVar y := NewChannel
+        , z :! PVar x & PVar y
+        , cx ||| cy
+        ]
 
-    Ax t
-        | positiveType t -> do
-            [a,b] <- ask
-            return (Tell a (PVar b)) -- TODO: check if this is correct
-        | otherwise      -> compile (Exchange [1,0] (Ax (neg t)))
+    swith b z x _ c = chunk
+        [ PVar x := NewChannel
+        , z :! (if b then PRight else PLeft) & PVar x
+        , c
+        ]
 
-    Cut x y _ i sx sy -> do
-        (c1,c2) <- asks (splitAt i)
-        (nx,cx) <- local (const c1) $ introduce x 0 $ compileAndPair sx
-        (ny,cy) <- local (const c2) $ introduce y 0 $ compileAndPair sy
-        return $ chunk
-            [ NewChannel nx
-            , Assign ny nx
-            , Spawn cx
-            , cy
-            ]
+    splus z x _ y _ cx cy = Case (Ask z)
+        [ (PLeft & PVar x,cx)
+        , (PRight & PVar y,cy)
+        ]
 
-    Par _ x y i sx sy ->
-        elim i $ \ z -> do
-        (c1,c2) <- asks (splitAt i)
-        (nx,cx) <- local (const c1) $ introduce x (-1) $ compileAndPair sx
-        (ny,cy) <- local (const c1) $ introduce y 0 $ compileAndPair sy
-        return $ chunk
-            [ NewChannel nx
-            , NewChannel ny
-            , Tell z (PVar nx & PVar ny)
-            , Spawn cx
-            , cy
-            ]
 
-    Cross _ x y i s ->
-        elim i $ \ z ->
-        introduces [(y,i),(x,i)] $ \ [ny,nx] ->
-        (Ask (PVar nx & PVar ny) z |>) <$> compile s
+    sbot x = x :! tt
 
-    Plus x y i sx sy -> do
-        elim i $ \ z -> do
-        z' <- make z  -- make a case variable that looks like z
-        (nx,cx) <- introduce x 0 $ compileAndPair sx
-        (ny,cy) <- introduce y 0 $ compileAndPair sy
-        return $ Ask (PVar z') z |> Case z'
-            [ (PLeft & PVar nx,cx)
-            , (PRight & PVar ny,cy)
-            ]
+    sone x c = tt := Ask x |> c
 
-    With x r i s ->
-        elim i $ \ z ->
-        introduce x (-1) $ \ nx -> do
-        c <- compile s
-        return $ chunk
-            [ NewChannel nx
-            , Tell z ((if r then PRight else PLeft) & PVar nx)
-            , c
-            ]
+    szero _ _ = Crash
 
-    SOne i s -> elim i $ \ x -> (Ask tt x |>) <$> compile s
+    sty _ _ = err "type"
+    stapp = err "type application"
+    stunpack = err "type unpacking"
 
-    SBot -> elim 0 $ \ x -> return (Tell x tt)
+    soffer _ _ _ _ = error "offer"
+    sdemand _ _ _ _ = error "demand"
+    signore _ _ _ = error "ignore"
+    salias _ _ _ _ = error "alias"
+    swhat _ _  = err "what"
 
-    SZero i -> return Crash
+    err s = error $ "compile: " ++ s ++ " not supported yet"
 
-    _ -> error "unsupported sequent"
+infixl 4 <.>
+
+-- | Applies a pure value in an applicative computation
+(<.>) :: Applicative f => f (a -> b) -> a -> f b
+m <.> x = m <*> pure x
+
+-- | Makes all names in the derivation unique Erlang-valid identifiers
+erlangUnique :: Deriv -> Deriv
+erlangUnique (Deriv ts vs s) = Deriv ts vs' (evalState (go s) (map fst vs'))
+  where
+    vs' = makeContext (map fst vs) `zip` map snd vs
+
+    go :: Seq -> State [Name] Seq
+    go s = case s of
+      Exchange p s      -> Exchange p <$> go s
+      Ax ty             -> return (Ax ty)
+      Cross ty w w' x c -> Cross ty <$> uq w <*> uq w' <.> x <*> go c
+      Par ty w w' x c d -> Par ty <$> uq w <*> uq w' <.> x <*> go c <*> go d
+      Plus w w' x a b   -> Plus <$> uq w <*> uq w' <.> x <*> go a <*> go b
+      With w c x a      -> With <$> uq w <.> c <.> x <*> go a
+
+      SOne x a          -> SOne x <$> go a
+      SZero x           -> return (SZero x)
+      SBot              -> return SBot
+
+      TApp tp w x t a   -> err "TApp"
+      TUnpack w x a     -> err "TUnpack"
+      Offer w x a       -> err "Offer"
+      Demand w ty x a   -> err "Demand"
+      Alias x w a       -> err "Alias"
+      Ignore x a        -> err "Ignore"
+
+      What nm xs        -> err "What"
+
+    uq :: Name -> State [Name] Name
+    uq n = do
+        seen <- get
+        let s = makeName n seen
+        modify (s:)
+        return s
+
+    err s = error $ "erlangUnique: " ++ s ++ " not supported yet"
 
 -- | Makes a name from a suggestion that does not collide with an environment
 makeName :: String -> [String] -> String
@@ -221,3 +225,4 @@ makeContext :: [String] -> [String]
 makeContext []     = []
 makeContext (s:ss) = makeName s ss' : ss'
   where ss' = makeContext ss
+
