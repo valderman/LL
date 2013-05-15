@@ -10,7 +10,11 @@ import LL
 data ILL where
   Var  :: ILL
   Lam  :: Name -> Type -> ILL -> ILL
-  App  :: Int -> -- ^ where to cut the context
+  App  :: Int -> -- ^ where to cut the context 
+
+                 -- TODO: change this. We should have a
+                 -- list of variables going to the left (and
+                 -- implicitly a list of vars going to the right)
          ILL -> ILL -> ILL
   Case :: Int -> ILL -> ILL -> ILL
   Inl  :: ILL -> ILL
