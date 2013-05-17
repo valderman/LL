@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 
 -- | The abstract machine
@@ -36,14 +37,20 @@ mkLayout t = case mkPositive t of
               Meta{}   -> MetaL (mkPositive t)
               TVar{}   -> error "cannot know layout of var"
 
+class Ty ty where
+  splitProd :: ty -> Maybe (ty,ty)
+
+instance Ty () where
+  splitProd _ = Just ((),())
+
 -- | A Cell of the Heap
-data Cell ref where
-    Freed   :: Cell ref
-    Tag     :: Bool -> Cell ref
-    New     :: Cell ref
-    Delay   :: RefCount ref -> Maybe (Closure ref) -> Cell ref
-    Q       :: Type -> ref -> Cell ref -- 1st arg should be a monotype
-    NewMeta :: Layout -> Cell ref
+data Cell ref ty where
+    Freed   :: Cell ref ty
+    Tag     :: Bool -> Cell ref ty
+    New     :: Cell ref ty
+    Delay   :: RefCount ref -> Maybe (Closure ref ty) -> Cell ref ty
+    Q       :: Type -> ref -> Cell ref ty -- 1st arg should be a monotype
+    NewMeta :: Layout -> Cell ref ty
 
 countRefs New = 0
 countRefs (Delay n _) = n
@@ -52,9 +59,9 @@ type CellRef = Int
 
 type TypeEnv = [Type]
 
-type Env ref = [(Name,ref)]
+type Env ref ty = [(Name,ref,ty)]
 
-type Closure ref = (Seq,Env ref,TypeEnv)
+type Closure ref ty = (Seq,Env ref ty,TypeEnv)
 
 class (Num (RefCount ref), Eq ref) => IsRef ref where
   type RefCount ref 
@@ -62,17 +69,17 @@ class (Num (RefCount ref), Eq ref) => IsRef ref where
   next  :: ref -> ref
   nullPointer  :: ref
   
-class IsRef (Ref heap) => IsHeap heap where
+class (IsRef (Ref heap),Ty ty) => IsHeap heap ty where
   type Ref heap
-  (!) :: heap -> Ref heap -> Cell (Ref heap) 
-  replace :: Ref heap -> Cell (Ref heap) -> heap -> heap
+  (!) :: heap -> Ref heap -> Cell (Ref heap) ty
+  replace :: Ref heap -> Cell (Ref heap) ty -> heap -> heap
   alloc' :: Layout -> heap -> (heap,Ref heap)
   emptyHeap :: heap
 
-alloc :: IsHeap heap => Type -> heap -> (heap,Ref heap)
+alloc :: IsHeap heap ty => Type -> heap -> (heap,Ref heap)
 alloc = alloc' . mkLayout
 
-type Heap = [Cell Int]
+type Heap = [Cell Int ()]
 
 instance IsRef Int where
   type RefCount Int = Int
@@ -80,7 +87,7 @@ instance IsRef Int where
   next = succ
   nullPointer = -1
   
-instance IsHeap Heap where
+instance IsHeap Heap () where
   type Ref Heap = CellRef
 --  type Size Heap = Int
   (!) = (!!)
@@ -89,19 +96,20 @@ instance IsHeap Heap where
   alloc' t (h) = (h ++ replicate (sizeOf t) New,length h)
   emptyHeap = []
 
-type System h = ([Closure (Ref h)],h)
+type System h ty = ([Closure (Ref h) ty],h)
 
-(!!+) :: Env ref -> Int -> ref
-e !!+ v = snd (e!!v)
+(!!+) :: Env ref ty -> Int -> ref
+e !!+ v = snd3 (e!!v)
+  where snd3 (_,a,_) =  a
 
-runClosure :: IsHeap h => h -> Closure (Ref h) -> Maybe (h,[Closure (Ref h)])
+runClosure :: IsHeap h ty => h -> Closure (Ref h) ty -> Maybe (h,[Closure (Ref h) ty])
 runClosure h (Plus x y v a b,e,te)
 --   | Redirect r <- ... Plus x y v a b,...r.
   | Tag c <- h!(e!!+v) = Just (replace (e!!+v) Freed h,
                               [(if c then a else b,increment v (if c then x else y) e,te)])
 runClosure h (Cross ty x y v a,e,te)
   = Just (h,[(a,el++[(x,z),(y,shift (mkLayout (te∙ty)) z)] ++ er,te)])
-  where (el,(_,z):er) = splitAt v e
+  where (el,(_,z,_):er) = splitAt v e
 runClosure h (Par ty x y v a b,e,te)
   = Just (h,[(a,el++[(x,z)],te)
             ,(b,[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
@@ -162,7 +170,7 @@ setNull ((x,w):xs) q | w == nullPointer = (x,q):xs
 modifyRefCount f r h | Delay c cl <- h!r = replace r (Delay (f c) cl)      h
                      | New        <- h!r = replace r (Delay (f 0) Nothing) h
 
-increment :: IsRef ref => Int -> Name -> Env ref -> Env ref
+increment :: IsRef ref => Int -> Name -> Env ref ty -> Env ref ty
 increment n nm e = let (l,(_,x):r) = splitAt n e
                     in l ++ (nm,next x) : r
 
@@ -186,44 +194,44 @@ sizeOf (Pointer _) = 1
 sizeOf Empty    = 0
 sizeOf (MetaL _) = error "cannot get size of meta-type"
 
-stepSystem :: IsHeap h => System h -> Maybe (System h)
+stepSystem :: IsHeap h ty => System h ty -> Maybe (System h ty)
 stepSystem ([],h) = Nothing
 stepSystem (cl:cls,h) | Just (h',cl') <- runClosure h cl = Just (cl'++cls,h')
 stepSystem (cl:cls,h) = do (cls',h') <- stepSystem (cls,h)
                            return (cl:cls',h')
 
-runSystem :: IsHeap h => System h -> System h
+runSystem :: IsHeap h ty => System h ty -> System h ty
 runSystem s | Just s' <- stepSystem s = runSystem s'
 runSystem s = s
 
-stepClosure :: IsHeap h => Int -> System h -> Maybe (System h)
+stepClosure :: IsHeap h ty => Int -> System h ty -> Maybe (System h ty)
 stepClosure i (cls,h) | i < length cls = do (h',c') <- runClosure h c
                                             return (clsL ++ c' ++ clsR,h')
                       | otherwise      = Nothing
   where (clsL,c:clsR) = splitAt i cls
 
-noClosures :: System h -> Int
+noClosures :: System h ty -> Int
 noClosures (cls,h) = length cls
 
 -- | Convert a derivation to a System. Assumes the type env. is
 -- ignorable (empty or contains only metavars)
-derivToSystem :: IsHeap h => Deriv -> System h
+derivToSystem :: IsHeap h ty => Deriv -> System h ty
 derivToSystem (Deriv _ ctx a) = ([closure],heap)
   where closure = (a,zip (map fst ctx) refs,[])
         (heap,refs) = mapAccumL (flip alloc) emptyHeap (map snd ctx)
  
 
 data Key = Cl Int | Ref Int
-data Node = NCell (Cell Int) | NCl -- could be more precise: the code of all closures will be considered equivalent.
+data Node = NCell (Cell Int ()) | NCl -- could be more precise: the code of all closures will be considered equivalent.
 type GrData = (Node,Key,[Key])
 
-systemGr :: System Heap -> [GrData]
+systemGr :: System Heap ty -> [GrData]
 systemGr (cls,h) = zipWith closureGr cls [0..] ++ concat (zipWith cellGr h [0..])
 
-closureGr :: Closure Int -> Int -> GrData
+closureGr :: Closure Int ty -> Int -> GrData
 closureGr (s,e,_) i = (NCl,Cl i,[Ref x | (_,x) <- e])
 
-cellGr :: Cell Int -> Int -> [GrData]
+cellGr :: Cell Int ty -> Int -> [GrData]
 cellGr (Delay _ Nothing) i = cellGr New i 
                         -- Remark that the ref-count is not important
                         -- (already encoded in the graph structure).
@@ -282,7 +290,7 @@ compareClosures (s,e,te) h (s',e',te') h' = do
 
                 
 
-mkGraph :: forall r. Eq r => [Closure r] -> [((),Int,[Int])]
+mkGraph :: forall r ty. Eq r => [Closure r ty] -> [((),Int,[Int])]
 mkGraph cls = map mkOne cls'
   where cls' :: [(Closure r,Int)]
         cls' = zip cls [0..]
@@ -292,7 +300,7 @@ mkGraph cls = map mkOne cls'
             connected = [ix' | ((_,e',_),ix') <- cls', (_,x') <- e', (_,x) <- e, x == x']
         
 -- | From a blocked system, recover the tree-structure of closures.        
-mkTree :: forall r. Eq r => [Closure r] -> Tree (Closure r)
+mkTree :: forall r ty. Eq r => [Closure r ty] -> Tree (Closure r ty)
 mkTree cls = fmap (cls!!) t
   where [t] = dff $ fst $ graphFromEdges' $ mkGraph cls
         -- there can be only one tree because we do not have mix.
@@ -300,7 +308,7 @@ mkTree cls = fmap (cls!!) t
 -- | Rename variables in sequents so they form a meaningful cut
 -- structure.  In the output: the last variable communicates with the
 -- parent; the others with each of the children in reverse order.
-recoverCutStructure :: Eq r => Tree (Closure r) -> Tree (Closure r)
+recoverCutStructure :: Eq r => Tree (Closure r ty) -> Tree (Closure r ty)
 recoverCutStructure (Node c []) = Node c []
 recoverCutStructure (Node c@(_,e,_) cs) = 
   Node c (map recoverCutStructure $ 
@@ -310,15 +318,15 @@ connectedTo x cs = find (\(Node (_,e,_) _) -> any ((== x) . snd) e) cs
 
 -- | Place the given reference in the 1st position in the env in the
 -- closure, and adapt the subtrees.
-placeLast :: Eq r => r -> Tree (Closure r) -> Tree (Closure r)
+placeLast :: Eq r => r -> Tree (Closure r ty) -> Tree (Closure r ty)
 placeLast x (Node (s,e,te) ts) = Node (Exchange ρ s, [e!!j | j <- ρ], te) ts
   where Just i = elemIndex x (map snd e)
         ρ = [0..i-1]++[i+1..length e]++[i]
 
-mkCuts :: Tree (Closure r) -> Seq
+mkCuts :: Tree (Closure r ty) -> Seq
 mkCuts (Node (s,e,te) []) = s
 mkCuts (Node (s,_:e,te) ts) = foldr (\(t,γ) -> Cut "_" "_" dum γ t) s $ zip (map mkCuts ts) [0..]
 
-sequentialize :: (Eq (Ref h)) => System h -> Seq
+sequentialize :: (Eq (Ref h)) => System h ty -> Seq
 sequentialize (cls,_heap) = mkCuts . recoverCutStructure . mkTree $ cls
       
