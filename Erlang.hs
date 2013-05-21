@@ -3,7 +3,6 @@ module Erlang where
 
 import Control.Applicative hiding (empty)
 import Control.Monad
-import Control.Monad.Reader
 import Control.Monad.State
 import Data.Char
 import Text.PrettyPrint.HughesPJ
@@ -16,67 +15,16 @@ import LL hiding ((&))
 data Code
     = NewChannel
     | Spawn Code
-    | String :! Pattern
-    | Ask Name
+    | String :! Code
+    | Pat Pattern
+    | Ask Code
     | Pattern := Code
-    | Var Name
     | Case Code [(Pattern,Code)]
     | Crash
     | Then Code Code
 
 infix 3 :!
 infixr 2 :=
-
-instance Show Code where
-    show = render . pc
-
-arrow :: Doc
-arrow = text "->"
-
-dot :: Doc
-dot = char '.'
-
-pc :: Code -> Doc
-pc c = pp c <> dot
-
-pp :: Code -> Doc
-pp c = case c of
-    NewChannel -> text "newChannel" <> parens empty
-    Spawn n ->
-        text "spawn" <> parens (hang
-            (text "fun" <+> parens empty <+> arrow) 4
-            (pp n) $$ text "end")
-    n :! p -> text "tell" <> parens (text n <> comma <> pt p)
-    Ask n  -> text "ask" <> parens (text n)
-    l := r -> pt l <+> equals <+> pp r
-    Case s brs -> hang (text "case" <+> pp s <+> text "of") 4
-        (vcat (punctuate semi [ hang (pt p <+> arrow) 4 (pp b) | (p,b) <- brs ]))
-        $$ text "end"
-    Crash -> text "error" <> parens (text "crash")
-    Then d e -> pp d <> comma $$ pp e
-
-pt :: Pattern -> Doc
-pt p = case p of
-    PVar x -> text x
-    PTup ps -> braces (cat (punctuate comma (map pt ps)))
-    PLeft -> text "left"
-    PRight -> text "right"
-
-infixr 0 |>
-
-(|>) :: Code -> Code -> Code
-Then a b |> c = Then a (b |> c)
-a        |> c = Then a c
-
-infixr 1 |||
-
-infixr 5 &
-
-(|||) :: Code -> Code -> Code
-a ||| b = Spawn a |> b
-
-chunk :: [Code] -> Code
-chunk = foldr1 (|>)
 
 data Pattern
     = PVar String
@@ -85,11 +33,35 @@ data Pattern
     | PRight
   deriving Show
 
+(|>) :: Code -> Code -> Code
+Then a b |> c = Then a (b |> c)
+a        |> c = Then a c
+
+infixr 0 |>
+
+(!) :: String -> Pattern -> Code
+x ! p = x :! Pat p
+
+infix 3 !
+
+ask :: String -> Code
+ask x = Ask (Pat (PVar x))
+
+(|||) :: Code -> Code -> Code
+a ||| b = Spawn a |> b
+
+infixr 1 |||
+
+chunk :: [Code] -> Code
+chunk = foldr1 (|>)
+
 tt :: Pattern
 tt = PTup []
 
 (&) :: Pattern -> Pattern -> Pattern
 p1 & p2 = PTup [p1,p2]
+
+infixr 5 &
 
 -- | Compile a derivation to Erlang
 compile :: Deriv -> Code
@@ -102,39 +74,38 @@ compileDeriv (Deriv ts vs s) = foldSeq (const SeqFinal {..}) ts vs s
     sxchg _ c = c
 
     sax a b t
-        | positiveType t = a :! PVar b
-        | otherwise      = b :! PVar a
+        | positiveType t = a :! ask b
+        | otherwise      = b :! ask a
 
     scut x y _tx cx _ty cy = chunk
-        [ PVar x := NewChannel
-        , PVar y := Var x
+        [ PVar y := PVar x := NewChannel
         , cx ||| cy
         ]
 
-    scross z x _ y _ c = PVar x & PVar y := Ask z |> c
+    scross z x _ y _ c = PVar x & PVar y := ask z |> c
 
     spar z x _ y _ cx cy = chunk
         [ PVar x := NewChannel
         , PVar y := NewChannel
-        , z :! PVar x & PVar y
+        , z ! PVar x & PVar y
         , cx ||| cy
         ]
 
     swith b z x _ c = chunk
         [ PVar x := NewChannel
-        , z :! (if b then PRight else PLeft) & PVar x
+        , z ! (if b then PRight else PLeft) & PVar x
         , c
         ]
 
-    splus z x _ y _ cx cy = Case (Ask z)
+    splus z x _ y _ cx cy = Case (ask z)
         [ (PLeft & PVar x,cx)
         , (PRight & PVar y,cy)
         ]
 
 
-    sbot x = x :! tt
+    sbot x = x ! tt
 
-    sone x c = tt := Ask x |> c
+    sone x c = tt := ask x |> c
 
     szero _ _ = Crash
 
@@ -226,3 +197,40 @@ makeContext []     = []
 makeContext (s:ss) = makeName s ss' : ss'
   where ss' = makeContext ss
 
+-- Pretty printing
+
+instance Show Code where
+    show = render . pc
+
+arrow :: Doc
+arrow = text "->"
+
+dot :: Doc
+dot = char '.'
+
+pc :: Code -> Doc
+pc c = pp c <> dot
+
+pp :: Code -> Doc
+pp c = case c of
+    NewChannel -> text "newChannel" <> parens empty
+    Spawn n ->
+        text "spawn" <> parens (hang
+            (text "fun" <+> parens empty <+> arrow) 4
+            (pp n) $$ text "end")
+    n :! p -> text "tell" <> parens (text n <> comma <> pp p)
+    Pat p  -> pt p
+    Ask n  -> text "ask" <> parens (pp n)
+    l := r -> pt l <+> equals <+> pp r
+    Case s brs -> hang (text "case" <+> pp s <+> text "of") 4
+        (vcat (punctuate semi [ hang (pt p <+> arrow) 4 (pp b) | (p,b) <- brs ]))
+        $$ text "end"
+    Crash -> text "error" <> parens (text "crash")
+    Then d e -> pp d <> comma $$ pp e
+
+pt :: Pattern -> Doc
+pt p = case p of
+    PVar x -> text x
+    PTup ps -> braces (cat (punctuate comma (map pt ps)))
+    PLeft -> text "left"
+    PRight -> text "right"
