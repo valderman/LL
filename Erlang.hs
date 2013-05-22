@@ -1,4 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards,
+             KindSignatures, GADTs, EmptyDataDecls #-}
 module Erlang where
 
 import Control.Applicative hiding (empty)
@@ -16,28 +17,30 @@ data Code
     = NewChannel
     | Spawn Code
     | String :! Code
-    | Pat Pattern
+    | Pattern (Pattern R)
     | Ask Code
-    | Pattern := Code
-    | Case Code [(Pattern,Code)]
+    | Pattern L := Code
+    | Case Code [(Pattern L,Code)]
     | Crash
     | Then Code Code
 
 infix 3 :!
 infixr 2 :=
 
-data Pattern
-    = PVar String
-    | PTup [Pattern]
-    | PLeft
-    | PRight
-    | PNeg
-    | PPos
-    | Escape Code
-  deriving Show
+data R
+data L
+
+data Pattern :: * -> * where
+    Inject :: Code -> Pattern R
+    Var    :: String -> Pattern a
+    Tup    :: [Pattern a] -> Pattern a
+    InL    :: Pattern a
+    InR    :: Pattern a
+    Neg    :: Pattern a
+    Pos    :: Pattern a
 
 var :: String -> Code
-var = Pat . PVar
+var = Pattern . Var
 
 (|>) :: Code -> Code -> Code
 Then a b |> c = Then a (b |> c)
@@ -45,8 +48,8 @@ a        |> c = Then a c
 
 infixr 0 |>
 
-(!) :: String -> Pattern -> Code
-x ! p = x :! Pat p
+(!) :: String -> Pattern R -> Code
+x ! p = x :! Pattern p
 
 infix 3 !
 
@@ -61,11 +64,11 @@ infixr 1 |||
 chunk :: [Code] -> Code
 chunk = foldr1 (|>)
 
-tt :: Pattern
-tt = PTup []
+tt :: Pattern a
+tt = Tup []
 
-(&) :: Pattern -> Pattern -> Pattern
-p1 & p2 = PTup [p1,p2]
+(&) :: Pattern a -> Pattern a -> Pattern a
+p1 & p2 = Tup [p1,p2]
 
 infixr 5 &
 
@@ -85,7 +88,7 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
         sax a b t
             | TVar k i <- t = Case (var (tvs !! i))
                 [ (pol,if f k then ask_a else ask_b)
-                | (pol,f) <- [(PPos,not),(PNeg,id)]
+                | (pol,f) <- [(Pos,not),(Neg,id)]
                 ]
             | positiveType t  = ask_b
             | otherwise       = ask_a
@@ -94,28 +97,28 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
             ask_b = a :! ask b
 
         scut x y _tx cx _ty cy = chunk
-            [ PVar y := PVar x := NewChannel
+            [ Var y := Var x := NewChannel
             , cx ||| cy
             ]
 
-        scross z x _ y _ c = PVar x & PVar y := ask z |> c
+        scross z x _ y _ c = Var x & Var y := ask z |> c
 
         spar z x _ y _ cx cy = chunk
-            [ PVar x := NewChannel
-            , PVar y := NewChannel
-            , z ! PVar x & PVar y
+            [ Var x := NewChannel
+            , Var y := NewChannel
+            , z ! Var x & Var y
             , cx ||| cy
             ]
 
         swith b z x _ c = chunk
-            [ PVar x := NewChannel
-            , z ! (if b then PRight else PLeft) & PVar x
+            [ Var x := NewChannel
+            , z ! (if b then InR else InL) & Var x
             , c
             ]
 
         splus z x _ y _ cx cy = Case (ask z)
-            [ (PLeft & PVar x,cx)
-            , (PRight & PVar y,cy)
+            [ (InL & Var x,cx)
+            , (InR & Var y,cy)
             ]
 
 
@@ -126,19 +129,19 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
         szero _ _ = Crash
 
         stapp z _ x t c = chunk
-            [ PVar x := NewChannel
-            , z ! (pol & PVar x)
+            [ Var x := NewChannel
+            , z ! pol & Var x
             , c
             ]
           where
             pol | TVar True i <- t  = negationOf (tvs !! i)
-                | TVar False i <- t = PVar (tvs !! i)
-                | positiveType t    = PPos
-                | otherwise         = PNeg
+                | TVar False i <- t = Var (tvs !! i)
+                | positiveType t    = Pos
+                | otherwise         = Neg
 
-            negationOf u = Escape (Case (var u) [(PNeg,Pat PPos),(PPos,Pat PNeg)])
+            negationOf u = Inject (Case (var u) [(Neg,Pattern Pos),(Pos,Pattern Neg)])
 
-        stunpack a z x c = PVar a & PVar x := ask z |> c
+        stunpack a z x c = Var a & Var x := ask z |> c
 
         soffer _ _ _ _ = error "offer"
         sdemand _ _ _ _ = error "demand"
@@ -291,7 +294,7 @@ pp c = case c of
             (text "fun" <+> parens empty <+> arrow) 4
             (pp n) $$ text "end")
     n :! p -> text "tell" <> parens (text n <> comma <> pp p)
-    Pat p  -> pt p
+    Pattern p  -> pt p
     Ask n  -> text "ask" <> parens (pp n)
     l := r -> pt l <+> equals <+> pp r
     Case s brs -> hang (text "case" <+> pp s <+> text "of") 4
@@ -300,13 +303,13 @@ pp c = case c of
     Crash -> text "error" <> parens (text "crash")
     Then d e -> pp d <> comma $$ pp e
 
-pt :: Pattern -> Doc
+pt :: Pattern a -> Doc
 pt p = case p of
-    PVar x   -> text x
-    PTup ps  -> braces (cat (punctuate comma (map pt ps)))
-    PLeft    -> text "left"
-    PRight   -> text "right"
-    PNeg     -> text "neg"
-    PPos     -> text "pos"
-    Escape c -> pp c
+    Var x    -> text x
+    Tup ps   -> braces (cat (punctuate comma (map pt ps)))
+    InL      -> text "left"
+    InR      -> text "right"
+    Neg      -> text "neg"
+    Pos      -> text "pos"
+    Inject c -> pp c
 
