@@ -9,7 +9,6 @@
 module LL where
 
 import Data.Monoid
-import Control.Lens hiding ((&))
 
 -- | Type of names. These are just comments for pretty-printing
 -- purposes; internally the code relies only on deBrujn indices.
@@ -370,7 +369,7 @@ foldSeq sf ts0 vs0 s0 =
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       What x ws -> swhat x [fst (vs !! w) | w <- ws]
    where fty = sty ts
-         fctx = over (mapped._2) fty
+         fctx = map (second fty)
          SeqFinal{..} = sf (Deriv ts vs seq)
 
 second f (a,b) = (a,f b)
