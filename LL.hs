@@ -167,7 +167,7 @@ apply f t = case t of
   Bot -> Bot
   TVar pol x -> if_ pol neg (f!!x)
   Forall w t -> Forall w (s' t)
-  Exists w t -> Forall w (s' t)
+  Exists w t -> Exists w (s' t)
   Bang t -> Bang (s t)
   Quest t -> Quest (s t)
   Meta b x ns -> Meta b x (f ∙ ns)
