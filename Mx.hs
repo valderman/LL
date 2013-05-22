@@ -16,6 +16,7 @@ import AM
 import Rules
 import DiagPretty
 import Control.Monad
+import GraphViz
 
 preamble :: Tex ()
 preamble = do
@@ -24,6 +25,9 @@ preamble = do
   usepackage [] "amsmath"
   usepackage [] "amssymb" -- extra symbols such as □ 
   usepackage [] "cmll" -- for the operator "par"
+  usepackage [] "dot2texi"
+  usepackage [] "tikz"
+  cmd "usetikzlibrary" $ tex "shapes,arrows"
   usepackage ["a4paper","margin=2cm"] "geometry"
   cmd "input" (tex "unicodedefs")
   title "Linear Logic: I see what it means!"
@@ -41,7 +45,7 @@ deriv' = deriv True
 
 -- | Render a derivation as a program (term)
 program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = treeRender (texProg tvs vs s)
+program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
 rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return ()
 
@@ -113,10 +117,7 @@ amRule' h0 ((seq,comment):seqs) = do
 -- | Render abstract machine rules
 amRule = amRule' emptyHeap
 
-  
-  
-allReductions displayer = env "center" $ mapM_ redRule $
-   [
+syncRules =  [
     ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),
     (amp<>"⊕",cutWithPlus True),
@@ -125,18 +126,35 @@ allReductions displayer = env "center" $ mapM_ redRule $
     ("∃∀",cutQuant),
     ("?Contract",cutContract),
     ("?Weaken",cutIgnore)
-    ]
-   ++ pushRules
+    ] 
+  
+             
+treeReds =  env "center" $ forM  syncRules  $ \(name,input) -> do
+--  cmd "fbox" $ do
+    name
+    newline
+    renderTree input
+    renderTree (eval input)
 
-  where redRule (name,input) = do
+allReductions = 
+  env "center" $ 
+    forM_ (syncRules ++ pushRules) $ \(name,input) -> do
+          let red1 :: (Deriv -> Tex a) -> Tex ()
+              red1 displayer = do          
+                
+                displayer input
+                math $ cmd0 "Longrightarrow"
+                displayer (eval input)
+                return ()
           name
           newline
           cmd0 "vspace{3pt}"
-          cmd "fbox" $ math $ do 
-            displayer input
-            cmd0 "Longrightarrow"
-            displayer (eval input)
+          red1 (deriv False)
           newline
+          cmd "fbox" $ red1 (program)
+          newline
+          renderTree input
+          renderTree (eval input)
           cmd0 "vspace{1em}"
 
 todo = cmd "marginpar"
@@ -163,7 +181,7 @@ norm x = math $ "|" <> x <> "|"
 
 nothing _ = mempty
 
-main = render $ latexDocument "article" ["10pt"] preamble $ @"
+main = renderToDisk $ latexDocument "article" ["10pt"] preamble $ @"
 @maketitle
 
 @section{Introduction}
@@ -283,14 +301,8 @@ creates a new communication channel of type @tA;
 }
 
 
-@section{Cut-elimination rules}
-  @allReductions(deriv False)
-
-
-
-@section{Program reduction rules}
-  @allReductions(program)
-
+@section{Evaluation rules}
+  @allReductions
 
 
 @section{Abstract machine rules}

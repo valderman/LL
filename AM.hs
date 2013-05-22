@@ -176,6 +176,7 @@ copy'' One = SOne 0 SBot
 copy'' t@(TVar True _) = Ax t
 copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t
+copy'' t@(Meta True name v) = What name [0..length v-1]
 copy'' t = Exchange [1,0] $ copy'' (neg t)
 
 sizeOf :: Layout -> Int

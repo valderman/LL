@@ -5,7 +5,7 @@
 
 module TexPretty where
 
-import Control.Lens
+import Data.Foldable hiding (elem)
 import LL 
 import AM
 import MarXup
@@ -18,8 +18,8 @@ import Data.Monoid
 import qualified Data.Map as M
 import Symheap
 
-infix 1 `for`
-x `for` lens = over lens x
+-- infix 1 `for`
+-- x `for` lens = over lens x
 
 par = math $ cmd0 "parr"
 amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt" 
@@ -57,7 +57,7 @@ texSeq showProg = foldSeq sf where
   sbot v = rul []
   szero w vs = rul []
   sone w t = rul [t]
-  sxchg _ s = s -- rul [s] -- uncomment to display the exchange rules
+  sxchg _ s = rul [s] -- uncomment to display the exchange rules
   stapp w _ _ tyB s = rul [s]
   stunpack tw w _ s = rul [s]
   soffer w _ ty s = rul [s] 
@@ -107,12 +107,13 @@ linearize (Instr h t) = h <> ";" -- keyword " in "
 linearize (Split h xs) = h <> brac (punctuate "; " [x<>cmd0 "mapsto"<> linearize ts | (x,ts) <- xs])
 
 
-treeRender t = math $ block' $ treeRender' t
-treeRender' :: Block -> [TeX]
-treeRender' (Final t) = [t]
-treeRender' (Split h xs) = [h,
-                           indent <> xblock (tex "l@{}l") [[x,mapsto (treeRender' a)] | (x,a) <- xs]]
-treeRender' (Instr h t) = h : treeRender' t
+indentation t = math $ block' $ indentation' t
+
+indentation' :: Block -> [TeX]
+indentation' (Final t) = [t]
+indentation' (Split h xs) = [h,
+                           indent <> xblock (tex "l@{}l") [[x,mapsto (indentation' a)] | (x,a) <- xs]]
+indentation' (Instr h t) = h : indentation' t
 
 mapsto :: [TeX] -> TeX
 mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
@@ -161,7 +162,7 @@ texVarT v t = texVar v <> ":" <> t
        
 texVar :: String -> TeX              
 texVar ('_':nm) = cmd "bar" $ texVar nm
-texVar nm = textual nm
+texVar nm = unicodeTextual nm
              
 prn p k = if p > k then paren else id
        
@@ -169,7 +170,7 @@ texCtx :: Bool -> [String] -> [(String,Type)] ->  TeX
 texCtx showVars ts vs = do
   -- uncomment to show the types context
   -- commas (map texVar $ reverse ts) >>  textual ";"
-  texCtx' showVars (over (mapped._2) (texType 0 ts) vs)
+  texCtx' showVars (map (second (texType 0 ts)) vs)
 
 
 texCtx' True vs = commas [texVarT v t | (v,t) <- vs]
@@ -184,24 +185,36 @@ texLayout (Union a b) = texLayout a <> "⊔" <> texLayout b
 texLayout Empty = "0"
 
 texType :: Int -> [String] -> Type -> TeX
-texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
-texType p vs (Exists v t) = prn p 0 $ "∃" <> texVar v <> ". "  <> texType 0 (v:vs) t
+texType p vs (Forall v t) = prn p 0 $ cmd0 "forall" <> texVar v <> ". "  <> texType 0 (v:vs) t
+texType p vs (Exists v t) = prn p 0 $ cmd0 "exists" <> texVar v <> ". "  <> texType 0 (v:vs) t
 texType p vs (x :|: y) = prn p 0 $ texType 1 vs x <> par <> texType 0 vs y
-texType p vs (x :⊕: y) = prn p 1 $ texType 2 vs x <> " ⊕ " <> texType 1 vs y
-texType p vs (x :⊗: y) = prn p 2 $ texType 2 vs x <> " ⊗ " <> texType 2 vs y
+texType p vs (x :⊕: y) = prn p 1 $ texType 2 vs x <> cmd0"oplus" <> texType 1 vs y
+texType p vs (x :⊗: y) = prn p 2 $ texType 2 vs x <> cmd0"otimes" <> texType 2 vs y
 texType p vs (x :&: y) = prn p 3 $ texType 3 vs x <> amp <> texType 3 vs y
 texType p vs Zero = "0"
 texType p vs One = "1"
-texType p vs Top = "⊤"
-texType p vs Bot = "⊥"
+texType p vs Top = cmd0 "top"
+texType p vs Bot = cmd0 "bot"
 texType p vs (TVar b x) = texVar (vs!!x) <> texNeg b
 texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
-texType p vs (Meta b x as) = textual x <> as' <> texNeg b
+texType p vs (Meta b x as) = unicodeTextual x <> as' <> texNeg b
   where as' = if null as then mempty else  brack (commas $ map (texType 0 vs) as)
 
+unicodeTextual :: String -> TeX
+unicodeTextual = foldMap unicodeToTex
+
+unicodeToTex :: Char -> TeX
+unicodeToTex 'α' = cmd0 "alpha"
+unicodeToTex '\945' = cmd0 "oops"
+unicodeToTex 'β' = cmd0 "beta"
+unicodeToTex 'Γ' = cmd0 "Gamma"
+unicodeToTex 'Δ' = cmd0 "Delta"
+unicodeToTex 'Ξ' = cmd0 "Xi"
+unicodeToTex c = tex [c]
+
 texNeg True = mempty
-texNeg False = tex "^" <> braces "⊥"
+texNeg False = tex "^" <> braces (cmd0 "bot")
 
 --------------------------------
 -- Pretty printing of closures
