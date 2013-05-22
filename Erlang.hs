@@ -1,6 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards,
-             KindSignatures, GADTs, EmptyDataDecls #-}
+             TemplateHaskell, MultiParamTypeClasses,
+             TypeSynonymInstances, FlexibleInstances #-}
 module Erlang where
+
+import Data.Generics.Geniplate
 
 import Control.Applicative hiding (empty)
 import Control.Monad.State
@@ -16,31 +19,35 @@ import LL hiding ((&),var)
 data Code
     = NewChannel
     | Spawn Code
-    | String :! Code
-    | Pattern (Pattern R)
-    | Ask Code
-    | Pattern L := Code
-    | Case Code [(Pattern L,Code)]
+    | Tell String Pattern
+    | Ask String
+    | Axiom String String
+    | Pattern := Code
+    | Pattern Pattern
+    | Case Code [(Pattern,Code)]
     | Crash
     | Then Code Code
 
-infix 3 :!
+
 infixr 2 :=
 
 data R
 data L
 
-data Pattern :: * -> * where
-    Inject :: Code -> Pattern R
-    Var    :: String -> Pattern a
-    Tup    :: [Pattern a] -> Pattern a
-    InL    :: Pattern a
-    InR    :: Pattern a
-    Neg    :: Pattern a
-    Pos    :: Pattern a
+data Pattern
+    = Var String
+    | Tup [Pattern]
+    | InL
+    | InR
 
-var :: String -> Code
-var = Pattern . Var
+instanceTransformBi [t| (String,Code) |]
+
+(//) :: String -> String -> Code -> Code
+new // old = transformBi rep
+  where
+    rep :: String -> String
+    rep s | s == old  = new
+          | otherwise = s
 
 (|>) :: Code -> Code -> Code
 Then a b |> c = Then a (b |> c)
@@ -48,13 +55,13 @@ a        |> c = Then a c
 
 infixr 0 |>
 
-(!) :: String -> Pattern R -> Code
-x ! p = x :! Pattern p
+(!) :: String -> Pattern -> Code
+x ! p = Tell x p
+
+var :: String -> Code
+var = Pattern . Var
 
 infix 3 !
-
-ask :: String -> Code
-ask x = Ask (var x)
 
 (|||) :: Code -> Code -> Code
 a ||| b = Spawn a |> b
@@ -64,10 +71,10 @@ infixr 1 |||
 chunk :: [Code] -> Code
 chunk = foldr1 (|>)
 
-tt :: Pattern a
+tt :: Pattern
 tt = Tup []
 
-(&) :: Pattern a -> Pattern a -> Pattern a
+(&) :: Pattern -> Pattern -> Pattern
 p1 & p2 = Tup [p1,p2]
 
 infixr 5 &
@@ -80,28 +87,19 @@ compile = compileDeriv . erlangUnique
 compileDeriv :: Deriv -> Code
 compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
   where
-    sf :: Deriv -> SeqFinal Type Code
-    sf (Deriv tvs _ _) = SeqFinal {..}
+    sf :: Deriv -> SeqFinal () Code
+    sf = const SeqFinal {..}
       where
         sxchg _ c = c
 
-        sax a b t
-            | TVar k i <- t = Case (var (tvs !! i))
-                [ (pol,if f k then ask_a else ask_b)
-                | (pol,f) <- [(Pos,not),(Neg,id)]
-                ]
-            | positiveType t  = ask_b
-            | otherwise       = ask_a
-          where
-            ask_a = b :! ask a
-            ask_b = a :! ask b
+        sax a b _ = Axiom a b
 
-        scut x y _tx cx _ty cy = chunk
-            [ Var y := Var x := NewChannel
-            , cx ||| cy
+        scut x y _ cx _ cy = chunk
+            [ Var x := NewChannel
+            , (x // y) (cx ||| cy)
             ]
 
-        scross z x _ y _ c = Var x & Var y := ask z |> c
+        scross z x _ y _ c = Var x & Var y := Ask z |> c
 
         spar z x _ y _ cx cy = chunk
             [ Var x := NewChannel
@@ -116,7 +114,7 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
             , c
             ]
 
-        splus z x _ y _ cx cy = Case (ask z)
+        splus z x _ y _ cx cy = Case (Ask z)
             [ (InL & Var x,cx)
             , (InR & Var y,cy)
             ]
@@ -124,24 +122,13 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
 
         sbot x = x ! tt
 
-        sone x c = tt := ask x |> c
+        sone x c = tt := Ask x |> c
 
         szero _ _ = Crash
 
-        stapp z _ x t c = chunk
-            [ Var x := NewChannel
-            , z ! pol & Var x
-            , c
-            ]
-          where
-            pol | TVar True i <- t  = negationOf (tvs !! i)
-                | TVar False i <- t = Var (tvs !! i)
-                | positiveType t    = Pos
-                | otherwise         = Neg
+        stapp z _ x _ c = (z // x) c
 
-            negationOf u = Inject (Case (var u) [(Neg,Pattern Pos),(Pos,Pattern Neg)])
-
-        stunpack a z x c = Var a & Var x := ask z |> c
+        stunpack _ z x c = (z // x) c
 
         soffer _ _ _ _ = error "offer"
         sdemand _ _ _ _ = error "demand"
@@ -149,7 +136,7 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
         salias _ _ _ _ = error "alias"
         swhat _ _  = err "what"
 
-        sty _ t = t
+        sty _ _ = ()
 
         err s = error $ "compile: " ++ s ++ " not supported yet"
 
@@ -175,36 +162,17 @@ uq n = do
 erlangUnique :: Deriv -> Deriv
 erlangUnique (Deriv ts vs sq) = runUM $ do
 
-    ts' <- mapM uq ts
+    vs' <- mapM (\ (n,t) -> (,) <$> uq n <.> t) vs
 
-    vs' <- mapM (\ (n,t) -> (,) <$> uq n <*> ty t) vs
-
-    Deriv ts' vs' <$> go sq
+    Deriv ts vs' <$> go sq
   where
-    ty :: Type -> UM Type
-    ty t0 = case t0 of
-        x :⊕: y     -> (:⊕:) <$> ty x <*> ty y
-        x :&: y     -> (:&:) <$> ty x <*> ty y
-        x :|: y     -> (:|:) <$> ty x <*> ty y
-        x :⊗: y     -> (:⊗:) <$> ty x <*> ty y
-        Forall w t  -> Forall <$> uq w <*> ty t
-        Exists w t  -> Exists <$> uq w <*> ty t
-        Bang t      -> Bang <$> ty t
-        Quest t     -> Quest <$> ty t
-        Meta b x ns -> Meta b x <$> mapM ty ns
-        Zero        -> return t0
-        One         -> return t0
-        Top         -> return t0
-        Bot         -> return t0
-        TVar{}      -> return t0
-
     go :: Seq -> UM Seq
-    go s = case s of
-      Exchange p c      -> Exchange p <$> go c
-      Ax t              -> Ax <$> ty t
-      Cut w w' t x c d  -> Cut <$> uq w <*> uq w' <*> ty t <.> x <*> go c <*> go d
-      Cross t w w' x c  -> Cross <$> ty t <*> uq w <*> uq w' <.> x <*> go c
-      Par t w w' x c d  -> Par <$> ty t <*> uq w <*> uq w' <.> x <*> go c <*> go d
+    go sq = case sq of
+      Exchange p s      -> Exchange p <$> go s
+      Ax ty             -> return (Ax ty)
+      Cut w w' t x c d  -> Cut <$> uq w <*> uq w' <.> t <.> x <*> go c <*> go d
+      Cross ty w w' x c -> Cross ty <$> uq w <*> uq w' <.> x <*> go c
+      Par ty w w' x c d -> Par ty <$> uq w <*> uq w' <.> x <*> go c <*> go d
       Plus w w' x a b   -> Plus <$> uq w <*> uq w' <.> x <*> go a <*> go b
       With w c x a      -> With <$> uq w <.> c <.> x <*> go a
 
@@ -212,10 +180,11 @@ erlangUnique (Deriv ts vs sq) = runUM $ do
       SZero x           -> return (SZero x)
       SBot              -> return SBot
 
-      TApp t w x t' a   -> TApp <$> ty t <*> uq w <.> x <*> ty t' <*> go a
+      TApp t w x t' a   -> TApp t <$> uq w <.> x <.> t' <*> go a
       TUnpack w x a     -> TUnpack <$> uq w <.> x <*> go a
+
       Offer w x a       -> err "Offer"
-      Demand w t x a    -> err "Demand"
+      Demand w ty x a   -> err "Demand"
       Alias x w a       -> err "Alias"
       Ignore x a        -> err "Ignore"
 
@@ -293,23 +262,21 @@ pp c = case c of
         text "spawn" <> parens (hang
             (text "fun" <+> parens empty <+> arrow) 4
             (pp n) $$ text "end")
-    n :! p -> text "tell" <> parens (text n <> comma <> pp p)
-    Pattern p  -> pt p
-    Ask n  -> text "ask" <> parens (pp n)
+    Tell n p -> text "tell" <> parens (text n <> comma <> pt p)
+    Pattern p -> pt p
+    Ask n  -> text "ask" <> parens (text n)
     l := r -> pt l <+> equals <+> pp r
     Case s brs -> hang (text "case" <+> pp s <+> text "of") 4
         (vcat (punctuate semi [ hang (pt p <+> arrow) 4 (pp b) | (p,b) <- brs ]))
         $$ text "end"
     Crash -> text "error" <> parens (text "crash")
     Then d e -> pp d <> comma $$ pp e
+    Axiom x y -> text "axiom" <> parens (text x <> comma <> text y)
 
-pt :: Pattern a -> Doc
+pt :: Pattern -> Doc
 pt p = case p of
     Var x    -> text x
     Tup ps   -> braces (cat (punctuate comma (map pt ps)))
     InL      -> text "left"
     InR      -> text "right"
-    Neg      -> text "neg"
-    Pos      -> text "pos"
-    Inject c -> pp c
 
