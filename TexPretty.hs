@@ -64,7 +64,7 @@ texSeq showProg = foldSeq sf where
   sdemand w _ ty s = rul [s]
   signore w ty s = rul [s]
   salias w w' ty s = rul [s]
-  swhat a _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
+  swhat a _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
   rul :: [Derivation] -> Derivation
   rul subs = Node (Rule () Simple mempty (seqName seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
@@ -79,6 +79,10 @@ connect_ = keyword "connect "
 [fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
 separator = cmd "hline" mempty
+
+mem_ = keyword "mem"
+mem ty x y = mem_ <> tex "_" <> braces (texType 0 [] ty) <> tex "\\;" <>
+             texVar x <> tex "\\;" <> texVar y
 
 block' = xblock "l" . map (:[])
 xblock :: TeX -> [[TeX]] -> TeX
@@ -121,8 +125,12 @@ mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
 
 connect z x a y b = Split (connect_ <> z) [(x,a),(y,b)]
 
-texProg' :: Bool -> [Name] -> [(Name,Type)] -> Seq -> Block
-texProg' showTypes = foldSeq sf where
+texProg' = texProg'' what
+  where what a [] _ = texVar a
+        what a ws _ = texVar a <> brack (commas $ map texVar ws)
+
+texProg'' :: (Name -> [Name] -> [(Name,Type)] -> TeX) -> Bool -> [Name] -> [(Name,Type)] -> Seq -> Block
+texProg'' what showTypes = foldSeq sf where
    sf :: Deriv -> SeqFinal TeX Block
    sf (Deriv ts vs _) = SeqFinal {..} where
       sty ts t  = texType 0 ts t
@@ -148,8 +156,7 @@ texProg' showTypes = foldSeq sf where
       sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
       signore w ty s = Instr (keyword "ignore " <> texVar w)  s
       salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
-      swhat a [] = Final $ texVar a
-      swhat a ws = Final $ texVar a <> brack (commas $ map texVar ws)
+      swhat a ws fs = Final $ what a ws fs
       let'' w    v t = Instr (let_ <> w <> "=" <> v) t
    texVarT' x y | showTypes = texVarT x y
                 | otherwise = texVar x                            

@@ -167,10 +167,10 @@ increment n nm e = let (l,(_,x):r) = splitAt n e
                     in l ++ (nm,next x) : r
 
 copy'' :: Type -> Seq
-copy'' (t1 :⊕: t2) = Plus "" ""  0 (copy'' t1) (copy'' t2) -- FIXME: probably a With is necessary here
-copy'' (t1 :⊗: t2) = Cross t1 "" "" 0 $
+copy'' (t1 :⊕: t2) = Plus "z" "w"  0 (copy'' t1) (copy'' t2) -- FIXME: probably a With is necessary here
+copy'' (t1 :⊗: t2) = Cross t1 "z" "w" 0 $
                      Exchange [0,2,1] $
-                     Par t1 "" "" 1 (copy'' t1) (copy'' t2)
+                     Par t1 "r" "s" 1 (copy'' t1) (copy'' t2)
 copy'' Zero = error "Impossible"
 copy'' One = SOne 0 SBot
 copy'' t@(TVar True _) = Ax t

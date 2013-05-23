@@ -181,6 +181,22 @@ norm x = math $ "|" <> x <> "|"
 
 nothing _ = mempty
 
+memory = array [] (braces (text "lcl")) $
+         [[ mem t "x" "y",text "=",linearize (texProgM [] [("x",t),("y",neg t)] (copy'' t)) >> return ()] | t <- allPosTypes , t /= Zero]
+         ++[[mem metaT "x" "y",text "=",mem (neg metaT) "x" "y"]]
+  where metaT = Meta True "T" []
+
+texProgM = texProg'' what True
+  where what a ws fs = mem (Meta True a []) z w
+          where (z:w:_) = map fst fs
+
+memTranslation =
+  array [] (braces (text "lcl")) $
+  [[linearize $ texProg [] [] seq,text "=",linearize $ texProg [] [] (translate seq)]]
+  where seq = Cut "x" "y" tA 0 (What "a" []) (What "b" [])
+
+translate (Cut x y ty v a b) = Cut x "z" ty v a (Cut "w" y ty 0 (What "mem" []) b)
+
 main = renderToDisk $ latexDocument "article" ["10pt"] preamble $ @"
 @maketitle
 
@@ -378,6 +394,14 @@ Assume the following interface, where @arr is an absract type of arrays;
 
 The with array function can create a single array with both @arr and @neg(arr)
 pointing to the same memory area.
+
+@section{A calculus with explicit memory}
+
+We introduce a new form of expression: @id(math mem_).
+
+@memory
+
+@memTranslation
 
 @section{Related Work}
 

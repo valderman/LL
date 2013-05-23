@@ -73,7 +73,7 @@ pSeq showTypes = foldSeq sf where
         sdemand v w ty s = "let" <+> text w <+> "=" <+> text "demand" <+> varT v ty <+> "in" $$ s
         signore w ty s = "ignore " <> text w $$ s
         salias w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
-        swhat a _ = braces $ pCtx ts vs
+        swhat a _ _ = braces $ pCtx ts vs
    varT x y | showTypes = text x <> " : " <> y
             | otherwise = text x                            
    whenShowTypes | showTypes = id                            
