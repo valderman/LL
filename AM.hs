@@ -167,7 +167,7 @@ increment n nm e = let (l,(_,x):r) = splitAt n e
                     in l ++ (nm,next x) : r
 
 copy'' :: Type -> Seq
-copy'' (t1 :⊕: t2) = Plus "z" "w"  0 (copy'' t1) (copy'' t2) -- FIXME: probably a With is necessary here
+copy'' (t1 :⊕: t2) = Plus "z" "w"  0 (With "r" True 1 (copy'' t1)) (With "s" False 1 (copy'' t2))
 copy'' (t1 :⊗: t2) = Cross t1 "z" "w" 0 $
                      Exchange [0,2,1] $
                      Par t1 "r" "s" 1 (copy'' t1) (copy'' t2)
