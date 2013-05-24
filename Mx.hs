@@ -18,17 +18,25 @@ import DiagPretty
 import Control.Monad
 import GraphViz
 
+newtheorem :: String -> TeX -> TeX
+newtheorem ident text = cmd "newtheorem" (tex ident) >> braces text
+
 preamble :: Tex ()
 preamble = do
   usepackage ["utf8"] "inputenc"
   usepackage [] "graphicx" -- used for import metapost diagrams
   usepackage [] "amsmath"
+  usepackage [] "amsthm"
   usepackage [] "amssymb" -- extra symbols such as □ 
   usepackage [] "cmll" -- for the operator "par"
   usepackage [] "dot2texi"
-  usepackage [] "tikz"
-  cmd "usetikzlibrary" $ tex "shapes,arrows"
+  -- usepackage [] "tikz" >> cmd "usetikzlibrary" $ tex "shapes,arrows"
   usepackage ["a4paper","margin=2cm"] "geometry"
+  newtheorem "theorem" "Theorem"
+  newtheorem "corollary" "Corollary"
+  newtheorem "lemma" "Lemma"
+  newtheorem "definition" "Definition"
+
   cmd "input" (tex "unicodedefs")
   title "Linear Logic: I see what it means!"
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
@@ -129,13 +137,6 @@ syncRules =  [
     ] 
   
              
-treeReds =  env "center" $ forM  syncRules  $ \(name,input) -> do
---  cmd "fbox" $ do
-    name
-    newline
-    renderTree input
-    renderTree (eval input)
-
 allReductions = 
   env "center" $ 
     forM_ (syncRules ++ pushRules) $ \(name,input) -> do
@@ -153,8 +154,8 @@ allReductions =
           newline
           cmd "fbox" $ red1 (program)
           newline
-          renderTree input
-          renderTree (eval input)
+          -- renderTree input
+          -- renderTree (eval input)
           cmd0 "vspace{1em}"
 
 todo = cmd "marginpar"
@@ -175,6 +176,23 @@ tB = meta "B"
 arr = meta "a"
 keys = meta "k"
 vals = meta "v"
+
+
+lemma x y = do
+  env "lemma" x
+  env "proof" y
+
+theorem x y = do
+  env "theorem" x
+  env "proof" y
+
+corollary x = do
+  env "corollary" x
+
+-- _x  = math "x"
+-- _x' = math "x'"
+-- _σ  = math "σ"
+-- _σ' = math "σ'"
 
 norm :: TeX -> TeX
 norm x = math $ "|" <> x <> "|"
@@ -398,6 +416,46 @@ pointing to the same memory area.
 @section{A calculus with explicit memory}
 
 We introduce a new form of expression: @id(math mem_).
+
+@section{Termination of the tree-based machine}
+
+@env("definition"){
+We say that a node is waiting on an edge if:
+@itemize{
+ @item it is an axiom node or,
+ @item if is a non-structural rule acting on the port connected to that edge.
+}
+
+We call an edge ready if all nodes connected to it are waiting on it. In particular,
+an hypothesis edge is ready if the single nodes connected to it is waiting on it.
+}
+
+@lemma{In any tree, there is always at least an edge ready, or the system is terminated.
+}{
+Remark that every node is waiting on at least one port; except for the terminated node
+which cannot be connected to any node. The terminated system trivially satisfies the
+theorem.
+
+We then proceed by induction on the size of the tree. If the tree has a single node, then
+all the edges are hypotheses, it  must be waiting on one of them, which is then ready.
+
+For the inductive case, we assume two systems σ and σ' satisfying the induction hypothesis, 
+with and hypothesis @math{x} in @math{σ} and an hypothesis @math{x'} in @math{σ'}. 
+We show that the system obtained by connecting $x$ and $x'$ satisfies the theorem.
+
+We have the following cases:
+
+@enumerate{
+@item σ is waiting on @math{x} and @math{σ'} is waiting on @math{x'}. Then the new edge is ready.
+@item Either system is not waiting on the designated hypothesis. In this case, some other
+   edge in that system must be ready; and it remains ready in the combined system.
+}}
+
+@corollary{In a closed system, reducing only the top-level cuts is a terminating
+reduction strategy}
+
+
+@section{Memory reification}
 
 @memory
 
