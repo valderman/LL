@@ -17,6 +17,7 @@ import Rules
 import DiagPretty
 import Control.Monad
 import GraphViz
+import Mem
 
 newtheorem :: String -> TeX -> TeX
 newtheorem ident text = cmd "newtheorem" (tex ident) >> braces text
@@ -210,10 +211,8 @@ texProgM = texProg'' what True
 
 memTranslation =
   array [] (braces (text "lcl")) $
-  [[linearize $ texProg [] [] seq,text "=",linearize $ texProg [] [] (translate seq)]]
+  [[linearize $ texProg [] [] seq,text "=",linearize $ texProg [] [] (translate id seq)]]
   where seq = Cut "x" "y" tA 0 (What "a" []) (What "b" [])
-
-translate (Cut x y ty v a b) = Cut x "z" ty v a (Cut "w" y ty 0 (What "mem" []) b)
 
 main = renderToDisk $ latexDocument "article" ["10pt"] preamble $ @"
 @maketitle
