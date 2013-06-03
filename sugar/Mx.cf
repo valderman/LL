@@ -1,11 +1,16 @@
 Deriv.  Prog ::= [Alias] [Binder] "|-" Seq ;
 
 separator Binder "," ;
+separator Ident "," ;
 terminator Alias ";" ;
 
 TyAlias. Alias ::= "type" Ident "=" Type ;
 
-Binder. Binder ::= Ident ":" Type ;
+Binder. Binder  ::= Ident ":" Type ;
+
+-- Maybe binder
+BJust.    MBinder ::= Ident ":" Type ;
+BNothing. MBinder ::= Ident ;
 
 -- Multiplicatives
 Tensor.   Type4 ::= Type4 "*" Type5 ;
@@ -37,19 +42,20 @@ Fst.       Choice ::= "fst" ;
 Snd.       Choice ::= "snd" ;
 
 Ax.        Seq ::= Ident "<->" Ident;
-Cut.       Seq ::= "connect" "{" Binder "->" Seq ";" Binder "->" Seq "}";
+Cut.       Seq ::= "connect" "{" MBinder "->" Seq ";" MBinder "->" Seq "}";
 ParSeq.    Seq ::= "connect" "via" Ident "{" Ident "->" Seq ";" Ident "->" Seq "}";
 TensorSeq. Seq ::= "let" Ident "," Ident "=" Ident "in" Seq;
 ChoiceSeq. Seq ::= "let" Ident "=" Choice Ident "in" Seq;
 Case.      Seq ::= "case" Ident "of" "{" "inl" Ident "->" Seq ";" "inr" Ident "->" Seq "}" ;
 Bottom.    Seq ::= Ident ;
 Unit.      Seq ::= "let" "()" "=" Ident "in" Seq ;
-Crash.     Seq ::= "crash" Ident ;
+Crash.     Seq ::= "crash" Ident "along" [Ident];
 Pack.      Seq ::= "let" Ident "=" Ident "@" Type "in" Seq ;
 Unpack.    Seq ::= "let" Ident "@" Ident "=" Ident "in" Seq ;
 Offer.     Seq ::= "offer" Binder "in" Seq ;
 Demand.    Seq ::= "let" Binder "=" "demand" Ident "in" Seq ;
 Ignore.    Seq ::= "ignore" Ident "in" Seq ;
 Alias.     Seq ::= "let" Binder "=" "alias" Ident "in" Seq ;
+Hole.      Seq ::= "_" ;
 
 comment "{-" "-}" ;

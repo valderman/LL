@@ -1,0 +1,12 @@
+f : ~(((1 + 1) + 1) -o (1 + (1 + 1))) |-
+let i , o = f in case i of
+    { inl ab -> case ab of
+        { inl a -> let o' = fst o in o' <-> a
+        ; inr b -> let o' = snd o in let o'' = fst o' in o'' <-> b
+        }
+    ; inr c -> let o' = snd o in let o'' = snd o' in o'' <-> c
+    }
+
+
+
+

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+SUCC=tests/success
+FAIL=tests/fail
+
+for i in $(ls $SUCC); do
+    FILE=$SUCC/$i
+    ./TestMx $FILE > /dev/null
+    echo $?: $FILE
+done
+
+for i in $(ls $FAIL); do
+    FILE=$FAIL/$i
+    ./TestMx $FILE > /dev/null
+    echo $?: $FILE
+done
+

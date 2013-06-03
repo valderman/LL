@@ -16,6 +16,11 @@ data Binder =
    Binder Ident Type
   deriving (Eq,Ord,Show)
 
+data MBinder =
+   BJust Ident Type
+ | BNothing Ident
+  deriving (Eq,Ord,Show)
+
 data Type =
    Tensor Type Type
  | Par Type Type
@@ -41,19 +46,20 @@ data Choice =
 
 data Seq =
    Ax Ident Ident
- | Cut Binder Seq Binder Seq
+ | Cut MBinder Seq MBinder Seq
  | ParSeq Ident Ident Seq Ident Seq
  | TensorSeq Ident Ident Ident Seq
  | ChoiceSeq Ident Choice Ident Seq
  | Case Ident Ident Seq Ident Seq
  | Bottom Ident
  | Unit Ident Seq
- | Crash Ident
+ | Crash Ident [Ident]
  | Pack Ident Ident Type Seq
  | Unpack Ident Ident Ident Seq
  | Offer Binder Seq
  | Demand Binder Ident Seq
  | Ignore Ident Seq
  | Alias Binder Ident Seq
+ | Hole
   deriving (Eq,Ord,Show)
 

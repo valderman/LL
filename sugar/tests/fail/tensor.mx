@@ -1,0 +1,1 @@
+a : 1 |- let u,v = a in let () = u in v

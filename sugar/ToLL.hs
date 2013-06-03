@@ -41,12 +41,14 @@ runT (T m) = evalStateT m M.empty
 
 data Err
     = MismatchTypes Seq_ Ident Ident Type Type
+    | InsufficientTypeInfo Ident Ident
     | UnboundIdentifier Ident
     | BoundIdentifier Ident Type Type
     | IdentifierEscapes Ident
     | TypeError Ident Type Type_
     | PermutationError [Ident] [Ident]
     | Fail String
+    | Hole [(Ident,Type)]
   deriving Show
 
 instance Error Err where
@@ -75,7 +77,6 @@ eat x = do
 bind :: Ident -> C.Type -> T Type
 bind x t = bind' x t' >> return t'
   where t' = trType t
-
 bind' :: Ident -> Type -> T ()
 bind' x t = do
     m <- get
@@ -101,11 +102,33 @@ trType = go where
         C.Forall i x   -> todo "trType forall"
         C.Exists i x   -> todo "trType exists"
 
--- Puts it first, and then removes it (for cut/par)
-putFirst :: Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
-putFirst z (s,zb) = case findIndex (== z) zb of
+negTy :: C.Type -> C.Type
+negTy = go where
+    go t = case t of
+        C.Tensor x y   -> C.Par (go x) (go y)
+        C.Par x y      -> C.Tensor (go x) (go y)
+        C.Plus x y     -> C.Choice (go x) (go y)
+        C.Choice x y   -> C.Plus (go x) (go y)
+        C.One          -> C.Bot
+        C.Bot          -> C.One
+        C.Top          -> C.Zero
+        C.Zero         -> C.Top
+        C.Lollipop x y -> C.Tensor x (go y)
+        C.Bang x       -> C.Quest (go x)
+        C.Quest x      -> C.Bang (go x)
+        C.Neg x        -> x
+        C.Forall i x   -> todo "negTy forall"
+        C.Exists i x   -> todo "negTy exists"
+
+reorder :: (Int -> Int) -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
+reorder k z (s,zb) = case findIndex (== z) zb of
     Nothing -> throwError (IdentifierEscapes z)
-    Just n  -> let (zb',pm) = perm zb (swap0 n) in return (exchange pm s,tail zb')
+    Just n  -> let (zb',pm) = perm zb (swap x n) in return (exchange pm s,zb' `without` x)
+      where x = k (length zb)
+
+putFirst,putLast :: Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
+putFirst = reorder (const 0)
+putLast = reorder pred
 
 tensorOrder :: Ident -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident],[Ident])
 tensorOrder x y (s,bs) = case findIndex (== x) bs of
@@ -135,7 +158,13 @@ trSeq seq = case seq of
         when (tx /= neg ty) (throwError (MismatchTypes Ax_ x y tx ty))
         return (Ax ty,[x,y])
 
-    C.Cut (Binder x tx) sx (Binder y ty) sy -> do
+    C.Cut b1 sx b2 sy -> do
+
+        ((x,tx),(y,ty)) <- case (b1,b2) of
+            (C.BNothing x,C.BNothing y) -> throwError (InsufficientTypeInfo x y)
+            (C.BJust x tx,C.BNothing y) -> return ((x,tx),(y,negTy tx))
+            (C.BNothing x,C.BJust y ty) -> return ((x,negTy ty),(y,ty))
+            (C.BJust x tx,C.BJust y ty) -> return ((x,tx),(y,ty))
 
         tx' <- bind x tx
         (sx',xb) <- putFirst x =<< trSeq sx
@@ -170,7 +199,7 @@ trSeq seq = case seq of
             _         -> throwError (TypeError z tz Par_)
 
         bind' x tx
-        (sx',xb) <- putFirst x =<< trSeq sx
+        (sx',xb) <- putLast x =<< trSeq sx
 
         bind' y ty
         (sy',yb) <- putFirst y =<< trSeq sy
@@ -228,10 +257,13 @@ trSeq seq = case seq of
         (s',b) <- trSeq s
         return (SOne 0 s',x:b)
 
-    C.Crash x -> do
+    C.Crash x xs -> do
         tx <- eat x
         when (tx /= Zero) (throwError (TypeError x tx Zero_))
-        return (SZero 0,[x]) -- TODO: this actually has a bigger context
+        _rest <- mapM eat xs
+        return (SZero 0,x:xs) -- TODO: this actually has a bigger context
+
+    C.Hole -> throwError . Hole . M.toList =<< get
 
     -- TODO: quantifiers and exponentials
 

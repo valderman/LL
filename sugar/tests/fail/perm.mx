@@ -1,0 +1,4 @@
+a : 1 + 1, u : _|_, v : _|_ |- case a of
+    { inl x -> let () = x in u
+    ; inr y -> let () = y in v
+    }

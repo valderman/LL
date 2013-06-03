@@ -80,6 +80,10 @@ instance Print Double where
 
 instance Print Ident where
   prt _ (Ident i) = doc (showString ( i))
+  prtList es = case es of
+   [] -> (concatD [])
+   [x] -> (concatD [prt 0 x])
+   x:xs -> (concatD [prt 0 x , doc (showString ",") , prt 0 xs])
 
 
 
@@ -104,6 +108,12 @@ instance Print Binder where
    [] -> (concatD [])
    [x] -> (concatD [prt 0 x])
    x:xs -> (concatD [prt 0 x , doc (showString ",") , prt 0 xs])
+
+instance Print MBinder where
+  prt i e = case e of
+   BJust id type' -> prPrec i 0 (concatD [prt 0 id , doc (showString ":") , prt 0 type'])
+   BNothing id -> prPrec i 0 (concatD [prt 0 id])
+
 
 instance Print Type where
   prt i e = case e of
@@ -133,20 +143,21 @@ instance Print Choice where
 instance Print Seq where
   prt i e = case e of
    Ax id0 id -> prPrec i 0 (concatD [prt 0 id0 , doc (showString "<->") , prt 0 id])
-   Cut binder0 seq1 binder seq -> prPrec i 0 (concatD [doc (showString "connect") , doc (showString "{") , prt 0 binder0 , doc (showString "->") , prt 0 seq1 , doc (showString ";") , prt 0 binder , doc (showString "->") , prt 0 seq , doc (showString "}")])
+   Cut mbinder0 seq1 mbinder seq -> prPrec i 0 (concatD [doc (showString "connect") , doc (showString "{") , prt 0 mbinder0 , doc (showString "->") , prt 0 seq1 , doc (showString ";") , prt 0 mbinder , doc (showString "->") , prt 0 seq , doc (showString "}")])
    ParSeq id0 id1 seq2 id seq -> prPrec i 0 (concatD [doc (showString "connect") , doc (showString "via") , prt 0 id0 , doc (showString "{") , prt 0 id1 , doc (showString "->") , prt 0 seq2 , doc (showString ";") , prt 0 id , doc (showString "->") , prt 0 seq , doc (showString "}")])
    TensorSeq id0 id1 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString ",") , prt 0 id1 , doc (showString "=") , prt 0 id , doc (showString "in") , prt 0 seq])
    ChoiceSeq id0 choice id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , prt 0 choice , prt 0 id , doc (showString "in") , prt 0 seq])
    Case id0 id1 seq2 id seq -> prPrec i 0 (concatD [doc (showString "case") , prt 0 id0 , doc (showString "of") , doc (showString "{") , doc (showString "inl") , prt 0 id1 , doc (showString "->") , prt 0 seq2 , doc (showString ";") , doc (showString "inr") , prt 0 id , doc (showString "->") , prt 0 seq , doc (showString "}")])
    Bottom id -> prPrec i 0 (concatD [prt 0 id])
    Unit id seq -> prPrec i 0 (concatD [doc (showString "let") , doc (showString "()") , doc (showString "=") , prt 0 id , doc (showString "in") , prt 0 seq])
-   Crash id -> prPrec i 0 (concatD [doc (showString "crash") , prt 0 id])
+   Crash id ids -> prPrec i 0 (concatD [doc (showString "crash") , prt 0 id , doc (showString "along") , prt 0 ids])
    Pack id0 id type' seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , prt 0 id , doc (showString "@") , prt 0 type' , doc (showString "in") , prt 0 seq])
    Unpack id0 id1 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "@") , prt 0 id1 , doc (showString "=") , prt 0 id , doc (showString "in") , prt 0 seq])
    Offer binder seq -> prPrec i 0 (concatD [doc (showString "offer") , prt 0 binder , doc (showString "in") , prt 0 seq])
    Demand binder id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 binder , doc (showString "=") , doc (showString "demand") , prt 0 id , doc (showString "in") , prt 0 seq])
    Ignore id seq -> prPrec i 0 (concatD [doc (showString "ignore") , prt 0 id , doc (showString "in") , prt 0 seq])
    Alias binder id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 binder , doc (showString "=") , doc (showString "alias") , prt 0 id , doc (showString "in") , prt 0 seq])
+   Hole  -> prPrec i 0 (concatD [doc (showString "_")])
 
 
 

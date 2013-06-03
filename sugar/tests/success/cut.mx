@@ -1,0 +1,7 @@
+
+u : _|_
+    |- connect
+        { x : _|_ -> x
+        ; y -> let () = y in u
+        }
+

@@ -1,0 +1,4 @@
+a : 1 |- connect via a
+    { u -> u
+    ; v -> v
+    }

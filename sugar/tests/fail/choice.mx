@@ -1,0 +1,1 @@
+a : 1 |- let b = fst a in b

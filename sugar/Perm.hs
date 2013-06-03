@@ -1,4 +1,4 @@
-module Perm(swap,swap0,perm,permute,compose,getPermutation,isId) where
+module Perm(swap,swap0,perm,permute,compose,getPermutation,isId,without) where
 
 import LL (Permutation,inverse)
 import Control.Applicative

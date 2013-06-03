@@ -29,6 +29,12 @@ transBinder x = case x of
   Binder id type'  -> failure x
 
 
+transMBinder :: MBinder -> Result
+transMBinder x = case x of
+  BJust id type'  -> failure x
+  BNothing id  -> failure x
+
+
 transType :: Type -> Result
 transType x = case x of
   Tensor type'1 type'2  -> failure x
@@ -57,20 +63,21 @@ transChoice x = case x of
 transSeq :: Seq -> Result
 transSeq x = case x of
   Ax id1 id2  -> failure x
-  Cut binder1 seq2 binder3 seq4  -> failure x
+  Cut mbinder1 seq2 mbinder3 seq4  -> failure x
   ParSeq id1 id2 seq3 id4 seq5  -> failure x
   TensorSeq id1 id2 id3 seq4  -> failure x
   ChoiceSeq id1 choice2 id3 seq4  -> failure x
   Case id1 id2 seq3 id4 seq5  -> failure x
   Bottom id  -> failure x
   Unit id seq  -> failure x
-  Crash id  -> failure x
+  Crash id ids  -> failure x
   Pack id1 id2 type'3 seq4  -> failure x
   Unpack id1 id2 id3 seq4  -> failure x
   Offer binder seq  -> failure x
   Demand binder id seq  -> failure x
   Ignore id seq  -> failure x
   Alias binder id seq  -> failure x
+  Hole  -> failure x
 
 
 

@@ -1,0 +1,21 @@
+
+x : 1 + 1, y : 1 + 1, z : ~ ((1 + 1) * (1 + 1)) |-
+
+case x of
+    { inl t -> let () = t in case y of
+        { inl v -> let () = v in connect via z
+            { k -> let m = fst k in m
+            ; l -> let n = fst l in n
+            }
+        ; inr w -> let () = w in connect via z
+            { k -> let m = fst k in m
+            ; l -> let n = snd l in n
+            }
+        }
+    ; inr u -> connect via z
+        { k -> let () = u in k <-> y
+        ; l -> let n = snd l in n
+        }
+    }
+
+

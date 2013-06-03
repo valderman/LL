@@ -1,0 +1,4 @@
+a : 1 |- case a of
+    { inl u -> u
+    ; inr v -> v
+    }
