@@ -1,0 +1,2 @@
+
+u : _|_ + _|_ |- case u of { inl x -> x ; inr x -> x }

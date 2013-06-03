@@ -1,0 +1,2 @@
+
+u : _|_ & _|_ |- let x = fst u in x

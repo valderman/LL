@@ -38,9 +38,9 @@ Snd.       Choice ::= "snd" ;
 
 Ax.        Seq ::= Ident "<->" Ident;
 Cut.       Seq ::= "connect" "{" Binder "->" Seq ";" Binder "->" Seq "}";
-ParSeq.    Seq ::= "connect" "via" Ident "{" Binder "->" Seq ";" Binder "->" Seq "}";
+ParSeq.    Seq ::= "connect" "via" Ident "{" Ident "->" Seq ";" Ident "->" Seq "}";
 TensorSeq. Seq ::= "let" Ident "," Ident "=" Ident "in" Seq;
-ChoiceSeq. Seq ::= "let" Binder "=" Choice Ident "in" Seq;
+ChoiceSeq. Seq ::= "let" Ident "=" Choice Ident "in" Seq;
 Case.      Seq ::= "case" Ident "of" "{" "inl" Ident "->" Seq ";" "inr" Ident "->" Seq "}" ;
 Bottom.    Seq ::= Ident ;
 Unit.      Seq ::= "let" "()" "=" Ident "in" Seq ;

@@ -1,0 +1,6 @@
+
+j : 1, u : _|_ & _|_, k : 1
+    |- let () = k
+    in let x = fst u
+    in let () = j
+    in x

@@ -1,0 +1,2 @@
+
+u : _|_ + _|_, a : 1 |- case u of { inl x -> let () = a in x ; inr x -> let () = a in x }

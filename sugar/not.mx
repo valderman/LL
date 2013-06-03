@@ -1,9 +1,8 @@
-type bool = 1 + 1 ;
 
-not : bool -o bool |-
+not : ~ ((1+1) -o (1+1)) |-
     let x,r = not in
     case x of
-        { inl y -> let () = y in let u : _|_ = snd r in u
-        ; inr z -> let () = z in let u : _|_ = fst r in u
+        { inl y -> let () = y in let u = snd r in u
+        ; inr z -> let () = z in let u = fst r in u
         }
 

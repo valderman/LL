@@ -1,0 +1,2 @@
+
+k : 0 & _|_ |- let u = fst k in crash u
