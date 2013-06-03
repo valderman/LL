@@ -1,0 +1,4 @@
+mk1 : ! 1, e : _|_
+|- let u = demand mk1
+in let () = u
+in e

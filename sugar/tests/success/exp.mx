@@ -1,0 +1,11 @@
+mk1 : ! 1, e : _|_
+|- let mk2 = alias mk1
+in let mk3 = alias mk1
+in let mk4 = alias mk3
+in let u = demand mk3
+in let v = demand mk4
+in let () = u
+in ignore mk1
+in let () = v
+in ignore mk2
+in e

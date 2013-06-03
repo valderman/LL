@@ -134,6 +134,7 @@ varOf (Alias x _ _) = x
 -- | Type-variables substitutions
 type Subst = [Type]
 
+subst0 :: Type -> Subst
 subst0 x = x:map var [0..]
 
 -- | Types which can be applied a 'Subst'

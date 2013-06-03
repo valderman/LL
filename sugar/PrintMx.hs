@@ -161,10 +161,10 @@ instance Print Seq where
    Crash id ids -> prPrec i 0 (concatD [doc (showString "crash") , prt 0 id , doc (showString "along") , prt 0 ids])
    Pack id0 id type' seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , prt 0 id , doc (showString "@") , prt 0 type' , doc (showString "in") , prt 0 seq])
    Unpack id0 id1 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "@") , prt 0 id1 , doc (showString "=") , prt 0 id , doc (showString "in") , prt 0 seq])
-   Offer binder seq -> prPrec i 0 (concatD [doc (showString "offer") , prt 0 binder , doc (showString "in") , prt 0 seq])
-   Demand binder id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 binder , doc (showString "=") , doc (showString "demand") , prt 0 id , doc (showString "in") , prt 0 seq])
+   Offer id0 id seq -> prPrec i 0 (concatD [doc (showString "offer") , prt 0 id0 , doc (showString "for") , prt 0 id , doc (showString "in") , prt 0 seq])
+   Demand id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "demand") , prt 0 id , doc (showString "in") , prt 0 seq])
    Ignore id seq -> prPrec i 0 (concatD [doc (showString "ignore") , prt 0 id , doc (showString "in") , prt 0 seq])
-   Alias binder id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 binder , doc (showString "=") , doc (showString "alias") , prt 0 id , doc (showString "in") , prt 0 seq])
+   Alias id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "alias") , prt 0 id , doc (showString "in") , prt 0 seq])
    Hole  -> prPrec i 0 (concatD [doc (showString "_")])
 
 

@@ -55,10 +55,10 @@ Unit.      Seq ::= "let" "()" "=" Ident "in" Seq ;
 Crash.     Seq ::= "crash" Ident "along" [Ident];
 Pack.      Seq ::= "let" Ident "=" Ident "@" Type "in" Seq ;
 Unpack.    Seq ::= "let" Ident "@" Ident "=" Ident "in" Seq ;
-Offer.     Seq ::= "offer" Binder "in" Seq ;
-Demand.    Seq ::= "let" Binder "=" "demand" Ident "in" Seq ;
+Offer.     Seq ::= "offer" Ident "for" Ident "in" Seq ;
+Demand.    Seq ::= "let" Ident "=" "demand" Ident "in" Seq ;
 Ignore.    Seq ::= "ignore" Ident "in" Seq ;
-Alias.     Seq ::= "let" Binder "=" "alias" Ident "in" Seq ;
+Alias.     Seq ::= "let" Ident "=" "alias" Ident "in" Seq ;
 Hole.      Seq ::= "_" ;
 
 comment "{-" "-}" ;

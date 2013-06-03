@@ -66,7 +66,7 @@ instance Error Err where
 data Seq_ = Ax_ | Cut_
   deriving Show
 
-data Type_ = Par_ | Tensor_ | Plus_ | With_ | Bot_ | One_ | Zero_ | Forall_ | Exists_
+data Type_ = Par_ | Tensor_ | Plus_ | With_ | Bot_ | One_ | Zero_ | Forall_ | Exists_ | Bang_ | Quest_
   deriving Show
 
 todo :: String -> a
@@ -75,12 +75,19 @@ todo = error . (++ " todo")
 name :: Ident -> Name
 name (Ident n) = n
 
+typeOf :: Ident -> T Type
+typeOf x = do
+    (_,m) <- get
+    case M.lookup x m of
+        Just t -> return t
+        Nothing -> throwError (UnboundIdentifier x)
+
 eat :: Ident -> T Type
 eat x = do
+    t <- typeOf x
     (tvs,m) <- get
-    case (M.lookup x m,M.delete x m) of
-        (Just t,m') -> put (tvs,m') >> return t
-        (Nothing,_) -> throwError (UnboundIdentifier x)
+    put (tvs,M.delete x m)
+    return t
 
 -- watch out for shadowing
 bind :: Ident -> C.Type -> T Type
@@ -135,23 +142,7 @@ trType = locally . go
                         Nothing -> throwError (UnboundIdentifier x)
 
 negTy :: C.Type -> C.Type
-negTy = C.Neg {- go where
-    go t = case t of
-        C.Tensor x y   -> C.Par (go x) (go y)
-        C.Par x y      -> C.Tensor (go x) (go y)
-        C.Plus x y     -> C.Choice (go x) (go y)
-        C.Choice x y   -> C.Plus (go x) (go y)
-        C.One          -> C.Bot
-        C.Bot          -> C.One
-        C.Top          -> C.Zero
-        C.Zero         -> C.Top
-        C.Lollipop x y -> C.Tensor x (go y)
-        C.Bang x       -> C.Quest (go x)
-        C.Quest x      -> C.Bang (go x)
-        C.Neg x        -> x
-        C.Forall i x   -> todo "negTy forall"
-        C.Exists i x   -> todo "negTy exists"
-        C.TyId x       -> C.Neg (C.TyId x) -}
+negTy = C.Neg
 
 reorder :: (Int -> Int) -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
 reorder k z (s,zb) = case findIndex (== z) zb of
@@ -187,6 +178,7 @@ tensorOrder' x y bs = (pm',l,r)
     (bs',pm') = perm bs pm
     (l,_x:_y:r) = splitAt pos bs'
 
+-- Returns the translated sequents and its context
 trSeq :: C.Seq -> T (Seq,[Ident])
 trSeq seq = case seq of
 
@@ -224,9 +216,9 @@ trSeq seq = case seq of
 
         bind' x tx
         bind' y ty
-        (s',lb,rb) <- tensorOrder x y =<< trSeq s
+        (s',l,r) <- tensorOrder x y =<< trSeq s
 
-        return (Cross tz (name x) (name y) (length lb) s',lb ++ [z] ++ rb)
+        return (Cross tz (name x) (name y) (length l) s',l ++ [z] ++ r)
 
     C.ParSeq z x sx y sy -> do
 
@@ -329,9 +321,58 @@ trSeq seq = case seq of
         (l,r) <- munch x b
         return (TUnpack (name x) (length l) s',l ++ [z] ++ r)
 
-    C.Hole -> throwError . Hole . M.toList . snd =<< get
+    -- offer x for z in s
+    -- let x = offer z in s (?)
+    C.Offer x z s -> do
 
-    -- TODO: quantifiers and exponentials
+        tz <- eat z
+        tx <- case tz of
+            Quest t -> return t
+            _       -> throwError (TypeError z tz Quest_)
+
+        bind' x tx
+        (s',b) <- trSeq s
+        (l,r) <- munch x b
+        return (Offer (name x) (length l) s',l ++ [z] ++ r)
+
+    -- let x = demand z in s
+    C.Demand x z s -> do
+
+        tz <- eat z
+        tx <- case tz of
+            Bang t -> return t
+            _      -> throwError (TypeError z tz Bang_)
+
+        bind' x tx
+        (s',b) <- trSeq s
+        (l,r) <- munch x b
+        return (Demand (name x) tz (length l) s',l ++ [z] ++ r)
+
+    -- ignore z in s
+    C.Ignore z s -> do
+
+        tz <- eat z
+        case tz of
+            Bang{} -> return ()
+            _      -> throwError (TypeError z tz Bang_)
+
+        (s',b) <- trSeq s
+        return (Ignore 0 s', z : b)
+
+    -- let z' = alias z in s
+    C.Alias z' z s -> do
+
+        tz <- typeOf z
+        case tz of
+            Bang{} -> return ()
+            _      -> throwError (TypeError z tz Bang_)
+
+        bind' z' tz
+
+        (s',l,r) <- tensorOrder z z' =<< trSeq s
+        return (Alias (length l) (name z') s',l ++ [z] ++ r)
+
+    C.Hole -> throwError . Hole . M.toList . snd =<< get
 
 choice :: Choice -> a -> a -> a
 choice Fst x _ = x

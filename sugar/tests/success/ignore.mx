@@ -1,0 +1,2 @@
+mk1 : ! 1, e : _|_
+|- ignore mk1 in e

@@ -78,10 +78,10 @@ transSeq x = case x of
   Crash id ids  -> failure x
   Pack id1 id2 type'3 seq4  -> failure x
   Unpack id1 id2 id3 seq4  -> failure x
-  Offer binder seq  -> failure x
-  Demand binder id seq  -> failure x
+  Offer id1 id2 seq3  -> failure x
+  Demand id1 id2 seq3  -> failure x
   Ignore id seq  -> failure x
-  Alias binder id seq  -> failure x
+  Alias id1 id2 seq3  -> failure x
   Hole  -> failure x
 
 

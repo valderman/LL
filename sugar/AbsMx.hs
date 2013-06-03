@@ -60,10 +60,10 @@ data Seq =
  | Crash Ident [Ident]
  | Pack Ident Ident Type Seq
  | Unpack Ident Ident Ident Seq
- | Offer Binder Seq
- | Demand Binder Ident Seq
+ | Offer Ident Ident Seq
+ | Demand Ident Ident Seq
  | Ignore Ident Seq
- | Alias Binder Ident Seq
+ | Alias Ident Ident Seq
  | Hole
   deriving (Eq,Ord,Show)
 

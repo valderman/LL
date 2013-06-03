@@ -1,0 +1,7 @@
+mk1 : ! 1, e : _|_
+|- let mk2 = alias mk1
+in let u = demand mk1
+in let v = demand mk2
+in let () = u
+in let () = v
+in e
