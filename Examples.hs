@@ -46,6 +46,19 @@ expTest = Deriv ["α"] [("x",neg (Bang (var 0) ⊸ (Bang (var 0) :⊗: Bang (var
 exchTest = Deriv ["a","b","c"] [("x",var 0),("y",One),("z",neg (var 0))] $
            Exchange [1,2,0] $ SOne 0 ax
 
+-- | A program for boolean not
+notProgram
+    = Deriv [] [("x",bool),("r",neg bool)]
+    $ Plus "y" "z" 0
+        (SOne 0 (With "u" True 0 SBot))
+        (SOne 0 (With "u" False 0 SBot))
+
+-- | The not program wrapped as a function
+notFunction
+    = Deriv [] [("not",bool ⊸ bool)]
+    $ Cross dum "x" "r" 0 (derivSequent notProgram)
+
+
 -- | Testing cuts
 cutTest = Deriv [] [("x",Zero)] $
           Cut "a" "b" Bot 1

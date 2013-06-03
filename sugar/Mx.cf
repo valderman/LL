@@ -1,0 +1,55 @@
+Deriv.  Prog ::= [Alias] [Binder] "|-" Seq ;
+
+separator Binder "," ;
+terminator Alias ";" ;
+
+TyAlias. Alias ::= "type" Ident "=" Type ;
+
+Binder. Binder ::= Ident ":" Type ;
+
+-- Multiplicatives
+Tensor.   Type4 ::= Type4 "*" Type5 ;
+Par.      Type4 ::= Type4 "|" Type5 ;
+One.      Type5 ::= "1"   ;
+Bot.      Type5 ::= "_|_" ;
+
+-- Additives
+Plus.     Type3 ::= Type3 "+" Type4 ;
+Choice.   Type3 ::= Type3 "&" Type4 ;
+Top.      Type5 ::= "T" ;
+Zero.     Type5 ::= "0" ;
+
+Lollipop. Type2 ::= Type "-o" Type2 ;
+
+TyId.     Type5 ::= Ident ;
+
+Bang.     Type5 ::= "!" Type5 ;
+Quest.    Type5 ::= "?" Type5 ;
+Neg.      Type5 ::= "~" Type5 ;
+
+Forall.   Type ::= "forall" Ident "." Type ;
+Exists.   Type ::= "exists" Ident "." Type ;
+
+coercions Type 5 ;
+
+-- I don't like calling these fst and snd because these are about sums, not tuples
+Fst.       Choice ::= "fst" ;
+Snd.       Choice ::= "snd" ;
+
+Ax.        Seq ::= Ident "<->" Ident;
+Cut.       Seq ::= "connect" "{" Binder "->" Seq ";" Binder "->" Seq "}";
+ParSeq.    Seq ::= "connect" "via" Ident "{" Binder "->" Seq ";" Binder "->" Seq "}";
+TensorSeq. Seq ::= "let" Ident "," Ident "=" Ident "in" Seq;
+ChoiceSeq. Seq ::= "let" Binder "=" Choice Ident "in" Seq;
+Case.      Seq ::= "case" Ident "of" "{" "inl" Ident "->" Seq ";" "inr" Ident "->" Seq "}" ;
+Bottom.    Seq ::= Ident ;
+Unit.      Seq ::= "let" "()" "=" Ident "in" Seq ;
+Crash.     Seq ::= "crash" Ident ;
+Pack.      Seq ::= "let" Ident "=" Ident "@" Type "in" Seq ;
+Unpack.    Seq ::= "let" Ident "@" Ident "=" Ident "in" Seq ;
+Offer.     Seq ::= "offer" Binder "in" Seq ;
+Demand.    Seq ::= "let" Binder "=" "demand" Ident "in" Seq ;
+Ignore.    Seq ::= "ignore" Ident "in" Seq ;
+Alias.     Seq ::= "let" Binder "=" "alias" Ident "in" Seq ;
+
+comment "{-" "-}" ;
