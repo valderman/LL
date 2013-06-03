@@ -1,0 +1,14 @@
+a, b, c, f : ~ (((a * b) * c) -o (a * (b * c))) |-
+let i , o = f in
+let ab , c = i in
+let a , b = ab in
+connect via o
+    { a' -> a <-> a'
+    ; bc' -> connect via bc'
+        { b' -> b' <-> b
+        ; c' -> c' <-> c
+        }
+    }
+
+
+

@@ -16,12 +16,17 @@ transIdent x = case x of
 
 transProg :: Prog -> Result
 transProg x = case x of
-  Deriv aliass binders seq  -> failure x
+  Deriv aliass tyvars binders seq  -> failure x
 
 
 transAlias :: Alias -> Result
 transAlias x = case x of
   TyAlias id type'  -> failure x
+
+
+transTyVar :: TyVar -> Result
+transTyVar x = case x of
+  TyVar id  -> failure x
 
 
 transBinder :: Binder -> Result

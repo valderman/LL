@@ -89,7 +89,7 @@ instance Print Ident where
 
 instance Print Prog where
   prt i e = case e of
-   Deriv aliass binders seq -> prPrec i 0 (concatD [prt 0 aliass , prt 0 binders , doc (showString "|-") , prt 0 seq])
+   Deriv aliass tyvars binders seq -> prPrec i 0 (concatD [prt 0 aliass , prt 0 tyvars , prt 0 binders , doc (showString "|-") , prt 0 seq])
 
 
 instance Print Alias where
@@ -99,6 +99,14 @@ instance Print Alias where
   prtList es = case es of
    [] -> (concatD [])
    x:xs -> (concatD [prt 0 x , doc (showString ";") , prt 0 xs])
+
+instance Print TyVar where
+  prt i e = case e of
+   TyVar id -> prPrec i 0 (concatD [prt 0 id])
+
+  prtList es = case es of
+   [] -> (concatD [])
+   x:xs -> (concatD [prt 0 x , doc (showString ",") , prt 0 xs])
 
 instance Print Binder where
   prt i e = case e of

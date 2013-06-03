@@ -1,0 +1,17 @@
+f : ~(forall a . forall b . forall c . ((a * b) * c) -o (a * (b * c))) |-
+let a @ f = f in
+let b @ f = f in
+let c @ f = f in
+let i , o = f in
+let ab , c = i in
+let a , b = ab in
+connect via o
+    { a' -> a <-> a'
+    ; bc' -> connect via bc'
+        { b' -> b' <-> b
+        ; c' -> c' <-> c
+        }
+    }
+
+
+

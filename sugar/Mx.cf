@@ -1,10 +1,13 @@
-Deriv.  Prog ::= [Alias] [Binder] "|-" Seq ;
+Deriv.  Prog ::= [Alias] [TyVar] [Binder] "|-" Seq ;
 
 separator Binder "," ;
-separator Ident "," ;
+separator Ident ","  ;
+terminator TyVar "," ;
 terminator Alias ";" ;
 
 TyAlias. Alias ::= "type" Ident "=" Type ;
+
+TyVar.   TyVar ::= Ident;
 
 Binder. Binder  ::= Ident ":" Type ;
 

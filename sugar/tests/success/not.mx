@@ -1,5 +1,6 @@
+type Bool = 1 + 1;
 
-not : ~ ((1+1) -o (1+1)) |-
+not : ~ (Bool -o Bool) |-
     let x,r = not in
     case x of
         { inl y -> let () = y in let u = snd r in u

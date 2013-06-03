@@ -8,6 +8,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Error
+import Control.Monad.Reader
 
 import Pretty()
 
@@ -21,7 +22,7 @@ import qualified AbsMx as C
 import AbsMx (Ident(..),Choice(..),Binder(..),Prog)
 
 desugar :: Prog -> Either Err Deriv
-desugar (C.Deriv [] bs s) = runT $ do
+desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
     bs' <- forM bs $ \ (Binder x t) -> (,) x <$> bind x t
     (s',sb) <- trSeq s
     ctx <- sequence
@@ -31,13 +32,21 @@ desugar (C.Deriv [] bs s) = runT $ do
         | x <- sb
         ]
     forM_ bs' $ \ (b,_) -> when (b `notElem` sb) (throwError (IdentifierEscapes b))
-    return $ Deriv [] ctx s'
+    return $ Deriv (map name init_tyvars) ctx s'
+  where
+    init_alias  = M.fromList [ (x,t) | C.TyAlias x t <- as ]
+    init_tyvars = [ tv | C.TyVar tv <- tvs ]
 
-newtype T a = T { unT :: StateT (Map Ident Type) (Either Err) a }
-  deriving (Functor,Applicative,Monad,MonadState (Map Ident Type),MonadError Err)
+newtype T a = T { unT :: ReaderT (Map Ident C.Type) (StateT ([Ident],Map Ident Type) (Either Err)) a }
+  deriving
+    ( Functor, Applicative, Monad
+    , MonadState ([Ident],Map Ident Type)     -- type variables and identifiers in scope
+    , MonadReader (Map Ident C.Type)  -- type aliases
+    , MonadError Err
+    )
 
-runT :: T a -> Either Err a
-runT (T m) = evalStateT m M.empty
+runT :: Map Ident C.Type -> [Ident] -> T a -> Either Err a
+runT as tvs (T m) = evalStateT (runReaderT m as) (tvs,M.empty)
 
 data Err
     = MismatchTypes Seq_ Ident Ident Type Type
@@ -57,7 +66,7 @@ instance Error Err where
 data Seq_ = Ax_ | Cut_
   deriving Show
 
-data Type_ = Par_ | Tensor_ | Plus_ | With_ | Bot_ | One_ | Zero_
+data Type_ = Par_ | Tensor_ | Plus_ | With_ | Bot_ | One_ | Zero_ | Forall_ | Exists_
   deriving Show
 
 todo :: String -> a
@@ -68,42 +77,65 @@ name (Ident n) = n
 
 eat :: Ident -> T Type
 eat x = do
-    m <- get
+    (tvs,m) <- get
     case (M.lookup x m,M.delete x m) of
-        (Just t,m') -> put m' >> return t
+        (Just t,m') -> put (tvs,m') >> return t
         (Nothing,_) -> throwError (UnboundIdentifier x)
 
 -- watch out for shadowing
 bind :: Ident -> C.Type -> T Type
-bind x t = bind' x t' >> return t'
-  where t' = trType t
+bind x t = trType t >>= \ t' -> bind' x t' >> return t'
+
 bind' :: Ident -> Type -> T ()
 bind' x t = do
-    m <- get
+    (tvs,m) <- get
     case (M.lookup x m,M.insert x t m) of
         (Just t',_)  -> throwError (BoundIdentifier x t t')
-        (Nothing,m') -> put m'
+        (Nothing,m') -> put (tvs,m')
 
-trType :: C.Type -> Type
-trType = go where
+locally :: T a -> T a
+locally u = do
+    x <- get
+    r <- u
+    put x
+    return r
+
+insertTyVar :: Ident -> T ()
+insertTyVar x = do
+    (tvs,m) <- get
+    put (x:tvs,M.map (apply wk) m)
+    -- all identifiers gets their variables shifted
+
+trType :: C.Type -> T Type
+trType = locally . go
+  where
     go t = case t of
-        C.Tensor x y   -> go x :⊗: go y
-        C.Par x y      -> go x :|: go y
-        C.Plus x y     -> go x :⊕: go y
-        C.Choice x y   -> go x :&: go y
-        C.One          -> One
-        C.Bot          -> Bot
-        C.Top          -> Top
-        C.Zero         -> Zero
-        C.Lollipop x y -> go x ⊸ go y
-        C.Bang x       -> Bang (go x)
-        C.Quest x      -> Quest (go x)
-        C.Neg x        -> neg (go x)
-        C.Forall i x   -> todo "trType forall"
-        C.Exists i x   -> todo "trType exists"
+        C.Tensor x y   -> (:⊗:) <$> go x <*> go y
+        C.Par x y      -> (:|:) <$> go x <*> go y
+        C.Plus x y     -> (:⊕:) <$> go x <*> go y
+        C.Choice x y   -> (:&:) <$> go x <*> go y
+        C.One          -> return One
+        C.Bot          -> return Bot
+        C.Top          -> return Top
+        C.Zero         -> return Zero
+        C.Lollipop x y -> (⊸) <$> go x <*> go y
+        C.Bang x       -> Bang <$> go x
+        C.Quest x      -> Quest <$> go x
+        C.Neg x        -> neg <$> go x
+        C.Forall i x   -> insertTyVar i >> (Forall (name i) <$> go x)
+        C.Exists i x   -> insertTyVar i >> (Exists (name i) <$> go x)
+        C.TyId x       -> do
+            (tvs,_) <- get
+            case findIndex (== x) tvs of
+                Just i -> return (var i)
+                Nothing -> do
+                    as <- ask
+                    case M.lookup x as of
+                        Just t  -> go t
+                        Nothing -> throwError (UnboundIdentifier x)
 
 negTy :: C.Type -> C.Type
-negTy = go where
+negTy = C.Neg {- go where
     go t = case t of
         C.Tensor x y   -> C.Par (go x) (go y)
         C.Par x y      -> C.Tensor (go x) (go y)
@@ -119,6 +151,7 @@ negTy = go where
         C.Neg x        -> x
         C.Forall i x   -> todo "negTy forall"
         C.Exists i x   -> todo "negTy exists"
+        C.TyId x       -> C.Neg (C.TyId x) -}
 
 reorder :: (Int -> Int) -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
 reorder k z (s,zb) = case findIndex (== z) zb of
@@ -138,6 +171,11 @@ tensorOrder x y (s,bs) = case findIndex (== x) bs of
             in  return (exchange pm s,l,r)
         Nothing -> throwError (IdentifierEscapes y)
     Nothing -> throwError (IdentifierEscapes x)
+
+munch :: Ident -> [Ident] -> T ([Ident],[Ident])
+munch x b = case break (== x) b of
+    (l,_:r) -> return (l,r)
+    _       -> throwError (IdentifierEscapes x)
 
 tensorOrder' :: Int -> Int -> [a] -> (Permutation,[a],[a])
 tensorOrder' x y bs = (pm',l,r)
@@ -174,7 +212,7 @@ trSeq seq = case seq of
 
         when (tx' /= neg ty') (throwError (MismatchTypes Cut_ x y tx' ty'))
 
-        return (Cut (name x) (name y) tx' (length xb) sx' sy',xb ++ yb)
+        return (Cut (name x) (name y) ty' (length xb) sx' sy',xb ++ yb)
 
     C.TensorSeq x y z s -> do
 
@@ -240,9 +278,8 @@ trSeq seq = case seq of
         bind' x (choice ch tx ty)
         (s',b) <- trSeq s
 
-        case break (== x) b of
-            (l,_:r) -> return (With (name x) (choice ch True False) (length l) s',l ++ [z] ++ r)
-            _       -> throwError (IdentifierEscapes x)
+        (l,r) <- munch x b
+        return (With (name x) (choice ch True False) (length l) s',l ++ [z] ++ r)
 
     C.Bottom x -> do
 
@@ -263,7 +300,36 @@ trSeq seq = case seq of
         _rest <- mapM eat xs
         return (SZero 0,x:xs) -- TODO: this actually has a bigger context
 
-    C.Hole -> throwError . Hole . M.toList =<< get
+    -- let x = z @ t in s
+    C.Pack x z t s -> do
+
+        t' <- trType t
+
+        tz <- eat z
+        tx <- case tz of
+            Forall _ tu -> return (apply (subst0 t') tu)
+            _           -> throwError (TypeError z tz Forall_)
+
+        bind' x tx
+        (s',b) <- trSeq s
+        (l,r) <- munch x b
+        return (TApp tz (name x) (length l) t' s',l ++ [z] ++ r)
+
+    -- let a @ x = z in s
+    C.Unpack a x z s -> do
+
+        tz <- eat z
+        tx <- case tz of
+            Exists _ tu -> return tu
+            _           -> throwError (TypeError z tz Exists_)
+
+        insertTyVar a
+        bind' x tx
+        (s',b) <- trSeq s
+        (l,r) <- munch x b
+        return (TUnpack (name x) (length l) s',l ++ [z] ++ r)
+
+    C.Hole -> throwError . Hole . M.toList . snd =<< get
 
     -- TODO: quantifiers and exponentials
 

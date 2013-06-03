@@ -5,11 +5,15 @@ module AbsMx where
 
 newtype Ident = Ident String deriving (Eq,Ord,Show)
 data Prog =
-   Deriv [Alias] [Binder] Seq
+   Deriv [Alias] [TyVar] [Binder] Seq
   deriving (Eq,Ord,Show)
 
 data Alias =
    TyAlias Ident Type
+  deriving (Eq,Ord,Show)
+
+data TyVar =
+   TyVar Ident
   deriving (Eq,Ord,Show)
 
 data Binder =
