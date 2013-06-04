@@ -1,0 +1,5 @@
+a : 1, u : _|_ |-
+let a' = alias a in
+ignore a in
+ignore a' in
+u

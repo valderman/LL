@@ -1,0 +1,2 @@
+a : 1 |-
+let z = demand a in z

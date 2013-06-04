@@ -71,7 +71,7 @@ data Err
     | UnboundIdentifier Ident
     | BoundIdentifier Ident Type Type
     | IdentifierEscapes Ident
-    | TypeError Ident Type Type_
+    | TypeError Ident Type Type
     | NotBang Ident Type Ident
     | PermutationError [Ident] [Ident]
     | Fail String
@@ -82,9 +82,6 @@ instance Error Err where
     strMsg = Fail
 
 data Seq_ = Ax_ | Cut_
-  deriving Show
-
-data Type_ = Par_ | Tensor_ | Plus_ | With_ | Bot_ | One_ | Zero_ | Forall_ | Exists_ | Bang_ | Quest_
   deriving Show
 
 todo :: String -> a
@@ -204,6 +201,26 @@ isBang :: Type -> Bool
 isBang Bang{} = True
 isBang _      = False
 
+matchType :: Ident -> Type -> Type -> T [Type]
+matchType z t0 t1 = maybe (throwError (TypeError z t0 t1)) return (go t0 t1)
+  where
+    go :: Type -> Type -> Maybe [Type]
+    go (a :⊗: b) (x :⊗: y) = (++) <$> go a x <*> go b y
+    go (a :|: b) (x :|: y) = (++) <$> go a x <*> go b y
+    go (a :⊕: b) (x :⊕: y) = (++) <$> go a x <*> go b y
+    go (a :&: b) (x :&: y) = (++) <$> go a x <*> go b y
+    go (Bang u)     (Bang v)     = go u v
+    go (Quest u)    (Quest v)    = go u v
+    go (Forall _ u) (Forall _ v) = go u v
+    go (Exists _ u) (Exists _ v) = go u v
+    go Meta{}       t            = return [t]
+    go u            v
+        | u == v    = return []
+        | otherwise = mzero
+
+__ :: Type
+__ = meta ""
+
 -- Returns the translated sequents and its context
 trSeq :: C.Seq -> T (Seq,[Ident])
 trSeq sq = case sq of
@@ -236,9 +253,7 @@ trSeq sq = case sq of
 
         tz <- eat z
 
-        (tx,ty) <- case tz of
-            tx :⊗: ty -> return (tx,ty)
-            _         -> throwError (TypeError z tz Tensor_)
+        [tx,ty] <- matchType z (__ :⊗: __) tz
 
         bind' x tx
         bind' y ty
@@ -250,9 +265,7 @@ trSeq sq = case sq of
 
         tz <- eat z
 
-        (tx,ty) <- case tz of
-            tx :|: ty -> return (tx,ty)
-            _         -> throwError (TypeError z tz Par_)
+        [tx,ty] <- matchType z (__ :|: __) tz
 
         bind' x tx
         (sx',xb) <- putLast x =<< trSeq sx
@@ -266,10 +279,7 @@ trSeq sq = case sq of
     C.Case (i -> z) (i -> x) sx (i -> y) sy -> do
 
         tz <- eat z
-        (tx,ty) <- case tz of
-            tx :⊕: ty -> return (tx,ty)
-            _         -> throwError (TypeError z tz Plus_)
-
+        [tx,ty] <- matchType z (__ :⊕: __) tz
 
         ctx <- get
 
@@ -289,9 +299,7 @@ trSeq sq = case sq of
     C.ChoiceSeq (i -> x) ch (i -> z) s -> do
 
         tz <- eat z
-        (tx,ty) <- case tz of
-            tx :&: ty -> return (tx,ty)
-            _         -> throwError (TypeError z tz With_)
+        [tx,ty] <- matchType z (__ :&: __) tz
 
         (s',l,r) <- bindTrSeqMunch x (choice ch tx ty) s
         return (With (name x) (choice ch True False) (length l) s',l ++ [z] ++ r)
@@ -299,19 +307,19 @@ trSeq sq = case sq of
     C.Bottom (i -> x) -> do
 
         tx <- eat x
-        when (tx /= Bot) (throwError (TypeError x tx Bot_))
+        [] <- matchType x Bot tx
         return (SBot,[x])
 
     C.Unit (i -> x) s -> do
 
         tx <- eat x
-        when (tx /= One) (throwError (TypeError x tx One_))
+        [] <- matchType x One tx
         (s',b) <- trSeq s
         return (SOne 0 s',x:b)
 
     C.Crash (i -> x) (map i -> xs) -> do
         tx <- eat x
-        when (tx /= Zero) (throwError (TypeError x tx Zero_))
+        [] <- matchType x Zero tx
         _rest <- mapM eat xs
         return (SZero 0,x:xs) -- TODO: this actually has a bigger context
 
@@ -321,9 +329,7 @@ trSeq sq = case sq of
         t' <- trType t
 
         tz <- eat z
-        tx <- case tz of
-            Forall _ tu -> return (apply (subst0 t') tu)
-            _           -> throwError (TypeError z tz Forall_)
+        [apply (subst0 t') -> tx] <- matchType z (Forall "" __) tz
 
         (s',l,r) <- bindTrSeqMunch x tx s
         return (TApp tz (name x) (length l) t' s',l ++ [z] ++ r)
@@ -332,9 +338,7 @@ trSeq sq = case sq of
     C.Unpack (i -> a) (i -> x) (i -> z) s -> do
 
         tz <- eat z
-        tx <- case tz of
-            Exists _ tu -> return tu
-            _           -> throwError (TypeError z tz Exists_)
+        [tx] <- matchType z (Exists "" __) tz
 
         insertTyVar a
         (s',l,r) <- bindTrSeqMunch x tx s
@@ -345,10 +349,7 @@ trSeq sq = case sq of
     C.Offer (i -> x) (i -> z) s -> do
 
         tz <- eat z
-        tx <- case tz of
-            Quest t -> return t
-            _       -> throwError (TypeError z tz Quest_)
-
+        [tx] <- matchType z (Quest __) tz
 
         k <- saveCtx
 
@@ -366,9 +367,7 @@ trSeq sq = case sq of
     C.Demand (i -> x) (i -> z) s -> do
 
         tz <- eat z
-        tx <- case tz of
-            Bang t -> return t
-            _      -> throwError (TypeError z tz Bang_)
+        [tx] <- matchType z (Bang __) tz
 
         (s',l,r) <- bindTrSeqMunch x tx s
         return (Demand (name x) tz (length l) s',l ++ [z] ++ r)
@@ -377,9 +376,7 @@ trSeq sq = case sq of
     C.Ignore (i -> z) s -> do
 
         tz <- eat z
-        case tz of
-            Bang{} -> return ()
-            _      -> throwError (TypeError z tz Bang_)
+        [_] <- matchType z (Bang __) tz
 
         (s',b) <- trSeq s
         return (Ignore 0 s', z : b)
@@ -388,9 +385,7 @@ trSeq sq = case sq of
     C.Alias (i -> z') (i -> z) s -> do
 
         tz <- typeOf z
-        case tz of
-            Bang{} -> return ()
-            _      -> throwError (TypeError z tz Bang_)
+        [_] <- matchType z (Bang __) tz
 
         bind' z' tz
 
