@@ -67,15 +67,29 @@ runT as tvs (T m) = evalStateT (runReaderT m as) (tvs,M.empty)
 
 data Err
     = MismatchTypes Seq_ Ident Ident Type Type
+    -- ^ Ax and Cut with types not matching up
     | InsufficientTypeInfo Ident Ident
+    -- ^ Cut with no type information
     | UnboundIdentifier Ident
-    | BoundIdentifier Ident Type Type
+    -- ^ Unbound
+    | BoundIdentifier Ident Type Ident Type
+    -- ^ Identifier shadowed
+    --   @BoundIdentifier x t1 y t2@ means x : t1 tried to be bound,
+    --   but is already bound at y : t2 (hopefully at another position in the source code!)
     | IdentifierEscapes Ident
+    -- ^ An identifier that had to be used wasn't
     | TypeError Ident Type Type
+    -- ^ Type error
+    --   @TypeError z t1 t2@ means z should have a type of form t1, but had t2
     | NotBang Ident Type Ident
+    -- ^ Offering (?-destruction) with non-bang typed identifiers in context
+    --   @NotBang x t z@ means x had type t which is not bang when offering for z
     | PermutationError [Ident] [Ident]
-    | Fail String
+    -- ^ Case with different contexts in the two branches
     | Hole [(Ident,Type)]
+    -- ^ The identifiers and their types in a hole
+    | Fail String
+    -- ^ Fail in the monad
   deriving Show
 
 instance Error Err where
@@ -101,16 +115,19 @@ eat x = do
     put (tvs,M.delete x m)
     return t
 
--- watch out for shadowing
 bind :: Ident -> C.Type -> T Type
 bind x t = trType t >>= \ t' -> bind' x t' >> return t'
 
 bind' :: Ident -> Type -> T ()
 bind' x t = do
     (tvs,m) <- get
-    case (M.lookup x m,M.insert x t m) of
-        (Just t',_)  -> throwError (BoundIdentifier x t t')
+    case (lookupWithKey x m,M.insert x t m) of
+        (Just (x',t'),_)  -> throwError (BoundIdentifier x t x' t')
+                             -- Shadowing is not allowed, so we throw an error here
         (Nothing,m') -> put (tvs,m')
+
+lookupWithKey :: Ord k => k -> Map k v -> Maybe (k,v)
+lookupWithKey k m = (`M.elemAt` m) <$> M.lookupIndex k m
 
 locally :: T a -> T a
 locally u = do
@@ -156,6 +173,11 @@ trType = locally . go
 negTy :: C.Type -> C.Type
 negTy = C.Neg
 
+munch :: Ident -> [Ident] -> T ([Ident],[Ident])
+munch x b = case break (== x) b of
+    (l,_:r) -> return (l,r)
+    _       -> throwError (IdentifierEscapes x)
+
 reorder :: (Int -> Int) -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
 reorder k z (s,zb) = case elemIndex z zb of
     Nothing -> throwError (IdentifierEscapes z)
@@ -174,11 +196,6 @@ tensorOrder x y (s,bs) = case elemIndex x bs of
             in  return (exchange pm s,l,r)
         Nothing -> throwError (IdentifierEscapes y)
     Nothing -> throwError (IdentifierEscapes x)
-
-munch :: Ident -> [Ident] -> T ([Ident],[Ident])
-munch x b = case break (== x) b of
-    (l,_:r) -> return (l,r)
-    _       -> throwError (IdentifierEscapes x)
 
 tensorOrder' :: Int -> Int -> [a] -> (Permutation,[a],[a])
 tensorOrder' x y bs = (pm',l,r)
@@ -321,7 +338,7 @@ trSeq sq = case sq of
         tx <- eat x
         [] <- matchType x Zero tx
         _rest <- mapM eat xs
-        return (SZero 0,x:xs) -- TODO: this actually has a bigger context
+        return (SZero 0,x:xs)
 
     -- let x = z @ t in s
     C.Pack (i -> x) (i -> z) t s -> do
@@ -345,7 +362,6 @@ trSeq sq = case sq of
         return (TUnpack (name x) (length l) s',l ++ [z] ++ r)
 
     -- offer x for z in s
-    -- let x = offer z in s (?)
     C.Offer (i -> x) (i -> z) s -> do
 
         tz <- eat z
@@ -389,6 +405,7 @@ trSeq sq = case sq of
 
         bind' z' tz
 
+        -- tensorOrder because the two identifiers need to be next to each other
         (s',l,r) <- tensorOrder z z' =<< trSeq s
         return (Alias (length l) (name z') s',l ++ [z] ++ r)
 
