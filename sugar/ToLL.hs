@@ -55,6 +55,7 @@ data Err
     | BoundIdentifier Ident Type Type
     | IdentifierEscapes Ident
     | TypeError Ident Type Type_
+    | NotBang Ident Type Ident
     | PermutationError [Ident] [Ident]
     | Fail String
     | Hole [(Ident,Type)]
@@ -177,6 +178,17 @@ tensorOrder' x y bs = (pm',l,r)
         | y < x = (y,swap y (y+1) `compose` swap x y )
     (bs',pm') = perm bs pm
     (l,_x:_y:r) = splitAt pos bs'
+
+saveCtx :: T (Ident -> Type)
+saveCtx = do
+    (_,m) <- get
+    return $ \ x -> case M.lookup x m of
+        Just t  -> t
+        Nothing -> error $ "saveCtx: internal error, lost identifier " ++ show x
+
+isBang :: Type -> Bool
+isBang Bang{} = True
+isBang _      = False
 
 -- Returns the translated sequents and its context
 trSeq :: C.Seq -> T (Seq,[Ident])
@@ -330,9 +342,19 @@ trSeq seq = case seq of
             Quest t -> return t
             _       -> throwError (TypeError z tz Quest_)
 
+
+        k <- saveCtx
+
         bind' x tx
         (s',b) <- trSeq s
         (l,r) <- munch x b
+
+        -- need to check that the types of l and r are all bang
+        -- (hence saveCtx to k)
+        forM_ (l ++ r) $ \ u -> do
+            let t = k u
+            unless (isBang t) (throwError (NotBang u t z))
+
         return (Offer (name x) (length l) s',l ++ [z] ++ r)
 
     -- let x = demand z in s
