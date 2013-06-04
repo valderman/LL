@@ -1,4 +1,4 @@
-{-# LANGUAGE EmptyDataDecls,KindSignatures,MultiParamTypeClasses,GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ViewPatterns,MultiParamTypeClasses,GeneralizedNewtypeDeriving #-}
 module ToLL where
 
 import Data.Map (Map)
@@ -13,17 +13,33 @@ import Control.Monad.Reader
 import Pretty()
 
 import Data.List (findIndex)
+import Data.Function (on)
+import Data.Ord (comparing)
 
 import LL hiding (exchange)
 
 import Perm
 
 import qualified AbsMx as C
-import AbsMx (Ident(..),Choice(..),Binder(..),Prog)
+import AbsMx (Id(..),Choice(..),Binder(..),Prog)
+
+data Ident = Ident { name :: String, pos :: (Int,Int) }
+
+instance Eq Ident where
+    (==) = (==) `on` name
+
+instance Ord Ident where
+    compare = comparing name
+
+instance Show Ident where
+    show (Ident n (y,x)) = show y ++ ":" ++ show x ++ ":" ++ n
+
+i :: Id -> Ident
+i (Id (p,s)) = Ident s p
 
 desugar :: Prog -> Either Err Deriv
 desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
-    bs' <- forM bs $ \ (Binder x t) -> (,) x <$> bind x t
+    bs' <- forM bs $ \ (Binder (i -> x) t) -> (,) x <$> bind x t
     (s',sb) <- trSeq s
     ctx <- sequence
         [ case lookup x bs' of
@@ -34,8 +50,8 @@ desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
     forM_ bs' $ \ (b,_) -> when (b `notElem` sb) (throwError (IdentifierEscapes b))
     return $ Deriv (map name init_tyvars) ctx s'
   where
-    init_alias  = M.fromList [ (x,t) | C.TyAlias x t <- as ]
-    init_tyvars = [ tv | C.TyVar tv <- tvs ]
+    init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) t <- as ]
+    init_tyvars = [ tv | C.TyVar (i -> tv) <- tvs ]
 
 newtype T a = T { unT :: ReaderT (Map Ident C.Type) (StateT ([Ident],Map Ident Type) (Either Err)) a }
   deriving
@@ -72,9 +88,6 @@ data Type_ = Par_ | Tensor_ | Plus_ | With_ | Bot_ | One_ | Zero_ | Forall_ | Ex
 
 todo :: String -> a
 todo = error . (++ " todo")
-
-name :: Ident -> Name
-name (Ident n) = n
 
 typeOf :: Ident -> T Type
 typeOf x = do
@@ -117,7 +130,7 @@ insertTyVar x = do
 trType :: C.Type -> T Type
 trType = locally . go
   where
-    go t = case t of
+    go t0 = case t0 of
         C.Tensor x y   -> (:⊗:) <$> go x <*> go y
         C.Par x y      -> (:|:) <$> go x <*> go y
         C.Plus x y     -> (:⊕:) <$> go x <*> go y
@@ -130,12 +143,12 @@ trType = locally . go
         C.Bang x       -> Bang <$> go x
         C.Quest x      -> Quest <$> go x
         C.Neg x        -> neg <$> go x
-        C.Forall i x   -> insertTyVar i >> (Forall (name i) <$> go x)
-        C.Exists i x   -> insertTyVar i >> (Exists (name i) <$> go x)
-        C.TyId x       -> do
+        C.Forall (i -> x) t -> insertTyVar x >> (Forall (name x) <$> go t)
+        C.Exists (i -> x) t -> insertTyVar x >> (Exists (name x) <$> go t)
+        C.TyId (i -> x)     -> do
             (tvs,_) <- get
             case findIndex (== x) tvs of
-                Just i -> return (var i)
+                Just ix -> return (var ix)
                 Nothing -> do
                     as <- ask
                     case M.lookup x as of
@@ -172,12 +185,12 @@ munch x b = case break (== x) b of
 tensorOrder' :: Int -> Int -> [a] -> (Permutation,[a],[a])
 tensorOrder' x y bs = (pm',l,r)
   where
-    (pos,pm)
+    (p,pm)
         | x < y = (x,swap (x+1) y)
         | y + 1 == x = (y,swap x y)
         | y < x = (y,swap y (y+1) `compose` swap x y )
     (bs',pm') = perm bs pm
-    (l,_x:_y:r) = splitAt pos bs'
+    (l,_x:_y:r) = splitAt p bs'
 
 saveCtx :: T (Ident -> Type)
 saveCtx = do
@@ -192,9 +205,9 @@ isBang _      = False
 
 -- Returns the translated sequents and its context
 trSeq :: C.Seq -> T (Seq,[Ident])
-trSeq seq = case seq of
+trSeq sq = case sq of
 
-    C.Ax x y -> do
+    C.Ax (i -> x) (i -> y) -> do
         tx <- eat x
         ty <- eat y
         when (tx /= neg ty) (throwError (MismatchTypes Ax_ x y tx ty))
@@ -203,10 +216,10 @@ trSeq seq = case seq of
     C.Cut b1 sx b2 sy -> do
 
         ((x,tx),(y,ty)) <- case (b1,b2) of
-            (C.BNothing x,C.BNothing y) -> throwError (InsufficientTypeInfo x y)
-            (C.BJust x tx,C.BNothing y) -> return ((x,tx),(y,negTy tx))
-            (C.BNothing x,C.BJust y ty) -> return ((x,negTy ty),(y,ty))
-            (C.BJust x tx,C.BJust y ty) -> return ((x,tx),(y,ty))
+            (C.BNothing (i -> x),C.BNothing (i -> y)) -> throwError (InsufficientTypeInfo x y)
+            (C.BJust (i -> x) tx,C.BNothing (i -> y)) -> return ((x,tx),(y,negTy tx))
+            (C.BNothing (i -> x),C.BJust (i -> y) ty) -> return ((x,negTy ty),(y,ty))
+            (C.BJust (i -> x) tx,C.BJust (i -> y) ty) -> return ((x,tx),(y,ty))
 
         tx' <- bind x tx
         (sx',xb) <- putFirst x =<< trSeq sx
@@ -218,7 +231,7 @@ trSeq seq = case seq of
 
         return (Cut (name x) (name y) ty' (length xb) sx' sy',xb ++ yb)
 
-    C.TensorSeq x y z s -> do
+    C.TensorSeq (i -> x) (i -> y) (i -> z) s -> do
 
         tz <- eat z
 
@@ -232,7 +245,7 @@ trSeq seq = case seq of
 
         return (Cross tz (name x) (name y) (length l) s',l ++ [z] ++ r)
 
-    C.ParSeq z x sx y sy -> do
+    C.ParSeq (i -> z) (i -> x) sx (i -> y) sy -> do
 
         tz <- eat z
 
@@ -249,7 +262,7 @@ trSeq seq = case seq of
         return (Par tz (name x) (name y) (length xb) sx' sy',xb ++ [z] ++ yb)
 
     -- :⊕: :&:
-    C.Case z x sx y sy -> do
+    C.Case (i -> z) (i -> x) sx (i -> y) sy -> do
 
         tz <- eat z
         (tx,ty) <- case tz of
@@ -272,7 +285,7 @@ trSeq seq = case seq of
 
         return (Plus (name x) (name y) 0 sx' (exchange p sy'),z:xb)
 
-    C.ChoiceSeq x ch z s -> do
+    C.ChoiceSeq (i -> x) ch (i -> z) s -> do
 
         tz <- eat z
         (tx,ty) <- case tz of
@@ -285,27 +298,27 @@ trSeq seq = case seq of
         (l,r) <- munch x b
         return (With (name x) (choice ch True False) (length l) s',l ++ [z] ++ r)
 
-    C.Bottom x -> do
+    C.Bottom (i -> x) -> do
 
         tx <- eat x
         when (tx /= Bot) (throwError (TypeError x tx Bot_))
         return (SBot,[x])
 
-    C.Unit x s -> do
+    C.Unit (i -> x) s -> do
 
         tx <- eat x
         when (tx /= One) (throwError (TypeError x tx One_))
         (s',b) <- trSeq s
         return (SOne 0 s',x:b)
 
-    C.Crash x xs -> do
+    C.Crash (i -> x) (map i -> xs) -> do
         tx <- eat x
         when (tx /= Zero) (throwError (TypeError x tx Zero_))
         _rest <- mapM eat xs
         return (SZero 0,x:xs) -- TODO: this actually has a bigger context
 
     -- let x = z @ t in s
-    C.Pack x z t s -> do
+    C.Pack (i -> x) (i -> z) t s -> do
 
         t' <- trType t
 
@@ -320,7 +333,7 @@ trSeq seq = case seq of
         return (TApp tz (name x) (length l) t' s',l ++ [z] ++ r)
 
     -- let a @ x = z in s
-    C.Unpack a x z s -> do
+    C.Unpack (i -> a) (i -> x) (i -> z) s -> do
 
         tz <- eat z
         tx <- case tz of
@@ -335,7 +348,7 @@ trSeq seq = case seq of
 
     -- offer x for z in s
     -- let x = offer z in s (?)
-    C.Offer x z s -> do
+    C.Offer (i -> x) (i -> z) s -> do
 
         tz <- eat z
         tx <- case tz of
@@ -358,7 +371,7 @@ trSeq seq = case seq of
         return (Offer (name x) (length l) s',l ++ [z] ++ r)
 
     -- let x = demand z in s
-    C.Demand x z s -> do
+    C.Demand (i -> x) (i -> z) s -> do
 
         tz <- eat z
         tx <- case tz of
@@ -371,7 +384,7 @@ trSeq seq = case seq of
         return (Demand (name x) tz (length l) s',l ++ [z] ++ r)
 
     -- ignore z in s
-    C.Ignore z s -> do
+    C.Ignore (i -> z) s -> do
 
         tz <- eat z
         case tz of
@@ -382,7 +395,7 @@ trSeq seq = case seq of
         return (Ignore 0 s', z : b)
 
     -- let z' = alias z in s
-    C.Alias z' z s -> do
+    C.Alias (i -> z') (i -> z) s -> do
 
         tz <- typeOf z
         case tz of

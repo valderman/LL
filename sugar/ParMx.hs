@@ -16,10 +16,10 @@ type HappyAny = Happy_GHC_Exts.Any
 #else
 type HappyAny = forall a . a
 #endif
-happyIn20 :: (Ident) -> (HappyAbsSyn )
+happyIn20 :: (Id) -> (HappyAbsSyn )
 happyIn20 x = Happy_GHC_Exts.unsafeCoerce# x
 {-# INLINE happyIn20 #-}
-happyOut20 :: (HappyAbsSyn ) -> (Ident)
+happyOut20 :: (HappyAbsSyn ) -> (Id)
 happyOut20 x = Happy_GHC_Exts.unsafeCoerce# x
 {-# INLINE happyOut20 #-}
 happyIn21 :: (Prog) -> (HappyAbsSyn )
@@ -34,10 +34,10 @@ happyIn22 x = Happy_GHC_Exts.unsafeCoerce# x
 happyOut22 :: (HappyAbsSyn ) -> ([Binder])
 happyOut22 x = Happy_GHC_Exts.unsafeCoerce# x
 {-# INLINE happyOut22 #-}
-happyIn23 :: ([Ident]) -> (HappyAbsSyn )
+happyIn23 :: ([Id]) -> (HappyAbsSyn )
 happyIn23 x = Happy_GHC_Exts.unsafeCoerce# x
 {-# INLINE happyIn23 #-}
-happyOut23 :: (HappyAbsSyn ) -> ([Ident])
+happyOut23 :: (HappyAbsSyn ) -> ([Id])
 happyOut23 x = Happy_GHC_Exts.unsafeCoerce# x
 {-# INLINE happyOut23 #-}
 happyIn24 :: ([TyVar]) -> (HappyAbsSyn )
@@ -211,9 +211,9 @@ happy_n_nonterms = 18 :: Int
 
 happyReduce_17 = happySpecReduce_1  0# happyReduction_17
 happyReduction_17 happy_x_1
-	 =  case happyOutTok happy_x_1 of { (PT _ (TV happy_var_1)) -> 
+	 =  case happyOutTok happy_x_1 of { happy_var_1 -> 
 	happyIn20
-		 (Ident happy_var_1
+		 (Id (mkPosToken happy_var_1)
 	)}
 
 happyReduce_18 = happyReduce 5# 1# happyReduction_18
@@ -836,7 +836,7 @@ happyNewToken action sts stk (tk:tks) =
 	PT _ (TS _ 45) -> cont 45#;
 	PT _ (TS _ 46) -> cont 46#;
 	PT _ (TS _ 47) -> cont 47#;
-	PT _ (TV happy_dollar_dollar) -> cont 48#;
+	PT _ (T_Id _) -> cont 48#;
 	_ -> cont 49#;
 	_ -> happyError' (tk:tks)
 	}
@@ -860,7 +860,7 @@ pProg tks = happySomeParser where
 pListBinder tks = happySomeParser where
   happySomeParser = happyThen (happyParse 1# tks) (\x -> happyReturn (happyOut22 x))
 
-pListIdent tks = happySomeParser where
+pListId tks = happySomeParser where
   happySomeParser = happyThen (happyParse 2# tks) (\x -> happyReturn (happyOut23 x))
 
 pListTyVar tks = happySomeParser where

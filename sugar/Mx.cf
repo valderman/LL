@@ -1,19 +1,19 @@
 Deriv.  Prog ::= [Alias] [TyVar] [Binder] "|-" Seq ;
 
 separator Binder "," ;
-separator Ident ","  ;
+separator Id ","  ;
 terminator TyVar "," ;
 terminator Alias ";" ;
 
-TyAlias. Alias ::= "type" Ident "=" Type ;
+TyAlias. Alias ::= "type" Id "=" Type ;
 
-TyVar.   TyVar ::= Ident;
+TyVar.   TyVar ::= Id;
 
-Binder. Binder  ::= Ident ":" Type ;
+Binder. Binder  ::= Id ":" Type ;
 
 -- Maybe binder
-BJust.    MBinder ::= Ident ":" Type ;
-BNothing. MBinder ::= Ident ;
+BJust.    MBinder ::= Id ":" Type ;
+BNothing. MBinder ::= Id ;
 
 -- Multiplicatives
 Tensor.   Type4 ::= Type4 "*" Type5 ;
@@ -29,14 +29,14 @@ Zero.     Type5 ::= "0" ;
 
 Lollipop. Type2 ::= Type "-o" Type2 ;
 
-TyId.     Type5 ::= Ident ;
+TyId.     Type5 ::= Id ;
 
 Bang.     Type5 ::= "!" Type5 ;
 Quest.    Type5 ::= "?" Type5 ;
 Neg.      Type5 ::= "~" Type5 ;
 
-Forall.   Type ::= "forall" Ident "." Type ;
-Exists.   Type ::= "exists" Ident "." Type ;
+Forall.   Type ::= "forall" Id "." Type ;
+Exists.   Type ::= "exists" Id "." Type ;
 
 coercions Type 5 ;
 
@@ -44,21 +44,25 @@ coercions Type 5 ;
 Fst.       Choice ::= "fst" ;
 Snd.       Choice ::= "snd" ;
 
-Ax.        Seq ::= Ident "<->" Ident;
+Ax.        Seq ::= Id "<->" Id;
 Cut.       Seq ::= "connect" "{" MBinder "->" Seq ";" MBinder "->" Seq "}";
-ParSeq.    Seq ::= "connect" "via" Ident "{" Ident "->" Seq ";" Ident "->" Seq "}";
-TensorSeq. Seq ::= "let" Ident "," Ident "=" Ident "in" Seq;
-ChoiceSeq. Seq ::= "let" Ident "=" Choice Ident "in" Seq;
-Case.      Seq ::= "case" Ident "of" "{" "inl" Ident "->" Seq ";" "inr" Ident "->" Seq "}" ;
-Bottom.    Seq ::= Ident ;
-Unit.      Seq ::= "let" "()" "=" Ident "in" Seq ;
-Crash.     Seq ::= "crash" Ident "along" [Ident];
-Pack.      Seq ::= "let" Ident "=" Ident "@" Type "in" Seq ;
-Unpack.    Seq ::= "let" Ident "@" Ident "=" Ident "in" Seq ;
-Offer.     Seq ::= "offer" Ident "for" Ident "in" Seq ;
-Demand.    Seq ::= "let" Ident "=" "demand" Ident "in" Seq ;
-Ignore.    Seq ::= "ignore" Ident "in" Seq ;
-Alias.     Seq ::= "let" Ident "=" "alias" Ident "in" Seq ;
+ParSeq.    Seq ::= "connect" "via" Id "{" Id "->" Seq ";" Id "->" Seq "}";
+TensorSeq. Seq ::= "let" Id "," Id "=" Id "in" Seq;
+ChoiceSeq. Seq ::= "let" Id "=" Choice Id "in" Seq;
+Case.      Seq ::= "case" Id "of" "{" "inl" Id "->" Seq ";" "inr" Id "->" Seq "}" ;
+Bottom.    Seq ::= Id ;
+Unit.      Seq ::= "let" "()" "=" Id "in" Seq ;
+Crash.     Seq ::= "crash" Id "along" [Id];
+Pack.      Seq ::= "let" Id "=" Id "@" Type "in" Seq ;
+Unpack.    Seq ::= "let" Id "@" Id "=" Id "in" Seq ;
+Offer.     Seq ::= "offer" Id "for" Id "in" Seq ;
+Demand.    Seq ::= "let" Id "=" "demand" Id "in" Seq ;
+Ignore.    Seq ::= "ignore" Id "in" Seq ;
+Alias.     Seq ::= "let" Id "=" "alias" Id "in" Seq ;
 Hole.      Seq ::= "_" ;
 
+position token Id (letter)((letter|digit|'-'|'_'|'\'')*) ;
+
 comment "{-" "-}" ;
+comment "--" ;
+
