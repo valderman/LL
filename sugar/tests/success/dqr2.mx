@@ -1,0 +1,6 @@
+a, x : ? ? ~ a, y : ! a  |-
+offer x' for x in
+offer u for x' in
+let v = demand y in
+v <-> u
+
