@@ -32,6 +32,7 @@ run v p s = let ts = myLLexer s in case p ts of
                           putStrV v "Tokens:"
                           putStrV v $ show ts
                           putStrLn s
+                          exitWith (ExitFailure 2)
            Ok  tree -> do putStrLn "\nParse Successful!"
                           showTree v tree
                           case desugar tree of

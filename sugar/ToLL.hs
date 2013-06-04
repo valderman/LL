@@ -22,7 +22,7 @@ import LL hiding (exchange)
 import Perm
 
 import qualified AbsMx as C
-import AbsMx (Id(..),Choice(..),Binder(..),Prog)
+import AbsMx (Id(..),Choice(..),Binder(..),Along(..),Prog)
 
 data Ident = Ident { name :: String, pos :: (Int,Int) }
 
@@ -334,7 +334,7 @@ trSeq sq = case sq of
         (s',b) <- trSeq s
         return (SOne 0 s',x:b)
 
-    C.Crash (i -> x) (map i -> xs) -> do
+    C.Crash (i -> x) (along -> xs) -> do
         tx <- eat x
         [] <- matchType x Zero tx
         _rest <- mapM eat xs
@@ -421,6 +421,10 @@ bindTrSeqMunch x tx s = do
 choice :: Choice -> a -> a -> a
 choice Fst x _ = x
 choice Snd _ y = y
+
+along :: Along -> [Ident]
+along (AJust xs) = map i xs
+along ANothing   = []
 
 -- Smart constructor for exchange
 exchange :: Permutation -> Seq -> Seq

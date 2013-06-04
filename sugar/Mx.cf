@@ -1,7 +1,7 @@
 Deriv.  Prog ::= [Alias] [TyVar] [Binder] "|-" Seq ;
 
 separator Binder "," ;
-separator Id ","  ;
+separator nonempty Id ","  ;
 terminator TyVar "," ;
 terminator Alias ";" ;
 
@@ -14,6 +14,10 @@ Binder. Binder  ::= Id ":" Type ;
 -- Maybe binder
 BJust.    MBinder ::= Id ":" Type ;
 BNothing. MBinder ::= Id ;
+
+-- Crashing along
+AJust.    Along   ::= "along" [Id] ;
+ANothing. Along   ::= ;
 
 -- Multiplicatives
 Tensor.   Type4 ::= Type4 "*" Type5 ;
@@ -52,7 +56,7 @@ ChoiceSeq. Seq ::= "let" Id "=" Choice Id "in" Seq;
 Case.      Seq ::= "case" Id "of" "{" "inl" Id "->" Seq ";" "inr" Id "->" Seq "}" ;
 Bottom.    Seq ::= Id ;
 Unit.      Seq ::= "let" "()" "=" Id "in" Seq ;
-Crash.     Seq ::= "crash" Id "along" [Id];
+Crash.     Seq ::= "crash" Id Along ;
 Pack.      Seq ::= "let" Id "=" Id "@" Type "in" Seq ;
 Unpack.    Seq ::= "let" Id "@" Id "=" Id "in" Seq ;
 Offer.     Seq ::= "offer" Id "for" Id "in" Seq ;

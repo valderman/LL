@@ -82,7 +82,6 @@ instance Print Double where
 instance Print Id where
   prt _ (Id (_,i)) = doc (showString ( i))
   prtList es = case es of
-   [] -> (concatD [])
    [x] -> (concatD [prt 0 x])
    x:xs -> (concatD [prt 0 x , doc (showString ",") , prt 0 xs])
 
@@ -124,6 +123,12 @@ instance Print MBinder where
    BNothing id -> prPrec i 0 (concatD [prt 0 id])
 
 
+instance Print Along where
+  prt i e = case e of
+   AJust ids -> prPrec i 0 (concatD [doc (showString "along") , prt 0 ids])
+   ANothing  -> prPrec i 0 (concatD [])
+
+
 instance Print Type where
   prt i e = case e of
    Tensor type'0 type' -> prPrec i 4 (concatD [prt 4 type'0 , doc (showString "*") , prt 5 type'])
@@ -159,7 +164,7 @@ instance Print Seq where
    Case id0 id1 seq2 id seq -> prPrec i 0 (concatD [doc (showString "case") , prt 0 id0 , doc (showString "of") , doc (showString "{") , doc (showString "inl") , prt 0 id1 , doc (showString "->") , prt 0 seq2 , doc (showString ";") , doc (showString "inr") , prt 0 id , doc (showString "->") , prt 0 seq , doc (showString "}")])
    Bottom id -> prPrec i 0 (concatD [prt 0 id])
    Unit id seq -> prPrec i 0 (concatD [doc (showString "let") , doc (showString "()") , doc (showString "=") , prt 0 id , doc (showString "in") , prt 0 seq])
-   Crash id ids -> prPrec i 0 (concatD [doc (showString "crash") , prt 0 id , doc (showString "along") , prt 0 ids])
+   Crash id along -> prPrec i 0 (concatD [doc (showString "crash") , prt 0 id , prt 0 along])
    Pack id0 id type' seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , prt 0 id , doc (showString "@") , prt 0 type' , doc (showString "in") , prt 0 seq])
    Unpack id0 id1 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "@") , prt 0 id1 , doc (showString "=") , prt 0 id , doc (showString "in") , prt 0 seq])
    Offer id0 id seq -> prPrec i 0 (concatD [doc (showString "offer") , prt 0 id0 , doc (showString "for") , prt 0 id , doc (showString "in") , prt 0 seq])

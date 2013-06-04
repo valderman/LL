@@ -25,6 +25,11 @@ data MBinder =
  | BNothing Id
   deriving (Eq,Ord,Show)
 
+data Along =
+   AJust [Id]
+ | ANothing
+  deriving (Eq,Ord,Show)
+
 data Type =
    Tensor Type Type
  | Par Type Type
@@ -57,7 +62,7 @@ data Seq =
  | Case Id Id Seq Id Seq
  | Bottom Id
  | Unit Id Seq
- | Crash Id [Id]
+ | Crash Id Along
  | Pack Id Id Type Seq
  | Unpack Id Id Id Seq
  | Offer Id Id Seq
