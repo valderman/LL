@@ -12,9 +12,10 @@ import Control.Monad.Reader
 
 import Pretty()
 
-import Data.List (findIndex)
+import Data.List (elemIndex)
 import Data.Function (on)
 import Data.Ord (comparing)
+import Data.Maybe (fromMaybe)
 
 import LL hiding (exchange)
 
@@ -147,7 +148,7 @@ trType = locally . go
         C.Exists (i -> x) t -> insertTyVar x >> (Exists (name x) <$> go t)
         C.TyId (i -> x)     -> do
             (tvs,_) <- get
-            case findIndex (== x) tvs of
+            case elemIndex x tvs of
                 Just ix -> return (var ix)
                 Nothing -> do
                     as <- ask
@@ -159,7 +160,7 @@ negTy :: C.Type -> C.Type
 negTy = C.Neg
 
 reorder :: (Int -> Int) -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
-reorder k z (s,zb) = case findIndex (== z) zb of
+reorder k z (s,zb) = case elemIndex z zb of
     Nothing -> throwError (IdentifierEscapes z)
     Just n  -> let (zb',pm) = perm zb (swap x n) in return (exchange pm s,zb' `without` x)
       where x = k (length zb)
@@ -169,8 +170,8 @@ putFirst = reorder (const 0)
 putLast = reorder pred
 
 tensorOrder :: Ident -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident],[Ident])
-tensorOrder x y (s,bs) = case findIndex (== x) bs of
-    Just nx -> case findIndex (== y) bs of
+tensorOrder x y (s,bs) = case elemIndex x bs of
+    Just nx -> case elemIndex y bs of
         Just ny ->
             let (pm,l,r) = tensorOrder' nx ny bs
             in  return (exchange pm s,l,r)
@@ -195,9 +196,9 @@ tensorOrder' x y bs = (pm',l,r)
 saveCtx :: T (Ident -> Type)
 saveCtx = do
     (_,m) <- get
-    return $ \ x -> case M.lookup x m of
-        Just t  -> t
-        Nothing -> error $ "saveCtx: internal error, lost identifier " ++ show x
+    return $ \ x -> fromMaybe
+        (error $ "saveCtx: internal error, lost identifier " ++ show x)
+        (M.lookup x m)
 
 isBang :: Type -> Bool
 isBang Bang{} = True
@@ -292,10 +293,7 @@ trSeq sq = case sq of
             tx :&: ty -> return (tx,ty)
             _         -> throwError (TypeError z tz With_)
 
-        bind' x (choice ch tx ty)
-        (s',b) <- trSeq s
-
-        (l,r) <- munch x b
+        (s',l,r) <- bindTrSeqMunch x (choice ch tx ty) s
         return (With (name x) (choice ch True False) (length l) s',l ++ [z] ++ r)
 
     C.Bottom (i -> x) -> do
@@ -327,9 +325,7 @@ trSeq sq = case sq of
             Forall _ tu -> return (apply (subst0 t') tu)
             _           -> throwError (TypeError z tz Forall_)
 
-        bind' x tx
-        (s',b) <- trSeq s
-        (l,r) <- munch x b
+        (s',l,r) <- bindTrSeqMunch x tx s
         return (TApp tz (name x) (length l) t' s',l ++ [z] ++ r)
 
     -- let a @ x = z in s
@@ -341,9 +337,7 @@ trSeq sq = case sq of
             _           -> throwError (TypeError z tz Exists_)
 
         insertTyVar a
-        bind' x tx
-        (s',b) <- trSeq s
-        (l,r) <- munch x b
+        (s',l,r) <- bindTrSeqMunch x tx s
         return (TUnpack (name x) (length l) s',l ++ [z] ++ r)
 
     -- offer x for z in s
@@ -358,9 +352,7 @@ trSeq sq = case sq of
 
         k <- saveCtx
 
-        bind' x tx
-        (s',b) <- trSeq s
-        (l,r) <- munch x b
+        (s',l,r) <- bindTrSeqMunch x tx s
 
         -- need to check that the types of l and r are all bang
         -- (hence saveCtx to k)
@@ -378,9 +370,7 @@ trSeq sq = case sq of
             Bang t -> return t
             _      -> throwError (TypeError z tz Bang_)
 
-        bind' x tx
-        (s',b) <- trSeq s
-        (l,r) <- munch x b
+        (s',l,r) <- bindTrSeqMunch x tx s
         return (Demand (name x) tz (length l) s',l ++ [z] ++ r)
 
     -- ignore z in s
@@ -408,6 +398,13 @@ trSeq sq = case sq of
         return (Alias (length l) (name z') s',l ++ [z] ++ r)
 
     C.Hole -> throwError . Hole . M.toList . snd =<< get
+
+bindTrSeqMunch :: Ident -> Type -> C.Seq -> T (Seq,[Ident],[Ident])
+bindTrSeqMunch x tx s = do
+    bind' x tx
+    (s',b) <- trSeq s
+    (l,r) <- munch x b
+    return (s',l,r)
 
 choice :: Choice -> a -> a -> a
 choice Fst x _ = x

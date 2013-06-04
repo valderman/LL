@@ -6,7 +6,6 @@ import System.Environment ( getArgs, getProgName )
 
 import LexMx
 import ParMx
-import SkelMx
 import PrintMx
 import AbsMx
 

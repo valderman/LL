@@ -11,7 +11,7 @@ done
 
 for i in $(ls $FAIL); do
     FILE=$FAIL/$i
-    ./TestMx $FILE # > /dev/null
+    ./TestMx $FILE > /dev/null
     echo $?: $FILE
 done
 
