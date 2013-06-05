@@ -1,7 +1,6 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards,
-             TemplateHaskell, MultiParamTypeClasses,
+{-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards, DeriveFunctor,
              TypeSynonymInstances, FlexibleInstances #-}
-module Erlang where
+module Erlang (compile, compileDeriv, erlangUnique) where
 
 import Data.Generics.Geniplate
 
@@ -9,6 +8,7 @@ import Control.Applicative hiding (empty)
 import Control.Monad.State
 import Data.Char
 import Text.PrettyPrint.HughesPJ
+import Language.Haskell.TH.Syntax (mkName)
 
 import Examples hiding (t0)
 
@@ -16,78 +16,74 @@ import LL hiding ((&),var)
 
 -- | A slightly weird representation of erlang expressions
 
-data Code
+data Code v
     = NewChannel
-    | Spawn Code
-    | Tell String Pattern
-    | Ask String
-    | Axiom String String
-    | Pattern := Code
-    | Pattern Pattern
-    | Case Code [(Pattern,Code)]
+    | Spawn (Code v)
+    | Tell v (Pattern v)
+    | Ask v
+    | Axiom v v
+    | Pattern v := (Code v)
+    | Pattern (Pattern v)
+    | Case (Code v) [(Pattern v,Code v)]
     | Crash
-    | Then Code Code
+    | Then (Code v) (Code v)
+  deriving Functor
 
+type Code' = Code String
 
 infixr 2 :=
 
-data R
-data L
-
-data Pattern
-    = Var String
-    | Tup [Pattern]
+data Pattern v
+    = Var v
+    | Tup [Pattern v]
     | InL
     | InR
+  deriving Functor
 
-instanceTransformBi [t| (String,Code) |]
+type Pattern' = Pattern String
 
-(//) :: String -> String -> Code -> Code
-new // old = transformBi rep
-  where
-    rep :: String -> String
-    rep s | s == old  = new
-          | otherwise = s
+(//) :: Eq a => a -> a -> Code a -> Code a
+new // old = fmap (\ s -> if s == old then new else s)
 
-(|>) :: Code -> Code -> Code
+(|>) :: Code a -> Code a -> Code a
 Then a b |> c = Then a (b |> c)
 a        |> c = Then a c
 
 infixr 0 |>
 
-(!) :: String -> Pattern -> Code
+(!) :: a -> Pattern a -> Code a
 x ! p = Tell x p
 
-var :: String -> Code
+var :: a -> Code a
 var = Pattern . Var
 
 infix 3 !
 
-(|||) :: Code -> Code -> Code
+(|||) :: Code a -> Code a -> Code a
 a ||| b = Spawn a |> b
 
 infixr 1 |||
 
-chunk :: [Code] -> Code
+chunk :: [Code a] -> Code a
 chunk = foldr1 (|>)
 
-tt :: Pattern
+tt :: Pattern a
 tt = Tup []
 
-(&) :: Pattern -> Pattern -> Pattern
+(&) :: Pattern a -> Pattern a -> Pattern a
 p1 & p2 = Tup [p1,p2]
 
 infixr 5 &
 
 -- | Compile a derivation to Erlang
-compile :: Deriv -> Code
+compile :: Deriv -> Code'
 compile = compileDeriv . erlangUnique
 
 -- | Compile a derivation to Erlang, without renamings
-compileDeriv :: Deriv -> Code
+compileDeriv :: Deriv -> Code'
 compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
   where
-    sf :: Deriv -> SeqFinal () Code
+    sf :: Deriv -> SeqFinal () Code'
     sf = const SeqFinal {..}
       where
         sxchg _ c = c
@@ -243,7 +239,7 @@ nonCollide s ss
 
 -- Pretty printing
 
-instance Show Code where
+instance Show Code' where
     show = render . pc
 
 arrow :: Doc
@@ -252,10 +248,10 @@ arrow = text "->"
 dot :: Doc
 dot = char '.'
 
-pc :: Code -> Doc
+pc :: Code' -> Doc
 pc c = pp c <> dot
 
-pp :: Code -> Doc
+pp :: Code' -> Doc
 pp c = case c of
     NewChannel -> text "newChannel" <> parens empty
     Spawn n ->
@@ -273,7 +269,7 @@ pp c = case c of
     Then d e -> pp d <> comma $$ pp e
     Axiom x y -> text "axiom" <> parens (text x <> comma <> text y)
 
-pt :: Pattern -> Doc
+pt :: Pattern' -> Doc
 pt p = case p of
     Var x    -> text x
     Tup ps   -> braces (cat (punctuate comma (map pt ps)))
