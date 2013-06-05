@@ -324,7 +324,7 @@ data SeqFinal t a = SeqFinal
      , szero :: (Name -> [(Name, t)] -> a)
      , sone :: (Name -> a -> a)
      , soffer :: (Name -> Name -> t -> a -> a)
-     , sdemand :: (Name ->  Name -> t -> a -> a)
+     , sdemand :: (Name -> Name -> t -> a -> a)
      , signore :: (Name -> t -> a -> a)
      , salias :: (Name -> Name -> t -> a -> a)
      , swhat :: (Name -> [Name] -> a)

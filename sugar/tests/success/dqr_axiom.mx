@@ -1,0 +1,3 @@
+a, x : ! ! a, y : ? ~ a  |-
+let x' = demand x in x' <-> y
+

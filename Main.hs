@@ -10,6 +10,7 @@ import AbsMx
 
 import Pretty
 import ToLL (desugar)
+import Erlang
 
 import ErrM
 
@@ -26,6 +27,12 @@ run s = case pProg (myLexer s) of
         putStrLn $ "Parse failed:" ++ s ++ "!"
         exitWith (ExitFailure 2)
     Ok p -> case desugar p of
-        Right d -> print d >> exitSuccess
+        Right d -> do
+            putStrLn "== Pretty-Printed =="
+            print d
+
+            putStrLn "\n== Erlang Code =="
+            print (compile d)
+            exitSuccess
         Left e  -> print e >> exitFailure
 

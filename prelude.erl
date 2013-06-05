@@ -54,6 +54,7 @@ axiom(ChX,ChY) ->
         y -> tell(ChX,ask(ChY))
     end.
 
+% Does not (yet) handle concurrent requests in parallel
 promote(Ch,Fn) ->
     Ch ! {promote,self()},
     Go = fun(Go) ->
