@@ -4,17 +4,22 @@ SUCC=sugar/tests/success
 FAIL=sugar/tests/fail
 BIN=erll
 
+tabs 40
+
 echo "== should succeed (0) =="
 for i in $(ls $SUCC); do
     FILE=$SUCC/$i
-    echo $?: $FILE
+    echo -n $FILE
     $BIN $FILE > /dev/null
+    echo -e "\t$?"
 done
 
 echo "== should fail (1) =="
 for i in $(ls $FAIL); do
     FILE=$FAIL/$i
-    echo $?: $FILE
+    echo -n $FILE
     $BIN $FILE > /dev/null
+    echo -e "\t$?"
 done
 
+tabs -8

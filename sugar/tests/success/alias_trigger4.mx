@@ -1,0 +1,10 @@
+unit : ! 1, end : _|_ , unit2 : ! 1 |-
+
+let u = demand unit in
+let unit2' = alias unit2 in
+let u2' = demand unit2' in
+let u2 = demand unit2 in
+let () = u in
+let () = u2' in
+let () = u2 in
+end

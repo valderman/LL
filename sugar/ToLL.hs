@@ -44,14 +44,13 @@ desugar :: Prog -> Either Err Deriv
 desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
     bs' <- forM bs $ \ (Binder (i -> x) t) -> (,) x <$> bind x t
     (s',sb) <- trSeq s
-    ctx <- sequence
-        [ case lookup x bs' of
-            Just t  -> return (name x,t)
-            Nothing -> throwError (UnboundIdentifier x)
-        | x <- sb
-        ]
-    forM_ bs' $ \ (b,_) -> when (b `notElem` sb) (throwError (IdentifierEscapes b))
-    return $ Deriv (map name init_tyvars) ctx s'
+
+    pm <- either (throw . uncurry (PermutationError Nothing)) return
+                 (getPermutation sb (map fst bs'))
+
+    let ctx = [ (name x,t) | (x,t) <- bs' ]
+
+    return $ Deriv (map name init_tyvars) ctx (exchange pm s')
   where
     init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) t <- as ]
     init_tyvars = [ tv | C.TyVar (i -> tv) <- tvs ]
@@ -262,7 +261,7 @@ tensorOrder x y (s,bs) = case elemIndex x bs of
         Nothing -> throw (IdentifierEscapes y)
     Nothing -> throw (IdentifierEscapes x)
 
-tensorOrder' :: Int -> Int -> [a] -> (Permutation,[a],[a])
+tensorOrder' :: Show a => Int -> Int -> [a] -> (Permutation,[a],[a])
 tensorOrder' x y bs = (pm',l,r)
   where
     (p,pm)
@@ -270,7 +269,7 @@ tensorOrder' x y bs = (pm',l,r)
         | y + 1 == x = (y,swap x y)
         | y < x = (y,swap y (y+1) `compose` swap x y )
     (bs',pm') = perm bs pm
-    (l,_x:_y:r) = splitAt p bs'
+    (l,x':y':r) = splitAt p bs'
 
 saveCtx :: T (Ident -> Type)
 saveCtx = do
@@ -470,9 +469,16 @@ trSeq sq = case sq of
 
         bind' z' tz
 
-        -- tensorOrder because the two identifiers need to be next to each other
-        (s',l,r) <- tensorOrder z z' =<< trSeq s
-        return (Alias (length l) (name z') s',l ++ [z] ++ r)
+        --          z:!t,l,z':!t,r |- s
+        -- --------------------------------------
+        --    l,z:!t,r |- let z' = alias z in s
+
+        (s1,b1) <- trSeq s
+        -- b1 is now some mess and we should put it on a form z,l,z',r
+        (s2,b2) <- putFirst z (s1,b1)
+        -- b2 is now on the form l,z',r
+        (l,r) <- munch z' b2
+        return (Alias (length l) (name z') s2,l ++ [z] ++ r)
 
     C.Hole -> throw . Hole . M.toList . snd =<< get
 

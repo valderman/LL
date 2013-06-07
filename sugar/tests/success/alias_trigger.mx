@@ -1,0 +1,18 @@
+misery : 1, unit : ! 1, end : _|_ , unit2 : ! 1, mystery : 1 |-
+connect
+    { v : 1 ->
+        let unit' = alias unit in
+        let u = demand unit in
+        let unit2' = alias unit2 in
+        let u2' = demand unit2' in
+        let u2 = demand unit2 in
+        let u' = demand unit' in
+        let () = u in
+        let () = u2' in
+        let () = u2 in
+        let () = u' in
+        let () = misery in
+        let () = mystery in
+        let () = v in end
+    ; u -> u
+    }
