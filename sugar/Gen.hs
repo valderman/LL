@@ -12,7 +12,7 @@ import Control.Monad
 import Data.Maybe
 import Data.Either
 
-import ToLL hiding (i,name)
+import ToLL hiding (i,name,along)
 
 import Test.QuickCheck
 
@@ -32,9 +32,9 @@ instance Arbitrary Type where
             ,(1,return Zero)
             ,(1,return Top)
             ,(s,bin Tensor)
-            ,(s,bin Tensor)
-            ,(s,bin Tensor)
-            ,(s,bin Tensor)
+            ,(s,bin Par)
+            ,(s,bin Plus)
+            ,(s,bin Choice)
             ]
           where
             bin mk = mk <$> ty s' <*> ty s'
@@ -47,7 +47,12 @@ finAll' :: (Testable prop) => (a -> String) -> [a] -> (a -> prop) -> Property
 finAll' s xs f = conjoin [ printTestCase (s x) $ f x | x  <- xs ]
 
 newtype Ctx' = Ctx' [(String,Type)]
-  deriving Show
+
+instance Show Ctx' where
+    show (Ctx' ctx) = printTree (binders ctx)
+
+binders :: Ctx -> [Binder]
+binders ctx = [ Binder (i x) t | (x,t) <- ctx ]
 
 instance Arbitrary Ctx' where
     arbitrary = name <$> arbitrary
@@ -57,7 +62,6 @@ instance Arbitrary Ctx' where
 name :: [Type] -> Ctx'
 name = Ctx' . zip names
 
-names :: [String]
 names = [ x:n | n <- "" : "'" : map show [0..], x <- "xyzuvwrstabc" ]
 
 prop_desugar :: Ctx' -> Property
@@ -66,8 +70,7 @@ prop_desugar (Ctx' ctx) = finAll' printTree (gen ctx) $ \ s ->
          Right d -> length (show d) `seq` True
          Left{}  -> False
   where
-    mkDeriv = Deriv [] [] binders
-    binders = [ Binder (i x) t | (x,t) <- ctx ]
+    mkDeriv = Deriv [] [] (binders ctx)
 
 main :: IO ()
 main = quickCheck prop_desugar
@@ -88,28 +91,28 @@ splits = map partitionEithers . go
 kill :: String -> Type -> Ctx -> [Seq]
 kill z t m = case t of
     Tensor t1 t2 -> do
-        let (x,y,m') = fresh2 m t1 t2
+        let (x,y,m') = fresh2 m z t1 t2
         TensorSeq (i x) (i y) (i z) <$> gen m'
     Par t1 t2 -> do
         (ml,mr) <- splits m
-        let (x,mx) = fresh ml t1
-            (y,my) = fresh mr t2
+        let (x,mx) = fresh ml z t1
+            (y,my) = fresh mr (z ++ "'") t2
             par_ u v = ParSeq (i z) (i x) u (i y) v
         par_ <$> gen mx <*> gen my
     Plus t1 t2 -> do
-        let (x,mx) = fresh m t1
-            (y,my) = fresh m t2
+        let (x,mx) = fresh m z t1
+            (y,my) = fresh m (z ++ "'") t2
             case_ u v = Case (i z) (i x) u (i y) v
         case_ <$> gen mx <*> gen my
     Choice t1 t2 -> concat
         [ ChoiceSeq (i x) ch (i z) <$> gen m'
         | (ch,t') <- [(Fst,t1),(Snd,t2)]
-        , let (x,m') = fresh m t'
+        , let (x,m') = fresh m z t'
         ]
     Top -> []
     One -> Unit (i z) <$> gen m
     Bot -> []
-    Zero -> [Crash (i z) (AJust (map (i . fst) m))]
+    Zero -> [Crash (i z) (along (map (i . fst) m))]
     Lollipop t1 t2 -> gen ((z,neg t1 `Par` t2):m)
     TyId{} -> []
     Bang{} -> []
@@ -117,6 +120,10 @@ kill z t m = case t of
     Forall{} -> []
     Exists{} -> []
     Neg t -> gen ((z,neg t):m)
+
+along :: [Id] -> Along
+along [] = ANothing
+along xs = AJust xs
 
 -- | Negate type
 neg :: Type -> Type
@@ -145,17 +152,17 @@ selections :: [a] -> [(a,[a])]
 selections []     = []
 selections (x:xs) = (x,xs) : [ (y,x:ys) | (y,ys) <- selections xs ]
 
-fresh :: Ctx -> Type -> (String,Ctx)
-fresh m t = fromJust $  msum
-    [ case lookup i m of
-        Nothing -> Just (i,(i,t):m)
+fresh :: Ctx -> String -> Type -> (String,Ctx)
+fresh m x t = fromJust $  msum
+    [ case lookup y m of
+        Nothing -> Just (y,(y,t):m)
         Just{}  -> Nothing
-    | i <- names
+    | i <- [0..], let y = x ++ show i
     ]
 
-fresh2 :: Ctx -> Type -> Type -> (String,String,Ctx)
-fresh2 m t1 t2 = (x1,x2,m2)
+fresh2 :: Ctx -> String -> Type -> Type -> (String,String,Ctx)
+fresh2 m x t1 t2 = (x1,x2,m2)
   where
-    (x1,m1) = fresh m t1
-    (x2,m2) = fresh m1 t2
+    (x1,m1) = fresh m x t1
+    (x2,m2) = fresh m1 x t2
 
