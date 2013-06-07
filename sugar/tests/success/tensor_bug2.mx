@@ -1,0 +1,9 @@
+a,b,c,
+x : (a * 0),
+y : (b * c) |-
+
+let a, b = x in
+
+let u, v = y in
+
+crash b along v, u, a

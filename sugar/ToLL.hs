@@ -302,7 +302,7 @@ matchType z t0 t1 = maybe (throw (TypeError z t0 t1)) return (go t0 t1)
 __ :: Type
 __ = meta ""
 
--- Returns the translated sequents and its context
+-- Returns the translated sequent and its context
 trSeq :: C.Seq -> T (Seq,[Ident])
 trSeq sq = case sq of
 

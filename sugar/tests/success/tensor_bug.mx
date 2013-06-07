@@ -1,0 +1,5 @@
+x : 1 * 0, y : (T * _|_) * _|_ |-
+let a, b = x in
+let s, t = y in
+let u, v = s in
+crash b along v, u, t, a

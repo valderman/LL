@@ -1,3 +1,7 @@
 
-t : 1 * _|_ |- let a , b = t in let () = a in b
+tp : 1 * 1, pr : _|_ | _|_  |-
+let x, y = tp in connect via pr
+    { u -> u <-> x
+    ; v -> v <-> y
+    }
 
