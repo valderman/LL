@@ -1,5 +1,7 @@
-{-# LANGUAGE ViewPatterns,MultiParamTypeClasses,GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ViewPatterns,MultiParamTypeClasses,GeneralizedNewtypeDeriving,OverloadedStrings #-}
 module ToLL where
+
+import Text.PrettyPrint.HughesPJ
 
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -10,7 +12,7 @@ import Control.Monad.State
 import Control.Monad.Error
 import Control.Monad.Reader
 
-import Pretty()
+import Pretty(pType)
 
 import Data.List (elemIndex)
 import Data.Function (on)
@@ -62,11 +64,23 @@ newtype T a = T { unT :: ReaderT (Map Ident C.Type) (StateT ([Ident],Map Ident T
     , MonadError Err
     )
 
+throw :: Err' -> T a
+throw e = do
+    (tvs,_) <- get
+    throwError (Err (map name tvs) e)
+
 runT :: Map Ident C.Type -> [Ident] -> T a -> Either Err a
 runT as tvs (T m) = evalStateT (runReaderT m as) (tvs,M.empty)
 
-data Err
-    = MismatchTypes Seq_ Ident Ident Type Type
+data Err = Err
+    [Name] -- ^ type variables in scope
+    Err'   -- ^ actual error
+
+instance Show Err where
+    show (Err tvs e) = render (prettyErr tvs e)
+
+data Err'
+    = MismatchTypes Seq_ Ident Type Ident Type
     -- ^ Ax and Cut with types not matching up
     | InsufficientTypeInfo Ident Ident
     -- ^ Cut with no type information
@@ -84,16 +98,67 @@ data Err
     | NotBang Ident Type Ident
     -- ^ Offering (?-destruction) with non-bang typed identifiers in context
     --   @NotBang x t z@ means x had type t which is not bang when offering for z
-    | PermutationError [Ident] [Ident]
+    | PermutationError (Maybe Ident) [Ident] [Ident]
     -- ^ Case with different contexts in the two branches
     | Hole [(Ident,Type)]
     -- ^ The identifiers and their types in a hole
     | Fail String
     -- ^ Fail in the monad
-  deriving Show
+
+prettyErr :: [Name] -> Err' -> Doc
+prettyErr tvs e = case e of
+    MismatchTypes s x xt y yt ->
+        hang ("Types are not dual of each other in a usage of" <+> prettySeq s <> ":") 4
+             (prettyCtx [(x,xt),(y,yt)])
+    InsufficientTypeInfo x y ->
+        "At least one of" <+> prettyIdent x <+> "and" <+> prettyIdent y <+>
+        "needs to have a type specified in a usage of connect"
+    UnboundIdentifier x -> prettyId x <+> "is not bound"
+    BoundIdentifier x xt y yt ->
+        hang (prettyId x <+> "is already bound:") 4
+             (prettyCtx [(x,xt),(y,yt)])
+    IdentifierEscapes x -> prettyIdent x <+> "is never used"
+    TypeError x t t' ->
+        prettyId x <+> "has type" <+> prettyType t' <+> "which does not match the shape" <+> prettyType t
+    NotBang x t z ->
+        prettyId x <+> "has type" <+> prettyType t <+> "which is not of bang type when offering" <+> prettyIdent z
+    PermutationError Nothing xs [] ->
+        hang "Assumptions not used in the sequent:" 4 (ids xs)
+    PermutationError Nothing xs ys ->
+        -- This case cannot happen, the variables would be reported as unbound instead
+        hang "Derivation variables and assumption are not a permutation of each other" 4
+            (ids xs $$ ids ys)
+    PermutationError (Just z) xs ys ->
+        hang (prettyId z <+> "deconstructed, but the case arms do not use the same variables") 4
+            $  "Left:" <+> ids xs
+            $$ "Right:" <+> ids ys
+    Hole ctx -> hang ("Hole context:") 4 (prettyCtx ctx)
+    Fail s -> "Unknown error:" <+> text s
+  where
+    ids :: [Ident] -> Doc
+    ids [] = parens "none"
+    ids xs = hcat (punctuate comma (map prettyIdent xs))
+
+    prettyCtx :: [(Ident,Type)] -> Doc
+    prettyCtx ctx = vcat [ prettyIdent x <+> colon <+> prettyType t | (x,t) <- ctx ]
+
+    prettyIdent :: Ident -> Doc
+    prettyIdent (Ident n (y,x)) = text n <> parens (int y <> comma <> int x)
+
+    prettyId :: Ident -> Doc
+    prettyId (Ident n (y,x)) = int y <> colon <> int x <> colon <+> text n
+    -- prettyIdent = text . show
+
+    prettyType :: Type -> Doc
+    prettyType = pType 0 (tvs ++ ["<gbl:" ++ show i ++ ">" | i <- [0..]])
+
+    prettySeq :: Seq_ -> Doc
+    prettySeq s = case s of
+        Ax_ -> "<->"
+        Cut_ -> "connect"
 
 instance Error Err where
-    strMsg = Fail
+    strMsg = Err [] . Fail
 
 data Seq_ = Ax_ | Cut_
   deriving Show
@@ -106,7 +171,7 @@ typeOf x = do
     (_,m) <- get
     case M.lookup x m of
         Just t -> return t
-        Nothing -> throwError (UnboundIdentifier x)
+        Nothing -> throw (UnboundIdentifier x)
 
 eat :: Ident -> T Type
 eat x = do
@@ -122,7 +187,7 @@ bind' :: Ident -> Type -> T ()
 bind' x t = do
     (tvs,m) <- get
     case (lookupWithKey x m,M.insert x t m) of
-        (Just (x',t'),_)  -> throwError (BoundIdentifier x t x' t')
+        (Just (x',t'),_)  -> throw (BoundIdentifier x t x' t')
                              -- Shadowing is not allowed, so we throw an error here
         (Nothing,m') -> put (tvs,m')
 
@@ -168,7 +233,7 @@ trType = locally . go
                     as <- ask
                     case M.lookup x as of
                         Just t  -> go t
-                        Nothing -> throwError (UnboundIdentifier x)
+                        Nothing -> throw (UnboundIdentifier x)
 
 negTy :: C.Type -> C.Type
 negTy = C.Neg
@@ -176,11 +241,11 @@ negTy = C.Neg
 munch :: Ident -> [Ident] -> T ([Ident],[Ident])
 munch x b = case break (== x) b of
     (l,_:r) -> return (l,r)
-    _       -> throwError (IdentifierEscapes x)
+    _       -> throw (IdentifierEscapes x)
 
 reorder :: (Int -> Int) -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
 reorder k z (s,zb) = case elemIndex z zb of
-    Nothing -> throwError (IdentifierEscapes z)
+    Nothing -> throw (IdentifierEscapes z)
     Just n  -> let (zb',pm) = perm zb (swap x n) in return (exchange pm s,zb' `without` x)
       where x = k (length zb)
 
@@ -194,8 +259,8 @@ tensorOrder x y (s,bs) = case elemIndex x bs of
         Just ny ->
             let (pm,l,r) = tensorOrder' nx ny bs
             in  return (exchange pm s,l,r)
-        Nothing -> throwError (IdentifierEscapes y)
-    Nothing -> throwError (IdentifierEscapes x)
+        Nothing -> throw (IdentifierEscapes y)
+    Nothing -> throw (IdentifierEscapes x)
 
 tensorOrder' :: Int -> Int -> [a] -> (Permutation,[a],[a])
 tensorOrder' x y bs = (pm',l,r)
@@ -219,7 +284,7 @@ isBang Bang{} = True
 isBang _      = False
 
 matchType :: Ident -> Type -> Type -> T [Type]
-matchType z t0 t1 = maybe (throwError (TypeError z t0 t1)) return (go t0 t1)
+matchType z t0 t1 = maybe (throw (TypeError z t0 t1)) return (go t0 t1)
   where
     go :: Type -> Type -> Maybe [Type]
     go (a :⊗: b) (x :⊗: y) = (++) <$> go a x <*> go b y
@@ -245,13 +310,13 @@ trSeq sq = case sq of
     C.Ax (i -> x) (i -> y) -> do
         tx <- eat x
         ty <- eat y
-        when (tx /= neg ty) (throwError (MismatchTypes Ax_ x y tx ty))
+        when (tx /= neg ty) (throw (MismatchTypes Ax_ x tx y ty))
         return (Ax ty,[x,y])
 
     C.Cut b1 sx b2 sy -> do
 
         ((x,tx),(y,ty)) <- case (b1,b2) of
-            (C.BNothing (i -> x),C.BNothing (i -> y)) -> throwError (InsufficientTypeInfo x y)
+            (C.BNothing (i -> x),C.BNothing (i -> y)) -> throw (InsufficientTypeInfo x y)
             (C.BJust (i -> x) tx,C.BNothing (i -> y)) -> return ((x,tx),(y,negTy tx))
             (C.BNothing (i -> x),C.BJust (i -> y) ty) -> return ((x,negTy ty),(y,ty))
             (C.BJust (i -> x) tx,C.BJust (i -> y) ty) -> return ((x,tx),(y,ty))
@@ -262,7 +327,7 @@ trSeq sq = case sq of
         ty' <- bind y ty
         (sy',yb) <- putFirst y =<< trSeq sy
 
-        when (tx' /= neg ty') (throwError (MismatchTypes Cut_ x y tx' ty'))
+        when (tx' /= neg ty') (throw (MismatchTypes Cut_ x tx' y ty'))
 
         return (Cut (name x) (name y) ty' (length xb) sx' sy',xb ++ yb)
 
@@ -308,7 +373,7 @@ trSeq sq = case sq of
         bind' y ty
         (sy',yb) <- putFirst y =<< trSeq sy
 
-        p <- either (throwError . uncurry PermutationError) return
+        p <- either (throw . uncurry (PermutationError (Just z))) return
                     (getPermutation xb yb)
 
         return (Plus (name x) (name y) 0 sx' (exchange p sy'),z:xb)
@@ -375,7 +440,7 @@ trSeq sq = case sq of
         -- (hence saveCtx to k)
         forM_ (l ++ r) $ \ u -> do
             let t = k u
-            unless (isBang t) (throwError (NotBang u t z))
+            unless (isBang t) (throw (NotBang u t z))
 
         return (Offer (name x) (length l) s',l ++ [z] ++ r)
 
@@ -409,7 +474,7 @@ trSeq sq = case sq of
         (s',l,r) <- tensorOrder z z' =<< trSeq s
         return (Alias (length l) (name z') s',l ++ [z] ++ r)
 
-    C.Hole -> throwError . Hole . M.toList . snd =<< get
+    C.Hole -> throw . Hole . M.toList . snd =<< get
 
 bindTrSeqMunch :: Ident -> Type -> C.Seq -> T (Seq,[Ident],[Ident])
 bindTrSeqMunch x tx s = do
