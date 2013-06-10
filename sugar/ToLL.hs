@@ -1,4 +1,5 @@
-{-# LANGUAGE ViewPatterns,MultiParamTypeClasses,GeneralizedNewtypeDeriving,OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns,MultiParamTypeClasses,GeneralizedNewtypeDeriving,
+             OverloadedStrings,ScopedTypeVariables #-}
 module ToLL where
 
 import Text.PrettyPrint.HughesPJ
@@ -11,13 +12,16 @@ import Control.Monad
 import Control.Monad.State
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.Writer hiding ((<>))
 
-import Pretty(pType)
+import Pretty(pType,pSeq)
 
-import Data.List (elemIndex)
+import Data.List (elemIndex,delete)
 import Data.Function (on)
 import Data.Ord (comparing)
 import Data.Maybe (fromMaybe)
+
+import Test.QuickCheck
 
 import LL hiding (exchange)
 
@@ -40,7 +44,7 @@ instance Show Ident where
 i :: Id -> Ident
 i (Id (p,s)) = Ident s p
 
-desugar :: Prog -> Either Err Deriv
+desugar :: Prog -> (Either Err Deriv,Doc)
 desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
     bs' <- forM bs $ \ (Binder (i -> x) t) -> (,) x <$> bind x t
     (s',sb) <- trSeq s
@@ -55,21 +59,40 @@ desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
     init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) t <- as ]
     init_tyvars = [ tv | C.TyVar (i -> tv) <- tvs ]
 
-newtype T a = T { unT :: ReaderT (Map Ident C.Type) (StateT ([Ident],Map Ident Type) (Either Err)) a }
+newtype T a = T
+    { unT :: ReaderT (Map Ident C.Type)
+             (StateT ([Ident],Map Ident Type)
+             (ErrorT Err
+             (Writer [Doc]))) a
+    }
   deriving
     ( Functor, Applicative, Monad
-    , MonadState ([Ident],Map Ident Type)     -- type variables and identifiers in scope
-    , MonadReader (Map Ident C.Type)  -- type aliases
-    , MonadError Err
+    , MonadState ([Ident],Map Ident Type)   -- type variables and identifiers in scope
+    , MonadReader (Map Ident C.Type)        -- type aliases
+    , MonadWriter [Doc]                     -- debug messages
+    , MonadError Err                        -- errors
     )
+
+-- | Report a debug message
+report :: Doc -> T ()
+report = tell . (:[])
+
+-- | Make the context a doc for debug messages
+ctxDoc :: T Doc
+ctxDoc = do
+    (tvs,ctx) <- get
+    let tvs' = map name tvs
+    return (prettyCtx tvs' (M.toList ctx))
 
 throw :: Err' -> T a
 throw e = do
     (tvs,_) <- get
     throwError (Err (map name tvs) e)
 
-runT :: Map Ident C.Type -> [Ident] -> T a -> Either Err a
-runT as tvs (T m) = evalStateT (runReaderT m as) (tvs,M.empty)
+runT :: forall a . Map Ident C.Type -> [Ident] -> T a -> (Either Err a,Doc)
+runT as tvs (T m)
+    = (\ (a,ws) -> (a,vcat ws)) . runWriter . runErrorT
+    $ evalStateT (runReaderT m as) (tvs,M.empty)
 
 data Err = Err
     [Name] -- ^ type variables in scope
@@ -108,19 +131,19 @@ prettyErr :: [Name] -> Err' -> Doc
 prettyErr tvs e = case e of
     MismatchTypes s x xt y yt ->
         hang ("Types are not dual of each other in a usage of" <+> prettySeq s <> ":") 4
-             (prettyCtx [(x,xt),(y,yt)])
+             (p_ctx [(x,xt),(y,yt)])
     InsufficientTypeInfo x y ->
         "At least one of" <+> prettyIdent x <+> "and" <+> prettyIdent y <+>
         "needs to have a type specified in a usage of connect"
     UnboundIdentifier x -> prettyId x <+> "is not bound"
     BoundIdentifier x xt y yt ->
         hang (prettyId x <+> "is already bound:") 4
-             (prettyCtx [(x,xt),(y,yt)])
+             (p_ctx [(x,xt),(y,yt)])
     IdentifierEscapes x -> prettyIdent x <+> "is never used"
     TypeError x t t' ->
-        prettyId x <+> "has type" <+> prettyType t' <+> "which does not match the shape" <+> prettyType t
+        prettyId x <+> "has type" <+> p_ty t' <+> "which does not match the shape" <+> p_ty t
     NotBang x t z ->
-        prettyId x <+> "has type" <+> prettyType t <+> "which is not of bang type when offering" <+> prettyIdent z
+        prettyId x <+> "has type" <+> p_ty t <+> "which is not of bang type when offering" <+> prettyIdent z
     PermutationError Nothing xs [] ->
         hang "Assumptions not used in the sequent:" 4 (ids xs)
     PermutationError Nothing xs ys ->
@@ -131,30 +154,33 @@ prettyErr tvs e = case e of
         hang (prettyId z <+> "deconstructed, but the case arms do not use the same variables") 4
             $  "Left:" <+> ids xs
             $$ "Right:" <+> ids ys
-    Hole ctx -> hang ("Hole context:") 4 (prettyCtx ctx)
+    Hole ctx -> hang ("Hole context:") 4 (p_ctx ctx)
     Fail s -> "Unknown error:" <+> text s
   where
     ids :: [Ident] -> Doc
     ids [] = parens "none"
     ids xs = hcat (punctuate comma (map prettyIdent xs))
 
-    prettyCtx :: [(Ident,Type)] -> Doc
-    prettyCtx ctx = vcat [ prettyIdent x <+> colon <+> prettyType t | (x,t) <- ctx ]
+    p_ty  = prettyType tvs
+    p_ctx = prettyCtx tvs
 
-    prettyIdent :: Ident -> Doc
-    prettyIdent (Ident n (y,x)) = text n <> parens (int y <> comma <> int x)
+prettyCtx :: [Name] -> [(Ident,Type)] -> Doc
+prettyCtx tvs ctx = vcat [ prettyIdent x <+> colon <+> prettyType tvs t | (x,t) <- ctx ]
 
-    prettyId :: Ident -> Doc
-    prettyId (Ident n (y,x)) = int y <> colon <> int x <> colon <+> text n
-    -- prettyIdent = text . show
+prettyIdent :: Ident -> Doc
+prettyIdent (Ident n (y,x)) = text n <> parens (int y <> comma <> int x)
 
-    prettyType :: Type -> Doc
-    prettyType = pType 0 (tvs ++ ["<gbl:" ++ show i ++ ">" | i <- [0..]])
+prettyId :: Ident -> Doc
+prettyId (Ident n (y,x)) = int y <> colon <> int x <> colon <+> text n
+-- prettyIdent = text . show
 
-    prettySeq :: Seq_ -> Doc
-    prettySeq s = case s of
-        Ax_ -> "<->"
-        Cut_ -> "connect"
+prettyType :: [Name] -> Type -> Doc
+prettyType tvs = pType 0 (tvs ++ ["<gbl:" ++ show i ++ ">" | i <- [0..]])
+
+prettySeq :: Seq_ -> Doc
+prettySeq s = case s of
+    Ax_ -> "<->"
+    Cut_ -> "connect"
 
 instance Error Err where
     strMsg = Err [] . Fail
@@ -252,25 +278,6 @@ putFirst,putLast :: Ident -> (Seq,[Ident]) -> T (Seq,[Ident])
 putFirst = reorder (const 0)
 putLast = reorder pred
 
-tensorOrder :: Ident -> Ident -> (Seq,[Ident]) -> T (Seq,[Ident],[Ident])
-tensorOrder x y (s,bs) = case elemIndex x bs of
-    Just nx -> case elemIndex y bs of
-        Just ny ->
-            let (pm,l,r) = tensorOrder' nx ny bs
-            in  return (exchange pm s,l,r)
-        Nothing -> throw (IdentifierEscapes y)
-    Nothing -> throw (IdentifierEscapes x)
-
-tensorOrder' :: Show a => Int -> Int -> [a] -> (Permutation,[a],[a])
-tensorOrder' x y bs = (pm',l,r)
-  where
-    (p,pm)
-        | x < y = (x,swap (x+1) y)
-        | y + 1 == x = (y,swap x y)
-        | y < x = (y,swap y (y+1) `compose` swap x y )
-    (bs',pm') = perm bs pm
-    (l,x':y':r) = splitAt p bs'
-
 saveCtx :: T (Ident -> Type)
 saveCtx = do
     (_,m) <- get
@@ -338,9 +345,13 @@ trSeq sq = case sq of
 
         bind' x tx
         bind' y ty
-        (s',l,r) <- tensorOrder x y =<< trSeq s
+        (s',bs) <- trSeq s
+        let bs' = delete x (delete y bs)
+            pm :: Permutation
+            pm = either (error "trSeq: TensorSeq malformed context")
+                    id (getPermutation bs (x:y:bs'))
 
-        return (Cross tz (name x) (name y) (length l) s',l ++ [z] ++ r)
+        return (Cross tz (name x) (name y) 0 (exchange pm s'),z:bs')
 
     C.ParSeq (i -> z) (i -> x) sx (i -> y) sy -> do
 

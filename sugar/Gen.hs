@@ -66,7 +66,7 @@ names = [ x:n | n <- "" : "'" : map show [0..], x <- "xyzuvwrstabc" ]
 
 prop_desugar :: Ctx' -> Property
 prop_desugar (Ctx' ctx) = finAll' printTree (gen ctx) $ \ s ->
-    case desugar (mkDeriv s) of
+    case fst (desugar (mkDeriv s)) of
          Right d -> length (show d) `seq` True
          Left{}  -> False
   where
