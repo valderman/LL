@@ -94,11 +94,19 @@ instance Print Prog where
 
 instance Print Alias where
   prt i e = case e of
-   TyAlias id type' -> prPrec i 0 (concatD [doc (showString "type") , prt 0 id , doc (showString "=") , prt 0 type'])
+   TyAlias id aliasids type' -> prPrec i 0 (concatD [doc (showString "type") , prt 0 id , prt 0 aliasids , doc (showString "=") , prt 0 type'])
 
   prtList es = case es of
    [] -> (concatD [])
    x:xs -> (concatD [prt 0 x , doc (showString ";") , prt 0 xs])
+
+instance Print AliasId where
+  prt i e = case e of
+   AliasId id -> prPrec i 0 (concatD [prt 0 id])
+
+  prtList es = case es of
+   [] -> (concatD [])
+   x:xs -> (concatD [prt 0 x , prt 0 xs])
 
 instance Print TyVar where
   prt i e = case e of
@@ -139,13 +147,14 @@ instance Print Type where
    Choice type'0 type' -> prPrec i 3 (concatD [prt 3 type'0 , doc (showString "&") , prt 4 type'])
    Top  -> prPrec i 5 (concatD [doc (showString "T")])
    Zero  -> prPrec i 5 (concatD [doc (showString "0")])
-   Lollipop type'0 type' -> prPrec i 2 (concatD [prt 0 type'0 , doc (showString "-o") , prt 2 type'])
+   Lollipop type'0 type' -> prPrec i 1 (concatD [prt 1 type'0 , doc (showString "-o") , prt 2 type'])
    TyId id -> prPrec i 5 (concatD [prt 0 id])
    Bang type' -> prPrec i 5 (concatD [doc (showString "!") , prt 5 type'])
    Quest type' -> prPrec i 5 (concatD [doc (showString "?") , prt 5 type'])
    Neg type' -> prPrec i 5 (concatD [doc (showString "~") , prt 5 type'])
    Forall id type' -> prPrec i 0 (concatD [doc (showString "forall") , prt 0 id , doc (showString ".") , prt 0 type'])
    Exists id type' -> prPrec i 0 (concatD [doc (showString "exists") , prt 0 id , doc (showString ".") , prt 0 type'])
+   Mu id type' -> prPrec i 0 (concatD [doc (showString "mu") , prt 0 id , doc (showString ".") , prt 0 type'])
 
 
 instance Print Choice where
@@ -171,6 +180,8 @@ instance Print Seq where
    Demand id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "demand") , prt 0 id , doc (showString "in") , prt 0 seq])
    Ignore id seq -> prPrec i 0 (concatD [doc (showString "ignore") , prt 0 id , doc (showString "in") , prt 0 seq])
    Alias id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "alias") , prt 0 id , doc (showString "in") , prt 0 seq])
+   Fold id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "fold") , prt 0 id , doc (showString "in") , prt 0 seq])
+   Unfold id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "unfold") , prt 0 id , doc (showString "in") , prt 0 seq])
    Hole  -> prPrec i 0 (concatD [doc (showString "_")])
 
 

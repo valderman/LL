@@ -9,7 +9,8 @@
 module LL where
 
 import Data.Monoid
-import Control.Lens hiding ((&))
+import Control.Lens hiding ((&),at)
+import Safe
 
 -- | Type of names. These are just comments for pretty-printing
 -- purposes; internally the code relies only on deBrujn indices.
@@ -26,6 +27,7 @@ data Type = Type :⊕: Type
              | Exists Name Type
              | Bang Type
              | Quest Type
+             | Mu Bool Name Type -- False if the mu is negated
              | Meta Bool String [Type] -- 'meta' type (just for the paper, not found in actual code)
                                        --  2nd arg are the types occuring in it.
   deriving Eq
@@ -40,6 +42,11 @@ a & b = a :&: b
 a ⊸ b = neg a ⅋ b
 meta x = Meta True x []
 var = TVar True
+
+foldTy,unfoldTy :: Name -> Type -> Type
+foldTy u t = Forall u ((Bang (t ⊸ var 0)) ⊸ var 0)
+unfoldTy u = neg . foldTy u
+
 infixr 6 ⊗,&
 infixr 5 ⅋, ⊸, ⊕
 
@@ -61,6 +68,7 @@ neg (Forall v t) = Exists v (neg t)
 neg (TVar b x) = TVar (not b) x
 neg (Bang t) = Quest (neg t)
 neg (Quest t) = Bang (neg t)
+neg (Mu b n t) = Mu (not b) n t
 neg (Meta b x xs) = Meta (not b) x xs
 
 -- | Classification of types as positive and negative
@@ -71,6 +79,7 @@ positiveType t = case t of
   _ :⊕: _ -> True
   Bang _ -> True
   Exists _ _ -> True
+  Mu b _ _ -> b
   Meta b _ _ -> b -- strictly speaking, this is wrong since we do not know the instance of the meta-type.
   TVar b _ -> b -- same remark.
   _ -> False
@@ -104,6 +113,9 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | Ignore Int (Seq)
          | Alias Int Name (Seq)
 
+         | Fold Name Int Seq
+         | Unfold Name Int Seq
+
 -- | A full derivation
 data Deriv = Deriv
     { derivTypeVars :: [Name]
@@ -126,6 +138,8 @@ varOf (Offer _ x _) = x
 varOf (Demand _ _ x _) = x
 varOf (Ignore x _) = x
 varOf (Alias x _ _) = x
+varOf (Fold _ x _) = x
+varOf (Unfold _ x _) = x
 
 ---------------------------
 -- Substitution machinery
@@ -170,9 +184,10 @@ apply f t = case t of
   One -> One
   Top -> Top
   Bot -> Bot
-  TVar pol x -> if_ pol neg (f!!x)
+  TVar pol x -> if_ pol neg (atNote "apply" f x)
   Forall w t -> Forall w (s' t)
   Exists w t -> Exists w (s' t)
+  Mu b w t -> Mu b w (s' t)
   Bang t -> Bang (s t)
   Quest t -> Quest (s t)
   Meta b x ns -> Meta b x (f ∙ ns)
@@ -194,6 +209,8 @@ applyS f t = case t of
   Demand w ty x a -> Demand w ty x (s a)
   Ignore x a -> Ignore x (s a)
   Alias x w a -> Alias x w (s a)
+  Fold w x a -> Fold w x (s a)
+  Unfold w x a -> Unfold w x (s a)
   a -> a
  where s = applyS f
        s' = applyS (var 0 : wk ∙ f)
@@ -224,7 +241,7 @@ cut :: Int -> -- ^ size of the context
 
 cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
 cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Exchange ([γ..n-1] ++ [0..γ-1]) $ Par ty' v v' ((n-γ)+x-1) (Cut w w' (neg ty) (n-γ) s t) u
-cut n w w' ty γ (Exchange π (Par ty' v v' x s t)) u | π!!x > 0 = exchange ((remove 0 π) ++ [γ..n-1])  $
+cut n w w' ty γ (Exchange π (Par ty' v v' x s t)) u | atNote "cut" π x > 0 = exchange ((remove 0 π) ++ [γ..n-1])  $
                                                                 Par ty' v v' x s (Cut w w' ty (γ-x) (exchange ([1..γ-x] ++ [0]) t) u)
 cut n w w' ty γ (Cross ty' v v' x s) t | x > 0 = Cross ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
 cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u)
@@ -236,6 +253,8 @@ cut n w w' ty γ (Offer v x s) t | x > 0 = Offer v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Demand v ty' x s) t | x > 0 = Demand v ty' (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Ignore x s) t | x > 0 = Ignore (x-1) (Cut w w' ty (γ-1) s t)
 cut n w w' ty γ (Alias x v s) t | x > 0 = Alias (x-1) v (Cut w w' ty (γ+1) s t)
+cut _ _ _  _  _ Fold{}   _ = error "cut: Fold todo"
+cut _ _ _  _  _ Unfold{} _ = error "cut: Unfold todo"
 
 
 cut 2 _ _ ty 1 (Ax _) a = a
@@ -272,7 +291,7 @@ isPos SBot = True
 isPos _ = False
 
 inverse :: Permutation -> Permutation
-inverse π = [π!!x | x <- [0..length π-1]]
+inverse π = [atNote "inverse" π x | x <- [0..length π-1]]
 
 exchange = subst
 
@@ -287,6 +306,8 @@ subst π t = case t of
   (Plus w w' x a b) -> Plus w w' (f x) (s a) (s b)
   (TApp tp w x t a) -> TApp tp w (f x) t (s a)
   (TUnpack w x a) -> TUnpack w (f x) (s a)
+  (Fold w x a) -> Fold w (f x) (s a)
+  (Unfold w x a) -> Unfold w (f x) (s a)
   (Offer w x a) -> Offer w (f x) (s a)
   (Demand w ty x a) -> Demand w ty (f x) (s a)
   (Alias x w a) -> Alias (f x) w (s' 0 a)
@@ -296,7 +317,7 @@ subst π t = case t of
   SBot -> SBot
   -- What nm xs -> What nm (map f xs)
   a -> Exchange π a
- where f = (π!!)
+ where f = atNote "subst" π
        s = subst π
        s' x = subst (l++x:r)
               where (l,r) = splitAt x $ map (\y -> if y >= x then y+1 else y) π
@@ -327,6 +348,8 @@ data SeqFinal t a = SeqFinal
      , sdemand :: (Name -> Name -> t -> a -> a)
      , signore :: (Name -> t -> a -> a)
      , salias :: (Name -> Name -> t -> a -> a)
+     , sfold :: Name -> Name -> t -> a -> a
+     , sunfold :: Name -> Name -> t -> a -> a
      , swhat :: (Name -> [Name] -> a)
      }
 
@@ -358,13 +381,16 @@ foldSeq sf ts0 vs0 s0 =
          where (v0,(w,~Zero):v1) = splitAt x vs
       (SOne x t) -> sone w $ recurse ts (v0++v1) t
         where (v0,(w,~One):v1) = splitAt x vs
-      (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t
+      (Exchange p t) -> sxchg p $ recurse ts [atNote "foldSeq/recurse/Exchange" vs i | i <- p] t
+
       (TApp _ v x tyB s) -> stapp w (sty (v:ts) tyA) v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
         where (v0,(w,~(Forall _ tyA)):v1) = splitAt x vs
               ty = subst0 tyB ∙ tyA
+
       (TUnpack v x s) -> stunpack tw w v $ recurse (tw:ts) (upd v0++(v,tyA):upd v1) s
         where (v0,(w,~(Exists tw tyA)):v1) = splitAt x vs
               upd = map (second (wk ∙))
+
       (Offer v x s) -> soffer w v  (fty tyA) $ recurse ts (v0++(v,tyA):v1) s
         where (v0,(w,~(Quest tyA)):v1) = splitAt x vs
       (Demand v _ x s) -> sdemand w v (fty tyA) $ recurse ts (v0++(v,tyA):v1) s
@@ -373,7 +399,18 @@ foldSeq sf ts0 vs0 s0 =
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       (Alias x w' s) -> salias w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
-      What x ws -> swhat x [fst (vs !! w) | w <- ws]
+
+      Fold v x s -> sfold v w (sty ts ty) (recurse ts (v0++(v,ty):v1) s)
+        where
+          (v0,(w,~(Mu True u tyR)):v1) = splitAt x vs
+          ty = foldTy u tyR
+
+      Unfold v x s -> sunfold v w (sty ts ty) (recurse ts (v0++(v,ty):v1) s)
+        where
+          (v0,(w,~(Mu False u tyR)):v1) = splitAt x vs
+          ty = unfoldTy u tyR
+
+      What x ws -> swhat x [fst (atNote "foldSeq/recurse/What" vs w) | w <- ws]
    where fty = sty ts
          fctx = over (mapped._2) fty
          SeqFinal{..} = sf (Deriv ts vs seq)
@@ -401,6 +438,8 @@ fillTypes' = foldSeq sf where
     sdemand _ v ty s = Demand v ty x s
     signore _ _ s = Ignore x s
     salias _ w' _ s = Alias x w' s
+    sfold w _ _ s = Fold w x s
+    sunfold w _ _ s = Unfold w x s
     swhat a _  = What a xs where What _ xs = seq
     x = varOf seq
 

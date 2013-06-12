@@ -40,6 +40,14 @@ instance Arbitrary Type where
             bin mk = mk <$> ty s' <*> ty s'
             s' = s `div` 2
 
+    shrink c = case c of
+        Tensor a b -> [a,b] ++ (Tensor <$> shrink a <*> shrink b)
+        Par a b    -> [a,b] ++ (Par <$> shrink a <*> shrink b)
+        Plus a b   -> [a,b] ++ (Plus <$> shrink a <*> shrink b)
+        Choice a b -> [a,b] ++ (Choice <$> shrink a <*> shrink b)
+        _          -> []
+
+
 finAll :: (Testable prop,Show a) => [a] -> (a -> prop) -> Property
 finAll = finAll' show
 

@@ -24,5 +24,6 @@ executable erll
                        containers ==0.5.*,
                        lens ==3.9.*,
                        array ==0.4.*,
-                       QuickCheck ==2.6.*
+                       QuickCheck ==2.6.*,
+                       safe
   build-tools:         alex, happy

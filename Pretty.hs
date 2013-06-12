@@ -36,6 +36,7 @@ pType p vs Zero = "0"
 pType p vs One = "1"
 pType p vs Top = "⊤"
 pType p vs Bot = "⊥"
+pType p vs (Mu b x t) = prn p 4 $ if_ b ("~" <>) "μ" <+> text x <+> "." <+> pType 0 (x:vs) t
 pType p vs (TVar True x) = text $ vs!!x
 pType p vs (TVar False x) = "~" <> text (vs!!x)
 pType p vs (Bang t) = prn p 4 $ "!" <> pType 4 vs t
@@ -73,6 +74,8 @@ pSeq showTypes = foldSeq sf where
         sdemand v w ty s = "let" <+> text w <+> "=" <+> text "demand" <+> varT v ty <+> "in" $$ s
         signore w ty s = "ignore " <> text w $$ s
         salias w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
+        sfold w w' ty s = "let" <+> text w' <+> equals <+> "fold" <+> text w' <+> "in" $$ s
+        sunfold w w' ty s = "let" <+> text w' <+> equals <+> "unfold" <+> text w' <+> "in" $$ s
         swhat a _ = braces $ pCtx ts vs
    varT x y | showTypes = text x <> " : " <> y
             | otherwise = text x
@@ -139,5 +142,5 @@ pClosure (seq,env,typeEnv) =
 sshow = putStrLn . render . pSystem
 
 -- TODO: Dummy definitions to be able to print the code. Needs a proper solution
-typeNames = ["α","β","γ","δ","ε","ζ","η","ι","κ","λ","μ"]
+typeNames = ["α","β","γ","δ","ε","ζ","η","ι","κ","λ"]
 mkEnvDummy = map (\(n,_) -> (n,dum))

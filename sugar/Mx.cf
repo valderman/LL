@@ -2,14 +2,16 @@ Deriv.  Prog ::= [Alias] [TyVar] [Binder] "|-" Seq ;
 
 separator Binder "," ;
 separator nonempty Id ","  ;
+separator AliasId "" ;
 terminator TyVar "," ;
 terminator Alias ";" ;
 
-TyAlias. Alias ::= "type" Id "=" Type ;
+TyAlias. Alias   ::= "type" Id [AliasId] "=" Type ;
+AliasId. AliasId ::= Id ;
 
-TyVar.   TyVar ::= Id;
+TyVar.   TyVar   ::= Id;
 
-Binder. Binder  ::= Id ":" Type ;
+Binder.  Binder  ::= Id ":" Type ;
 
 -- Maybe binder
 BJust.    MBinder ::= Id ":" Type ;
@@ -31,7 +33,7 @@ Choice.   Type3 ::= Type3 "&" Type4 ;
 Top.      Type5 ::= "T" ;
 Zero.     Type5 ::= "0" ;
 
-Lollipop. Type2 ::= Type "-o" Type2 ;
+Lollipop. Type1 ::= Type1 "-o" Type2 ;
 
 TyId.     Type5 ::= Id ;
 
@@ -39,8 +41,10 @@ Bang.     Type5 ::= "!" Type5 ;
 Quest.    Type5 ::= "?" Type5 ;
 Neg.      Type5 ::= "~" Type5 ;
 
+-- TODO: Support these applied to (partially-applied) type aliases
 Forall.   Type ::= "forall" Id "." Type ;
 Exists.   Type ::= "exists" Id "." Type ;
+Mu.       Type ::= "mu" Id "." Type ;
 
 coercions Type 5 ;
 
@@ -63,6 +67,8 @@ Offer.     Seq ::= "offer" Id "for" Id "in" Seq ;
 Demand.    Seq ::= "let" Id "=" "demand" Id "in" Seq ;
 Ignore.    Seq ::= "ignore" Id "in" Seq ;
 Alias.     Seq ::= "let" Id "=" "alias" Id "in" Seq ;
+Fold.      Seq ::= "let" Id "=" "fold" Id "in" Seq ;
+Unfold.    Seq ::= "let" Id "=" "unfold" Id "in" Seq ;
 Hole.      Seq ::= "_" ;
 
 position token Id (letter)((letter|digit|'-'|'_'|'\'')*) ;

@@ -1,0 +1,9 @@
+x : (T + 0) * (0 * 0), y : 0 * T |-
+let a, b = x in
+let u, v = b in
+case a of
+    { inl s -> crash v along s, u, y
+    ; inr t ->
+        let i, j = y in
+        crash i along j, t, v, u
+    }

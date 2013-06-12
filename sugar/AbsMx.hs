@@ -9,7 +9,11 @@ data Prog =
   deriving (Eq,Ord,Show)
 
 data Alias =
-   TyAlias Id Type
+   TyAlias Id [AliasId] Type
+  deriving (Eq,Ord,Show)
+
+data AliasId =
+   AliasId Id
   deriving (Eq,Ord,Show)
 
 data TyVar =
@@ -46,6 +50,7 @@ data Type =
  | Neg Type
  | Forall Id Type
  | Exists Id Type
+ | Mu Id Type
   deriving (Eq,Ord,Show)
 
 data Choice =
@@ -69,6 +74,8 @@ data Seq =
  | Demand Id Id Seq
  | Ignore Id Seq
  | Alias Id Id Seq
+ | Fold Id Id Seq
+ | Unfold Id Id Seq
  | Hole
   deriving (Eq,Ord,Show)
 

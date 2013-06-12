@@ -94,7 +94,7 @@ eitherResIdent tv s = treeFind resWords
                               | s > a  = treeFind right
                               | s == a = t
 
-resWords = b "along" 24 (b "0" 12 (b "*" 6 (b "(" 3 (b "&" 2 (b "!" 1 N N) N) (b ")" 5 (b "()" 4 N N) N)) (b "->" 9 (b "," 8 (b "+" 7 N N) N) (b "." 11 (b "-o" 10 N N) N))) (b "?" 18 (b ";" 15 (b ":" 14 (b "1" 13 N N) N) (b "=" 17 (b "<->" 16 N N) N)) (b "_" 21 (b "T" 20 (b "@" 19 N N) N) (b "alias" 23 (b "_|_" 22 N N) N)))) (b "inr" 36 (b "for" 30 (b "crash" 27 (b "connect" 26 (b "case" 25 N N) N) (b "exists" 29 (b "demand" 28 N N) N)) (b "ignore" 33 (b "fst" 32 (b "forall" 31 N N) N) (b "inl" 35 (b "in" 34 N N) N))) (b "via" 42 (b "offer" 39 (b "of" 38 (b "let" 37 N N) N) (b "type" 41 (b "snd" 40 N N) N)) (b "|-" 45 (b "|" 44 (b "{" 43 N N) N) (b "~" 47 (b "}" 46 N N) N))))
+resWords = b "connect" 26 (b "1" 13 (b "+" 7 (b "()" 4 (b "&" 2 (b "!" 1 N N) (b "(" 3 N N)) (b "*" 6 (b ")" 5 N N) N)) (b "-o" 10 (b "->" 9 (b "," 8 N N) N) (b "0" 12 (b "." 11 N N) N))) (b "T" 20 (b "=" 17 (b ";" 15 (b ":" 14 N N) (b "<->" 16 N N)) (b "@" 19 (b "?" 18 N N) N)) (b "alias" 23 (b "_|_" 22 (b "_" 21 N N) N) (b "case" 25 (b "along" 24 N N) N)))) (b "mu" 39 (b "fst" 33 (b "fold" 30 (b "demand" 28 (b "crash" 27 N N) (b "exists" 29 N N)) (b "forall" 32 (b "for" 31 N N) N)) (b "inl" 36 (b "in" 35 (b "ignore" 34 N N) N) (b "let" 38 (b "inr" 37 N N) N))) (b "via" 45 (b "snd" 42 (b "offer" 41 (b "of" 40 N N) N) (b "unfold" 44 (b "type" 43 N N) N)) (b "|-" 48 (b "|" 47 (b "{" 46 N N) N) (b "~" 50 (b "}" 49 N N) N))))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

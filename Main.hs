@@ -34,7 +34,7 @@ run s = case pProg (myLexer s) of
         putStrLn (render msg)
         case r of
             Right d@(Deriv _ _ s) -> do
-                -- print s
+                print s
                 putStrLn "== Pretty-Printed =="
                 print d
 

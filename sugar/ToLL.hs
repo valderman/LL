@@ -32,6 +32,9 @@ import AbsMx (Id(..),Choice(..),Binder(..),Along(..),Prog)
 
 data Ident = Ident { name :: String, pos :: (Int,Int) }
 
+idName :: Ident -> Doc
+idName = text . name
+
 instance Eq Ident where
     (==) = (==) `on` name
 
@@ -56,7 +59,7 @@ desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
 
     return $ Deriv (map name init_tyvars) ctx (exchange pm s')
   where
-    init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) t <- as ]
+    init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) [] t <- as ]
     init_tyvars = [ tv | C.TyVar (i -> tv) <- tvs ]
 
 newtype T a = T
@@ -248,8 +251,9 @@ trType = locally . go
         C.Bang x       -> Bang <$> go x
         C.Quest x      -> Quest <$> go x
         C.Neg x        -> neg <$> go x
-        C.Forall (i -> x) t -> insertTyVar x >> (Forall (name x) <$> go t)
+        C.Forall (i -> x) t -> insertTyVar x >> (Forall (name x)  <$> go t)
         C.Exists (i -> x) t -> insertTyVar x >> (Exists (name x) <$> go t)
+        C.Mu (i -> x) t     -> insertTyVar x >> (Mu True (name x) <$> go t)
         C.TyId (i -> x)     -> do
             (tvs,_) <- get
             case elemIndex x tvs of
@@ -301,6 +305,8 @@ matchType z t0 t1 = maybe (throw (TypeError z t0 t1)) return (go t0 t1)
     go (Quest u)    (Quest v)    = go u v
     go (Forall _ u) (Forall _ v) = go u v
     go (Exists _ u) (Exists _ v) = go u v
+    go (Mu b1 _ u)  (Mu b2 _ v)  | b1 == b2  = go u v
+                                 | otherwise = mzero
     go Meta{}       t            = return [t]
     go u            v
         | u == v    = return []
@@ -348,8 +354,13 @@ trSeq sq = case sq of
         (s',bs) <- trSeq s
         let bs' = delete x (delete y bs)
             pm :: Permutation
-            pm = either (error "trSeq: TensorSeq malformed context")
+            pm = either (error "trSeq: TensorSeq malformed context (or identifier escapes?)")
                     id (getPermutation bs (x:y:bs'))
+
+        report $ hang (idName x <> comma <> idName y <> equals <> idName z <+> colon) 4
+             $ hsep (map idName bs)
+            $$ hsep (map idName (x:y:bs'))
+            $$ text (show pm)
 
         return (Cross tz (name x) (name y) 0 (exchange pm s'),z:bs')
 
@@ -367,7 +378,6 @@ trSeq sq = case sq of
 
         return (Par tz (name x) (name y) (length xb) sx' sy',xb ++ [z] ++ yb)
 
-    -- :⊕: :&:
     C.Case (i -> z) (i -> x) sx (i -> y) sy -> do
 
         tz <- eat z
@@ -383,8 +393,14 @@ trSeq sq = case sq of
         bind' y ty
         (sy',yb) <- putFirst y =<< trSeq sy
 
-        p <- either (throw . uncurry (PermutationError (Just z))) return
-                    (getPermutation xb yb)
+        p <- either (throw . uncurry (PermutationError (Just z)))
+                    (return . (0:) . map succ)
+                    (getPermutation yb xb)
+
+        report $ hang ("case" <+> idName z <+> "{" <+> idName x <> comma <> idName y <+> "}" <+> colon) 4
+             $ hsep (map idName xb)
+            $$ hsep (map idName yb)
+            $$ text (show p)
 
         return (Plus (name x) (name y) 0 sx' (exchange p sy'),z:xb)
 
@@ -490,6 +506,20 @@ trSeq sq = case sq of
         -- b2 is now on the form l,z',r
         (l,r) <- munch z' b2
         return (Alias (length l) (name z') s2,l ++ [z] ++ r)
+
+    C.Fold (i -> x) (i -> z) s -> do
+
+        tz <- eat z
+        [tr] <- matchType z (Mu True "" __) tz
+        (s',l,r) <- bindTrSeqMunch x (foldTy (name x) tr) s
+        return (Fold (name z) (length l) s',l ++ [z] ++ r)
+
+    C.Unfold (i -> x) (i -> z) s -> do
+
+        tz <- eat z
+        [tr] <- matchType z (Mu False "" __) tz
+        (s',l,r) <- bindTrSeqMunch x (unfoldTy (name x) tr) s
+        return (Unfold (name z) (length l) s',l ++ [z] ++ r)
 
     C.Hole -> throw . Hole . M.toList . snd =<< get
 

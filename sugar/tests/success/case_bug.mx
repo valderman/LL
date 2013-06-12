@@ -1,0 +1,6 @@
+x : _|_, y : 0 + _|_, z : 0 |-
+case y of
+    { inl y1 -> crash y1 along x, z
+    ; inr y2 -> crash z along y2, x
+    }
+
