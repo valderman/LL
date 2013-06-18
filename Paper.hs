@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -XTypeFamilies -XTypeSynonymInstances -XOverloadedStrings -XRecursiveDo -pgmF marxup -F #-}
 
+module Paper where
+
 import Pretty
 import MarXup
 import MarXup.Latex
@@ -214,7 +216,7 @@ memTranslation =
   [[linearize $ texProg [] [] seq,text "=",linearize $ texProg [] [] (translate id seq)]]
   where seq = Cut "x" "y" tA 0 (What "a" []) (What "b" [])
 
-main = renderToDisk $ latexDocument "article" ["10pt"] preamble $ @"
+outputTexMp name = renderToDisk' name $ latexDocument "article" ["10pt"] preamble $ @"
 @maketitle
 
 @section{Introduction}

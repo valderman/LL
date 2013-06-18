@@ -1,0 +1,1 @@
+ghc Driver -e Driver.main
