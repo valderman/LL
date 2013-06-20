@@ -9,6 +9,9 @@ import Symheap
 tgamma = meta "Γ"
 tdelta = meta "Δ"
 
+tA = meta "A"
+tB = meta "B"
+
 gamma = ("?γ",tgamma)
 delta = ("?δ",tdelta)
 xi    = ("?ξ",meta "Ξ")
@@ -38,6 +41,12 @@ weakenRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore 1 whatA
 contractRule  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias 1 "z'" whatA
 
 
-
+channelRule = Deriv ["θ"] [("x",meta "A"),("y",neg (meta "A"))] (Channel dum)
+chanPlusRule b = Deriv ["θ"] [("z",tA :⊕: tB),("x",neg $ if b then tA else tB)] (ChanPlus b dum dum)
+chanCrossRule = Deriv ["θ"] [("z",tA :⊗: tB),("x",neg tA),("y",neg tB)] (ChanCross dum dum)
+chanParRule = Deriv ["θ"] [("z",tA :|: tB),("x",neg tA),("y",neg tB)] (ChanPar dum dum)
+chanTypRule = Deriv ["θ"] [("z",Exists "α" tAofAlpha),("x",neg (Meta True "A" [tB]))] (ChanTyp tB dum)
+chanEmptyRule n = Deriv ["θ"] (("z",Bang tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemEmpty tA n)
+chanFullRule n = Deriv ["θ"] (("z",tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemFull tA n)
 
 

@@ -26,13 +26,17 @@ amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt"
 
 ruleName = math . cmd "text" . smallcaps 
 
+index ix = tex "_" <> braces ix
+
+indicator b = if b then "1" else "2"
+
 seqName (Exchange _ _) = ruleName "Ex."
 seqName (Ax _ ) = ruleName "Ax"
 seqName (Cut _ _ _ _ _ _) = ruleName "Cut"
 seqName (Cross _ _ _ _ _) = "⊗"
 seqName (Par _ _ _ _ _ _) = "⅋"
 seqName (Plus  _ _ _ _ _) = "⊕"
-seqName (With _ b _ _) = math $ (amp<>tex"_"<>if b then "1" else "2")
+seqName (With _ b _ _) = math $ (amp <> index (indicator b))
 seqName (SOne _ _) = "1"
 seqName (SZero _) = "0"
 seqName SBot = "⊥"
@@ -42,12 +46,26 @@ seqName (Offer _ _ _) = "?"
 seqName (Demand _ _ _ _) = "!"
 seqName (Ignore _ _) = ruleName "Weaken"
 seqName (Alias _ _ _) = ruleName "Contract"
-
+seqName (Channel _) = ruleName "Ch" <> index (texClosedType 
+seqName (ChanPlus b ta tb) = ruleName "Ch" <> parens (indicator b))
+seqName (ChanCross ta tb) = ruleName "Ch(<)"
+seqName (ChanPar   ta tb) = ruleName "Ch(>)"
+seqName (ChanTyp   tmono _) = ruleName "Ch" <> math (parens (texClosedType tmono))
+seqName (MemEmpty  _ n) = ruleName "Empty" <> math (parens (textual (show n)))
+seqName (MemFull   _ n) = ruleName "Full" <> math (parens (textual (show n)))
 
 texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
 texSeq showProg = foldSeq sf where
  sf (Deriv ts vs seq) = SeqFinal {..} where
   sty = texType 0
+  schannel _ = rul []
+  schplus _ _ _ = rul []
+  schcross _ _ = rul []
+  schpar _ _ = rul []
+  schtyp _ _ = rul []
+  schempty _ _ = rul []
+  schfull _ _ = rul []
+  
   sax v v' _ = rul []
   scut v _ _ s _ t = rul [s,t]
   scross w v vt v' vt' t = rul [t]
@@ -57,7 +75,8 @@ texSeq showProg = foldSeq sf where
   sbot v = rul []
   szero w vs = rul []
   sone w t = rul [t]
-  sxchg _ s = rul [s] -- uncomment to display the exchange rules
+  -- sxchg _ s = rul [s] -- to display the exchange rules
+  sxchg _ s = s -- to hide them
   stapp w _ _ tyB s = rul [s]
   stunpack tw w _ s = rul [s]
   soffer w _ ty s = rul [s] 
@@ -134,6 +153,13 @@ texProg'' what showTypes = foldSeq sf where
    sf :: Deriv -> SeqFinal TeX Block
    sf (Deriv ts vs _) = SeqFinal {..} where
       sty ts t  = texType 0 ts t
+      schannel _    = Final "CHAN"
+      schplus _ _ _ = Final "CHAN"
+      schcross _ _  = Final "CHAN"
+      schpar _ _    = Final "CHAN"
+      schtyp _ _    = Final "CHAN"
+      schempty _ _  = Final "CHAN"
+      schfull _ _   = Final "CHAN"
       sax v v' _ = Final $ texVar v <> " ↔ " <> texVar v'
       scut v v' vt' s vt t = connect mempty (texVarT' v   vt') s
                                             (texVarT' v'  vt ) t

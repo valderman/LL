@@ -86,7 +86,7 @@ allRules =
   ,[(weakenRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
   ,[(contractRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
   ] 
-
+  
 existComment = @"Wait for the type representation to be ready. Copy the
   (pointer to) the representation to the type environment. Free the
   type variable from the memory. Rename the linear variable (as in
@@ -96,6 +96,16 @@ existComment = @"Wait for the type representation to be ready. Copy the
   then this rule must be responsible for freeing the memory (or we need garbage collection;
   yuck).@"
      
+chanRules :: [(Deriv,TeX)]               
+chanRules =   
+  [(channelRule,       "A channel containing no data")
+  ,(chanPlusRule True, "A channel containing a bit")
+  ,(chanCrossRule,     "A half-split channel (par side)")
+  ,(chanParRule,       "A half-split channel (par side)")
+  ,(chanTypRule,       "A channel containing a type")
+  ,(chanEmptyRule 3,   "A memory cell (empty)")
+  ,(chanFullRule 3,    "A memory cell (full)")]
+
 -- | Print all derivation rules               
 typeRules = figure "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
     env "center" $ do
@@ -105,6 +115,12 @@ typeRules = figure "Typing rules of Classical Linear Logic, with an ISWIM-style 
             [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
          newline  
          cmd0 "vspace{1em}"
+
+typesetChanRules = figure "Rules for explicit channel management" $ 
+    env "center" $ do
+    forM_ chanRules $ \(r,comment) -> do 
+        math $ deriv False r
+        cmd0 "hspace{1em}"
 
 deriv'' (x,_) = deriv' x
                
@@ -128,21 +144,10 @@ amRule' h0 ((seq,comment):seqs) = do
 -- | Render abstract machine rules
 amRule = amRule' emptyHeap
 
-syncRules =  [
-    ("AxCut",cutAx),
-    (math par<>"⊗",cutParCross),
-    (amp<>"⊕",cutWithPlus True),
-    ("?!", cutBang),
-    ("⊥!",cutUnit),
-    ("∃∀",cutQuant),
-    ("?Contract",cutContract),
-    ("?Weaken",cutIgnore)
-    ] 
-  
-             
-allReductions = 
-  env "center" $ 
-    forM_ (syncRules ++ pushRules) $ \(name,input) -> do
+allReductions = typesetReductions (syncRules ++ pushRules ++ chanRedRules)
+
+typesetReductions reds = env "center" $ 
+    forM_ reds $ \(name,input) -> do
           let red1 :: (Deriv -> Tex a) -> Tex ()
               red1 displayer = do          
                 
@@ -156,7 +161,7 @@ allReductions =
           red1 (deriv False)
           newline
           cmd "fbox" $ red1 (program)
-          newline
+          -- newline
           -- renderTree input
           -- renderTree (eval input)
           cmd0 "vspace{1em}"
@@ -174,8 +179,6 @@ instance Element Layout where
   type Target Layout = TeX
   element = math . texLayout
 
-tA = meta "A"
-tB = meta "B"
 arr = meta "a"
 keys = meta "k"
 vals = meta "v"
@@ -202,6 +205,8 @@ norm x = math $ "|" <> x <> "|"
 
 nothing _ = mempty
 
+
+
 memory = array [] (braces (text "lcl")) $
          [[ mem t "x" "y",text "=",linearize (texProgM [] [("x",t),("y",neg t)] (copy'' t)) >> return ()] | t <- allPosTypes , t /= Zero]
          ++[[mem metaT "x" "y",text "=",mem (neg metaT) "x" "y"]]
@@ -211,10 +216,12 @@ texProgM = texProg'' what True
   where what a ws fs = mem (Meta True a []) z w
           where (z:w:_) = map fst fs
 
-memTranslation =
-  array [] (braces (text "lcl")) $
-  [[linearize $ texProg [] [] seq,text "=",linearize $ texProg [] [] (translate id seq)]]
-  where seq = Cut "x" "y" tA 0 (What "a" []) (What "b" [])
+
+memTranslation = do
+  deriv False cutRule
+  textual "="
+  deriv False $ Deriv ["Θ"] [gamma,delta] (Cut "x" "z" (meta "A") 1 whatA $
+                                           Cut "z" "y" (meta "A") 1 (Channel dum) whatB)
 
 outputTexMp name = renderToDisk' name $ latexDocument "article" ["10pt"] preamble $ @"
 @maketitle
@@ -400,6 +407,14 @@ We define:
 @item @math{@pole = any tree of axiom closures}
 }
 
+@itemize{
+@item @math{M = @brac{closures (bubbles with outgoing edges)}}
+@item @math{1 = empty set}
+@item @math{· = concatenation of closures with matching channels, with the simple eval. strategy.}
+@item @math{@pole = the terminated program}
+}
+
+
 @section{Change the world?}
 
 Assume the following interface, where @arr is an absract type of arrays; 
@@ -460,7 +475,11 @@ reduction strategy}
 
 @memory
 
+@section{Channel reification}
+
 @memTranslation
+
+@typesetChanRules
 
 @section{Related Work}
 

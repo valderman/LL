@@ -102,6 +102,15 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | Demand Name (Forced Type) Int (Seq)
          | Ignore Int (Seq)
          | Alias Int Name (Seq)
+           
+         | Channel (Forced Type) -- Exactly 2 vars
+         | ChanPlus Bool Type Type -- Channel Loaded with a bit
+         | ChanCross Type Type -- Channel split on the cross side
+         | ChanPar Type Type -- Channel split on the par side
+         | ChanTyp Type Type -- Channel loaded with a monotype
+         | MemEmpty Type Int -- Memory with n readers, but not written yet
+         | MemFull Type Int  -- Memory with n readers, already written to
+           
 
 -- | A full derivation
 data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], derivSequent :: Seq}
@@ -175,6 +184,8 @@ apply f t = case t of
 
 applyS :: Subst -> Seq -> Seq
 applyS f t = case t of
+  Ax ty -> Ax (f ∙ ty)
+  Channel ty -> Channel (f ∙ ty)
   (Exchange π a) -> Exchange π (s a)
   Cut w w' ty x a b -> Cut w w' (f ∙ ty) x (s a) (s b)
   Cross ty w w' x a -> Cross ty w w' x (s a)
@@ -188,7 +199,7 @@ applyS f t = case t of
   Demand w ty x a -> Demand w ty x (s a)
   Ignore x a -> Ignore x (s a)
   Alias x w a -> Alias x w (s a)
-  a -> a
+  a -> a -- FIXME: other channel types
  where s = applyS f
        s' = applyS (var 0 : wk ∙ f)
 
@@ -248,6 +259,9 @@ cut n _ _ (Bang ty)
 cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
 cut n _ _ ty γ (Offer w 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer w 0 b) a)))
 cut n _ _ ty γ SBot (SOne 0 a) = a
+
+cut n w w' ty γ (With v c 0 s) (Channel (ta :⊕: tb)) = What "rsarst" [] -- (ta :⊕: tb)) = Cut w w' (if c then ta else tb) γ s (ChanPlus c ta tb)
+
 cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w w' (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
 
@@ -322,8 +336,14 @@ data SeqFinal t a = SeqFinal
      , signore :: (Name -> t -> a -> a)
      , salias :: (Name -> Name -> t -> a -> a)
      , swhat :: (Name -> [Name] -> [(Name,Type)] -> a)
+     , schannel :: Type -> a
+     , schplus :: Bool -> Type -> Type -> a
+     , schcross :: Type -> Type -> a
+     , schpar :: Type -> Type -> a
+     , schtyp :: Type -> Type -> a
+     , schempty :: Type -> Int -> a
+     , schfull :: Type -> Int -> a
      }
-
 foldSeq :: (Deriv -> SeqFinal t a)
      -> [Name] -- ^ ty vars
      -> [(Name, Type)] -- ^ vars
@@ -333,6 +353,13 @@ foldSeq :: (Deriv -> SeqFinal t a)
 foldSeq sf ts0 vs0 s0 =
  recurse ts0 vs0 s0 where
  recurse ts vs seq = case seq of
+      Channel _ ->  schannel vt where [(v0,_),(v1,vt)] = vs
+      ChanPlus b _ _ -> schplus b ta tb where [(v1,ta :⊕: tb),_] = vs
+      ChanCross _ _ -> schcross ta tb where [(v1,ta :⊗: tb),_] = vs
+      ChanPar _ _ -> schpar ta tb where [(v1,ta :|:  tb),_] = vs
+      ChanTyp ty _ -> schtyp ty tgen where [(v0,tgen),_] = vs
+      MemEmpty _ _ -> schempty ty (length rest) where ((_,Bang ty):rest) = vs
+      MemFull _ _ -> schfull ty (length rest) where ((_,ty):rest) = vs
       Ax _ -> sax v0 v1 vt where [(v0,_),(v1,vt)] = vs
       (Cut v v' vt x s t) -> scut v v' (fty (neg vt)) (recurse ts ((v,neg vt):v0) s)
                                        (fty      vt ) (recurse ts ((v',vt):v1) t)
@@ -368,6 +395,7 @@ foldSeq sf ts0 vs0 s0 =
       (Alias x w' s) -> salias w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       What x ws -> swhat x [fst (vs !! w) | w <- ws] vs
+
    where fty = sty ts
          fctx = map (second fty)
          SeqFinal{..} = sf (Deriv ts vs seq)
@@ -395,6 +423,13 @@ fillTypes' = foldSeq sf where
     sdemand _ v ty s = Demand v ty x s
     signore _ _ s = Ignore x s
     salias _ w' _ s = Alias x w' s
+    schannel t = Channel t
+    schplus b ta tb = ChanPlus b ta tb
+    schcross ta tb = ChanCross ta tb
+    schpar ta tb = ChanPar ta tb
+    schtyp tmono tgen = ChanTyp tmono tgen
+    schempty ty n = MemEmpty ty n
+    schfull ty n = MemFull ty n
     swhat a _ _ = What a xs where What _ xs = seq
     x = varOf seq
 

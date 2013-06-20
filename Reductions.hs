@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}  
 module Reductions where
 import Data.Monoid
 import LL
@@ -5,6 +6,7 @@ import Rules
 import Pretty
 import TexPretty 
 import MarXup.Tex
+import MarXup.Latex (math)
 
 cutAx = Deriv ["Θ"] [gamma,("w",neg $ meta "A")] $
               Cut "x" "y" (meta "A") 1 (What "a" [0]) (Ax dum)
@@ -33,10 +35,20 @@ cutUnit = Deriv ["Θ"] [gamma] $ Cut "z" "_z" One 0 SBot (SOne 0 whatA)
 cutQuant = Deriv ["Θ"] [gamma,delta] $
            Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
 
+syncRules,pushRules,chanRedRules :: [(TeX,Deriv)]
+syncRules = [
+    ("AxCut",cutAx),
+    (math par<>"⊗",cutParCross),
+    (amp<>"⊕",cutWithPlus True),
+    ("?!", cutBang),
+    ("⊥!",cutUnit),
+    ("∃∀",cutQuant),
+    ("?Contract",cutContract),
+    ("?Weaken",cutIgnore)
+    ] 
 
 altParPush = Deriv ["Θ"] (derivContext parRule ++ [xi]) (Cut "z" "_z" (meta "C") 3 (Par dum "_x" "_y" 2 whatA whatB) whatB)
 
-pushRules :: [(TeX,Deriv)]
 pushRules = (textual "κ⅋0", altParPush) :
    [(textual "κ"<>seqName s, Deriv ["Θ"] (derivContext d ++ [xi]) 
       (Cut "z" "_z" (meta "C") 
@@ -62,4 +74,4 @@ pushRules = (textual "κ⅋0", altParPush) :
    ]
 
    
-
+chanRedRules = [("bit write", Deriv ["Θ"] [gamma,("z",neg (tA :⊕: tB))] $ Cut "x" "_x" (tA :⊕: tB) 1 (With "x" True 0 whatA) (Channel dum))]
