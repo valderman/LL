@@ -82,7 +82,7 @@ allRules =
    ,(existsRule,existComment)]
   ,[(questRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
     (bangRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
-                  the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")] 
+                  the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")] -}
   ,[(weakenRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
   ,[(contractRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
   ] 
@@ -475,6 +475,8 @@ reduction strategy}
 @section{Memory reification}
 
 @memory
+
+There is no rule for 0.
 
 @section{Channel reification}
 

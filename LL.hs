@@ -112,6 +112,9 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | MemFull Type Int  -- Memory with n readers, already written to
            
 
+         | Mem Name Name (Forced Type) -- "memory" sequent used to relax order of cut elimination to mimic the abstract machine
+
+
 -- | A full derivation
 data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], derivSequent :: Seq}
 
