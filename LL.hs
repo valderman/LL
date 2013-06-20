@@ -260,7 +260,9 @@ cut n _ _ ty γ (Offer _ 0 a) (Ignore 0 b) = ignore γ b
 cut n _ _ ty γ (Offer w 0 b) (Alias 0 w' a) = alias (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer w 0 b) a)))
 cut n _ _ ty γ SBot (SOne 0 a) = a
 
-cut n w w' ty γ (With v c 0 s) (Channel (ta :⊕: tb)) = What "rsarst" [] -- (ta :⊕: tb)) = Cut w w' (if c then ta else tb) γ s (ChanPlus c ta tb)
+cut n w w' ty γ (With v c 0 s) (Channel (ta :&: tb)) = Cut w w' (neg $ if c then ta else tb) γ s (ChanPlus c ta tb)
+cut n w w' _  γ (ChanPlus b ta tb) (Plus _ _ 0 s t) = Cut w w' (neg ty) γ (Channel (neg ty)) (if b then s else t)
+  where ty = if b then ta else tb
 
 cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w w' (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
@@ -354,7 +356,7 @@ foldSeq sf ts0 vs0 s0 =
  recurse ts0 vs0 s0 where
  recurse ts vs seq = case seq of
       Channel _ ->  schannel vt where [(v0,_),(v1,vt)] = vs
-      ChanPlus b _ _ -> schplus b ta tb where [(v1,ta :⊕: tb),_] = vs
+      ChanPlus b _ _ -> schplus b ta tb where [(v1,ta :&: tb),_] = vs
       ChanCross _ _ -> schcross ta tb where [(v1,ta :⊗: tb),_] = vs
       ChanPar _ _ -> schpar ta tb where [(v1,ta :|:  tb),_] = vs
       ChanTyp ty _ -> schtyp ty tgen where [(v0,tgen),_] = vs

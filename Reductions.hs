@@ -74,4 +74,8 @@ pushRules = (textual "κ⅋0", altParPush) :
    ]
 
    
-chanRedRules = [("bit write", Deriv ["Θ"] [gamma,("z",neg (tA :⊕: tB))] $ Cut "x" "_x" (tA :⊕: tB) 1 (With "x" True 0 whatA) (Channel dum))]
+chanRedRules = fts 
+   [("bit write", Deriv ["Θ"] [gamma,("z",neg (tA :⊕: tB))] $ Cut "x" "_x" (tA :⊕: tB) 1 (With "x" True 0 whatA) (Channel dum))
+   ,("bit read" , Deriv ["Θ"] [("z",neg tA),gamma] $ Cut "x" "_x" (neg tA :⊕: neg tB) 1 (ChanPlus True tA tB)  (Plus "x" "y" 0 whatA whatB)) ]
+               
+  where fts = map (second fillTypes)

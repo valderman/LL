@@ -155,16 +155,17 @@ typesetReductions reds = env "center" $
                 math $ cmd0 "Longrightarrow"
                 displayer (eval input)
                 return ()
-          name
+          "name:" <> name
           newline
           cmd0 "vspace{3pt}"
           red1 (deriv False)
           newline
           cmd "fbox" $ red1 (program)
-          -- newline
+          cmd0 "vspace{1em}"
           -- renderTree input
           -- renderTree (eval input)
-          cmd0 "vspace{1em}"
+          newline
+          
 
 todo = cmd "marginpar"
 

@@ -30,29 +30,31 @@ index ix = tex "_" <> braces ix
 
 indicator b = if b then "1" else "2"
 
-seqName (Exchange _ _) = ruleName "Ex."
-seqName (Ax _ ) = ruleName "Ax"
-seqName (Cut _ _ _ _ _ _) = ruleName "Cut"
-seqName (Cross _ _ _ _ _) = "⊗"
-seqName (Par _ _ _ _ _ _) = "⅋"
-seqName (Plus  _ _ _ _ _) = "⊕"
-seqName (With _ b _ _) = math $ (amp <> index (indicator b))
-seqName (SOne _ _) = "1"
-seqName (SZero _) = "0"
-seqName SBot = "⊥"
-seqName (TApp _ _ _ _ _) = "∀"
-seqName (TUnpack _ _ _) = "∃"
-seqName (Offer _ _ _) = "?"
-seqName (Demand _ _ _ _) = "!"
-seqName (Ignore _ _) = ruleName "Weaken"
-seqName (Alias _ _ _) = ruleName "Contract"
-seqName (Channel _) = ruleName "Ch" <> index (texClosedType 
-seqName (ChanPlus b ta tb) = ruleName "Ch" <> parens (indicator b))
-seqName (ChanCross ta tb) = ruleName "Ch(<)"
-seqName (ChanPar   ta tb) = ruleName "Ch(>)"
-seqName (ChanTyp   tmono _) = ruleName "Ch" <> math (parens (texClosedType tmono))
-seqName (MemEmpty  _ n) = ruleName "Empty" <> math (parens (textual (show n)))
-seqName (MemFull   _ n) = ruleName "Full" <> math (parens (textual (show n)))
+seqName = seqName' unknownTypeEnv
+seqName' ctx s = case s of
+   (Exchange _ _)      -> ruleName "Ex."
+   (Ax _ )             -> ruleName "Ax"
+   (Cut _ _ _ _ _ _)   -> ruleName "Cut"
+   (Cross _ _ _ _ _)   -> "⊗"
+   (Par _ _ _ _ _ _)   -> "⅋"
+   (Plus  _ _ _ _ _)   -> "⊕"
+   (With _ b _ _)      -> math $ (amp <> index (indicator b))
+   (SOne _ _)          -> "1"
+   (SZero _)           -> "0"
+   SBot                -> "⊥"
+   (TApp _ _ _ _ _)    -> "∀"
+   (TUnpack _ _ _)     -> "∃"
+   (Offer _ _ _)       -> "?"
+   (Demand _ _ _ _)    -> "!"
+   (Ignore _ _)        -> ruleName "Weaken"
+   (Alias _ _ _)       -> ruleName "Contract"
+   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
+   (ChanPlus b ta tb)  -> ruleName "Ch" <>  (indicator b)
+   (ChanCross ta tb)   -> ruleName "Ch(<)"
+   (ChanPar   ta tb)   -> ruleName "Ch(>)"
+   (ChanTyp   tmono _) -> ruleName "Ch" <> math ( (texType 0 ctx tmono))
+   (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
+   (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
 
 texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
 texSeq showProg = foldSeq sf where
@@ -85,7 +87,7 @@ texSeq showProg = foldSeq sf where
   salias w w' ty s = rul [s]
   swhat a _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
   rul :: [Derivation] -> Derivation
-  rul subs = Node (Rule () Simple mempty (seqName seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
+  rul subs = Node (Rule () Simple mempty (seqName' (map fst vs) seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
 
 
