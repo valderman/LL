@@ -34,7 +34,7 @@ preamble = do
   usepackage [] "cmll" -- for the operator "par"
   usepackage [] "dot2texi"
   -- usepackage [] "tikz" >> cmd "usetikzlibrary" $ tex "shapes,arrows"
-  usepackage ["a4paper","margin=2cm"] "geometry"
+  -- usepackage ["a4paper","margin=2cm"] "geometry"
   newtheorem "theorem" "Theorem"
   newtheorem "corollary" "Corollary"
   newtheorem "lemma" "Lemma"
@@ -42,16 +42,20 @@ preamble = do
 
   cmd "input" (tex "unicodedefs")
   title "Linear Logic: I see what it means!"
-  authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                    ("Josef Svenningsson","",ch)]
+  authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
+                      ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
-outputTexMp name = renderToDisk' name $ latexDocument "article" ["10pt"] preamble $ @"
+outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["preprint"] preamble $ @"
 @maketitle
 
-Abstract
+@env("abstract"){
+Awesome Paper
+}
 
 @intro<-section{Intro}
+
+@section{Syntax}
 
 @subsection{Types}
 @subsection{Typing rules (with term assignment)}
