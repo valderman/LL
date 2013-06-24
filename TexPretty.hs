@@ -51,7 +51,7 @@ seqName' ctx s = case s of
    (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
    (ChanPlus b ta tb)  -> ruleName "Ch" <>  (indicator b)
    (ChanCross ta tb)   -> ruleName "Ch(<)"
-   (ChanPar   ta tb)   -> ruleName "Ch(>)"
+   (ChanPar   ta tb)   -> ruleName "Ch(>)" <> math (texType 0 ctx (ta :|: tb))
    (ChanTyp   tmono _) -> ruleName "Ch" <> math ( (texType 0 ctx tmono))
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
