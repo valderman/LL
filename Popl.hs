@@ -49,6 +49,46 @@ preamble = do
 outputTexMp name = renderToDisk' name $ latexDocument "article" ["10pt"] preamble $ @"
 @maketitle
 
-Done!
+Abstract
+
+@intro<-section{Intro}
+
+@subsection{Types}
+@subsection{Typing rules (with term assignment)}
+@subsection{Note CPS relation}
+@subsection{Examples}
+@subsection{Reduction rules}
+
+
+@section{Trees}
+
+@subsection{Explain representation}
+Topologisation of structural rules
+@subsection{Outermost Evaluation Strategy}
+@subsection{Cut-elimination result}
+
+
+
+@section{Explicit Channels}
+@subsection{Translation}
+@subsection{Reduction rules}
+Multiplicative Fragment
+
+@subsection{``black'' reduction}
+@subsection{Completeness}
+
+@section{Abstract Machine}
+
+@subsection{Reduction rules}
+Equivalent to outermost reductions in the system with explicit channels.
+
+@section{Discussion}
+
+Efficiency?
+
+@subsection{Related Work}
+
+
+@xref(intro)
 
 @"
