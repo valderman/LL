@@ -2,7 +2,7 @@ module Driver (main) where
 
 import Cake
 import Cake.MarXup
-import Paper
+import Popl
 
 main = do
   outputTexMp name
