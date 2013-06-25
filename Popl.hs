@@ -117,7 +117,7 @@ all the edges are hypotheses. It must be waiting on one of them, which is then r
 
 For the inductive case, we assume two systems σ and σ' satisfying the induction hypothesis, 
 with and hypothesis @math{x} in @math{σ} and an hypothesis @math{x'} in @math{σ'}. 
-We show that the system obtained by connecting $x$ and $x'$ satisfies the theorem.
+We show that the system obtained by connecting @math{x} and @math{x'} satisfies the theorem.
 
 We have the following cases:
 
