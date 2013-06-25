@@ -20,9 +20,8 @@ import DiagPretty
 import Control.Monad
 import GraphViz
 import Mem
+import Framework
 
-newtheorem :: String -> TeX -> TeX
-newtheorem ident text = cmd "newtheorem" (tex ident) >> braces text
 
 preamble :: Tex ()
 preamble = do
@@ -35,10 +34,7 @@ preamble = do
   usepackage [] "dot2texi"
   -- usepackage [] "tikz" >> cmd "usetikzlibrary" $ tex "shapes,arrows"
   usepackage ["a4paper","margin=2cm"] "geometry"
-  newtheorem "theorem" "Theorem"
-  newtheorem "corollary" "Corollary"
-  newtheorem "lemma" "Lemma"
-  newtheorem "definition" "Definition"
+  mathpreamble
 
   cmd "input" (tex "unicodedefs")
   title "Linear Logic: I see what it means!"
@@ -46,17 +42,9 @@ preamble = do
                     ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
--- | Render a derivation tree. 
-deriv :: Bool -- ^ Show terms?
-         -> Deriv -> Tex Label
-deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 
 -- | Render a derivation tree, showing terms.
 deriv' = deriv True
-
--- | Render a derivation as a program (term)
-program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
 rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return ()
 
@@ -172,29 +160,10 @@ todo = cmd "marginpar"
 pole :: TeX
 pole = "⊥" <> tex "{\\kern -1ex}" <> "⊥"
 
-instance Element Type where
-  type Target Type = TeX
-  element = texClosedType
-
-instance Element Layout where
-  type Target Layout = TeX
-  element = math . texLayout
-
 arr = meta "a"
 keys = meta "k"
 vals = meta "v"
 
-
-lemma x y = do
-  env "lemma" x
-  env "proof" y
-
-theorem x y = do
-  env "theorem" x
-  env "proof" y
-
-corollary x = do
-  env "corollary" x
 
 -- _x  = math "x"
 -- _x' = math "x'"

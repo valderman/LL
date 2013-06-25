@@ -20,32 +20,10 @@ import DiagPretty
 import Control.Monad
 import GraphViz
 import Mem
+import Framework
 
-newtheorem :: String -> TeX -> TeX
-newtheorem ident text = cmd "newtheorem" (tex ident) >> braces text
 
-preamble :: Tex ()
-preamble = do
-  usepackage ["utf8"] "inputenc"
-  usepackage [] "graphicx" -- used for import metapost diagrams
-  usepackage [] "amsmath"
-  usepackage [] "amsthm"
-  usepackage [] "amssymb" -- extra symbols such as □ 
-  usepackage [] "cmll" -- for the operator "par"
-  usepackage [] "dot2texi"
-  -- usepackage [] "tikz" >> cmd "usetikzlibrary" $ tex "shapes,arrows"
-  -- usepackage ["a4paper","margin=2cm"] "geometry"
-  newtheorem "theorem" "Theorem"
-  newtheorem "corollary" "Corollary"
-  newtheorem "lemma" "Lemma"
-  newtheorem "definition" "Definition"
-
-  cmd "input" (tex "unicodedefs")
-  title "Linear Logic: I see what it means!"
-  authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                      ("Josef Svenningsson","",ch)]
- where ch = "Chalmers University of Technology and University of Gothenburg"
-
+outputTexMp :: String -> IO ()
 outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["preprint"] preamble $ @"
 @maketitle
 
@@ -67,7 +45,29 @@ Awesome Paper
 @section{Trees}
 
 @subsection{Explain representation}
+
+We introduce the following graphical representation for programs in an environment.
+
+We will represent a program by a node (typically labeled with the program that it represents).
+Edges will represent types. The fact that @tA is in the environment of the program can be  
+represented either by an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
+with @neg(tA). 
+
+Using this convention, we can represent the program @deriv
+
+We introduce a convenient notation for outermost cuts in sequents.
+
+@outermostCut<-definition("Outermost Cut"){
+A instance of a cut rule in a derivation tree is called an outermost cut if
+it is either the first rule in a derivation or if it is an outermost cut in a subderivation of
+an outermost cut.
+}
+
+An outermost cut can be moved to the first position in a derivation by using the rule TODO.
+
+
 Topologisation of structural rules
+
 @subsection{Outermost Evaluation Strategy}
 @subsection{Cut-elimination result}
 
