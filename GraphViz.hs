@@ -18,15 +18,16 @@ type NodeRef = String
 type Port = Int
 
 node :: String -> GGen NodeRef
-node shape  = do
+node extraAttrs'  = do
+  let extraAttrs = extraAttrs' ++ [','|not $ null extraAttrs']
   r <- get
   put (r+1)
   let ref = "nd" ++ show r 
-  tell [ref ++ "[shape=" ++ show shape ++ ",label=\"\"];"]
+  tell [ref ++ "[" ++ extraAttrs ++ "width=5,label=\"\"];"]
   return ref
   
 edge :: NodeRef -> NodeRef -> Type -> GGen ()
-edge sn tn ty@(Meta True "Δ" []) = edge tn sn (neg ty)
+edge sn tn ty@(Meta True "Ξ" []) = edge tn sn (neg ty)
 edge sn tn ty = do
   comment $ "  edge of type " ++ P.render (pClosedType ty)
   tell [sn ++ " -> " ++ tn ++ "[label=" ++ typ ++ "];"]
@@ -54,12 +55,13 @@ toGraphPart parent te e (Exchange π s) = do
   toGraphPart ((`indexOf` π) `fmap` parent) te [e !! i | i <- π] s
 toGraphPart _parent _te e _ = do
   comment $ "  leaf"
-  thisNode <- node "circle"
+  thisNode <- node "" -- "circle"
   forM_ e $ \ (_name,h) -> do
     case h of
       Done -> return ()
       External ty -> do 
-        hypNode <- node "none"
+        -- hypNode <- node $ "shape = " ++ show "none"
+        hypNode <- node "color=white" -- $ "shape = " ++ show "none"
         edge hypNode thisNode ty
       Internal n ty -> edge n thisNode ty
   return thisNode    
@@ -71,12 +73,14 @@ indexOf x (y:ys) | x == y = 0
 
 toGraphMain :: Deriv -> GGen ()
 toGraphMain (Deriv te e s) = do
-  tell ["digraph G {",
---        "graph[start=2];", -- Seed
-        "rankdir=LR;",
-        "ranksep=0.35;",
---        "size=5;",
-        "edge [arrowhead=\"vee\",dir=\"forward\"];"]
+  tell ["digraph G {"
+       ,"node[shape=circle]"
+        --       ,"node[fixedsize=True,width=0.5]"
+--        ,"graph[start=2];" -- Seed
+       ,"rankdir=LR;"
+       ,"ranksep=0;"
+        --      ,  "size=5;"
+       ,"edge [arrowhead=\"vee\",dir=\"forward\"];"]
   toGraphPart Nothing te [(nm,External ty) | (nm,ty) <- e] s
   tell ["}"]
 
@@ -87,7 +91,7 @@ dot2tex :: [String] -> ([String], [String])
 dot2tex gv = unsafePerformIO $ do
   let c = intercalate " " ["dot2tex" 
                           ,"--prog=dot" 
---                          ,"--format=tikz" 
+                          ,"--format=tikz" 
                           ,"--tikzedgelabels"
                           ,"--texmode=raw"
                           ,"--codeonly"]
@@ -102,7 +106,7 @@ dot2tex gv = unsafePerformIO $ do
 couplingDiag :: Deriv -> TeX
 couplingDiag d = do
   forM_ gv $ \l -> texLn $ "%" ++ l
-  env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.2"] $ do
+  env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.08"] $ do
     forM_ o $ texLn 
   forM_ e $ \l -> texLn $ "%" ++ l
   where (o,e) = dot2tex gv
