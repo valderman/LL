@@ -19,9 +19,11 @@ import Rules
 import DiagPretty
 import Control.Monad
 import GraphViz
-import Mem
 import Framework
+import Mem
 
+simpleCut :: Deriv
+simpleCut = Deriv [] [gamma,delta] $ Cut "x" "y" tA 1 whatA whatB 
 
 outputTexMp :: String -> IO ()
 outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["preprint"] preamble $ @"
@@ -42,18 +44,23 @@ Awesome Paper
 @subsection{Reduction rules}
 
 
-@section{Trees}
+@section{Graphical Representation}
 
 @subsection{Explain representation}
 
 We introduce the following graphical representation for programs in an environment.
 
 We will represent a program by a node (typically labeled with the program that it represents).
-Edges will represent types. The fact that @tA is in the environment of the program can be  
+Edges connected to a node will its environment. 
+The fact that @tA is in the environment of the program can be  
 represented either by an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
 with @neg(tA). 
 
-Using this convention, we can represent the program @deriv
+Using this convention, we can represent cuts by edges between nodes. 
+
+
+@sequent(simpleCut)
+@couplingDiag(simpleCut)
 
 We introduce a convenient notation for outermost cuts in sequents.
 
@@ -69,6 +76,9 @@ An outermost cut can be moved to the first position in a derivation by using the
 Topologisation of structural rules
 
 @subsection{Outermost Evaluation Strategy}
+
+
+
 @subsection{Cut-elimination result}
 
 

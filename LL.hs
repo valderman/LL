@@ -43,6 +43,8 @@ infixr 6 ⊗,&
 infixr 5 ⅋, ⊸, ⊕
 
 type Forced x = x
+
+dum :: Type
 dum = meta "dummy type"
 
 -- | Linear negation

@@ -2,7 +2,6 @@
 
 module Framework where
 
-import Pretty
 import MarXup
 import MarXup.Latex
 import MarXup.Tex
@@ -10,16 +9,13 @@ import MarXup.DerivationTrees
 import Control.Applicative
 import MarXup.MultiRef
 import Reductions
-import Data.Monoid
 import Symheap
 import TexPretty
 import LL
 import AM
-import Rules
 import DiagPretty
 import Control.Monad
 import GraphViz
-import Mem
 
 
 --------------
@@ -27,10 +23,16 @@ import Mem
 
 mathpreamble :: TeX
 mathpreamble = do
+  usepackage "graphicx" [] 
+  usepackage "amsmath"  [] 
+  usepackage "amsthm"   [] 
+  usepackage "amssymb"  []   -- extra symbols such as □ 
+  
   newtheorem "theorem" "Theorem"
   newtheorem "corollary" "Corollary"
   newtheorem "lemma" "Lemma"
   newtheorem "definition" "Definition"
+  
 
 newtheorem :: String -> TeX -> TeX
 newtheorem ident txt = cmd "newtheorem" (tex ident) >> braces txt
@@ -58,10 +60,10 @@ definition,corollary :: String -> TeX -> Tex Label
 
 -- | Render a derivation tree. 
 deriv :: Bool -- ^ Show terms?
-         -> Deriv -> Tex Label
-deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
+         -> Deriv -> TeX
+deriv showProg (Deriv tvs vs s) = displayMath $ derivationTree $ texSeq showProg tvs vs s
 
-derivation, sequent :: Deriv -> Tex Label
+derivation, sequent :: Deriv -> TeX
 derivation = deriv True 
 sequent = deriv False
 
@@ -83,20 +85,17 @@ instance Element Layout where
 --------------------
 
 
-preamble :: Tex ()
-preamble = do
-  usepackage ["utf8"] "inputenc"
-  usepackage [] "graphicx" -- used for import metapost diagrams
-  usepackage [] "amsmath"
-  usepackage [] "amsthm"
-  usepackage [] "amssymb" -- extra symbols such as □ 
-  usepackage [] "cmll" -- for the operator "par"
+preamble :: Bool -> Tex ()
+preamble inMetaPost = do
+  stdPreamble
+  usepackage "cmll" [] -- for the operator "par"
   mathpreamble
-  -- usepackage [] "dot2texi"
-  -- usepackage [] "tikz" >> cmd "usetikzlibrary" $ tex "shapes,arrows"
-  -- usepackage ["a4paper","margin=2cm"] "geometry"
-
   cmd "input" (tex "unicodedefs")
+  unless inMetaPost $ do
+    -- usepackage "dot2texi" []
+    usepackage "tikz" []
+    cmd "usetikzlibrary" $ tex "shapes,arrows"
+    
   title "Linear Logic: I see what it means!"
   authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
                       ("Josef Svenningsson","",ch)]

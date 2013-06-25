@@ -10,27 +10,34 @@ import MarXup.Tex
 import System.IO.Unsafe
 import System.IO
 import System.Process
+import Data.List (intercalate)
 
 
 type GGen a = RWS () [String] Int a
-type NodeRef = Int
+type NodeRef = String
 type Port = Int
 
+node :: String -> GGen NodeRef
 node shape  = do
   r <- get
   put (r+1)
-  tell [show r ++ "[len=\"0.5\", shape=" ++ show shape ++ ",label=\"\"];"]
-  return r
+  let ref = "nd" ++ show r 
+  tell [ref ++ "[shape=" ++ show shape ++ ",label=\"\"];"]
+  return ref
+  
 edge :: NodeRef -> NodeRef -> Type -> GGen ()
-edge sn tn  ty = do
+edge sn tn ty@(Meta True "Δ" []) = edge tn sn (neg ty)
+edge sn tn ty = do
   comment $ "  edge of type " ++ P.render (pClosedType ty)
-  tell [show sn ++ " -- " ++ show tn ++ "[label=" ++ typ ++ "];"]
+  tell [sn ++ " -> " ++ tn ++ "[label=" ++ typ ++ "];"]
   -- len=\"0.5\", : Does not really work; the edge label is placed as if len=1
   where typ = show $ concat $ render $ math $ texClosedType ty
   
+rm :: Maybe Int -> [t] -> [t]
 rm Nothing xs = xs        
 rm (Just x) xs = l++r where (l,_:r) = splitAt x xs
 
+comment :: String -> GGen ()
 comment x = tell $ ["// " ++ x]
 
 data HInfo = External Type | Internal NodeRef Type | Done
@@ -45,7 +52,7 @@ toGraphPart parent te e (Cut v v' ty γ s t) = do
 toGraphPart parent te e (Exchange π s) = do
   comment $ "  exchange"
   toGraphPart ((`indexOf` π) `fmap` parent) te [e !! i | i <- π] s
-toGraphPart parent te e _ = do
+toGraphPart _parent _te e _ = do
   comment $ "  leaf"
   thisNode <- node "circle"
   forM_ e $ \ (_name,h) -> do
@@ -58,13 +65,17 @@ toGraphPart parent te e _ = do
   return thisNode    
     
 indexOf :: Eq a => a -> [a] -> Int
-indexOf x [] = error "indexOf: not found"
+indexOf _x [] = error "indexOf: not found"
 indexOf x (y:ys) | x == y = 0
                  | otherwise = 1 + indexOf x ys
 
+toGraphMain :: Deriv -> GGen ()
 toGraphMain (Deriv te e s) = do
-  tell ["graph G {",
+  tell ["digraph G {",
 --        "graph[start=2];", -- Seed
+        "rankdir=LR;",
+        "ranksep=0.35;",
+--        "size=5;",
         "edge [arrowhead=\"vee\",dir=\"forward\"];"]
   toGraphPart Nothing te [(nm,External ty) | (nm,ty) <- e] s
   tell ["}"]
@@ -72,20 +83,26 @@ toGraphMain (Deriv te e s) = do
 toGraph :: Deriv -> [String]    
 toGraph d = w where (_,_,w) = runRWS (toGraphMain d) () 1
 
+dot2tex :: [String] -> ([String], [String])
 dot2tex gv = unsafePerformIO $ do
-  let cmd = "dot2tex --prog=neato --format=tikz --tikzedgelabels --texmode=raw --codeonly" 
-  putStrLn $ "running " ++ cmd
-  (stdin,stdout,stderr,procId) <- runInteractiveCommand cmd
-  mapM_ (hPutStrLn stdin) gv
-  hClose stdin
-  o <- hGetContents stdout
-  e <- hGetContents stderr
+  let c = intercalate " " ["dot2tex" 
+                          ,"--prog=dot" 
+--                          ,"--format=tikz" 
+                          ,"--tikzedgelabels"
+                          ,"--texmode=raw"
+                          ,"--codeonly"]
+  putStrLn $ "running " ++ c
+  (stdin',stdout',stderr',_procId) <- runInteractiveCommand c
+  mapM_ (hPutStrLn stdin') gv
+  hClose stdin'
+  o <- hGetContents stdout'
+  e <- hGetContents stderr'
   return (lines o, lines e)
 
-renderTree :: Deriv -> TeX
-renderTree d = do
+couplingDiag :: Deriv -> TeX
+couplingDiag d = do
   forM_ gv $ \l -> texLn $ "%" ++ l
-  env' "tikzpicture" [">=latex","line join=bevel","auto"] $ do
+  env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.2"] $ do
     forM_ o $ texLn 
   forM_ e $ \l -> texLn $ "%" ++ l
   where (o,e) = dot2tex gv

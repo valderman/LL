@@ -21,6 +21,7 @@ import Symheap
 -- infix 1 `for`
 -- x `for` lens = over lens x
 
+par, amp :: TeX
 par = math $ cmd0 "parr"
 amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt" 
 
@@ -121,6 +122,7 @@ indent = cmd "hspace" $ tex "1em"
 
 data Block = Split TeX [(TeX,Block)] | Final TeX | Instr TeX Block
 
+texProg :: [Name] -> [(Name, Type)] -> Seq -> Block
 texProg = texProg' True
 texUntypedProg :: [Name] -> [Name] -> Seq -> TeX
 texUntypedProg ts vs s = math $ linearize $ texProg' False ts (zip vs (repeat $ error "accessing type when texing untyped term")) s
@@ -131,7 +133,7 @@ linearize (Instr h t) = h <> ";" -- keyword " in "
                           <> linearize t
 linearize (Split h xs) = h <> brac (punctuate "; " [x<>cmd0 "mapsto"<> linearize ts | (x,ts) <- xs])
 
-
+indentation :: Block -> Tex ()
 indentation t = math $ block' $ indentation' t
 
 indentation' :: Block -> [TeX]
@@ -146,6 +148,7 @@ mapsto xs = cmd "mapsto" (xblock "l" $ map (:[]) xs)
 
 connect z x a y b = Split (connect_ <> z) [(x,a),(y,b)]
 
+texProg' :: Bool -> [Name] -> [(Name, Type)] -> Seq -> Block
 texProg' = texProg'' what
   where what a [] _ = texVar a
         what a ws _ = texVar a <> brack (commas $ map texVar ws)
@@ -226,14 +229,14 @@ texType p vs (x :|: y) = prn p 0 $ texType 1 vs x <> par <> texType 0 vs y
 texType p vs (x :⊕: y) = prn p 1 $ texType 2 vs x <> cmd0"oplus" <> texType 1 vs y
 texType p vs (x :⊗: y) = prn p 2 $ texType 2 vs x <> cmd0"otimes" <> texType 2 vs y
 texType p vs (x :&: y) = prn p 3 $ texType 3 vs x <> amp <> texType 3 vs y
-texType p vs Zero = "0"
-texType p vs One = "1"
-texType p vs Top = cmd0 "top"
-texType p vs Bot = cmd0 "bot"
-texType p vs (TVar b x) = texVar (vs!!x) <> texNeg b
+texType _  _ Zero = "0"
+texType _  _ One = "1"
+texType _  _ Top = cmd0 "top"
+texType _  _ Bot = cmd0 "bot"
+texType _ vs (TVar b x) = texVar (vs!!x) <> texNeg b
 texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
-texType p vs (Meta b x as) = unicodeTextual x <> as' <> texNeg b
+texType _ vs (Meta b x as) = unicodeTextual x <> as' <> texNeg b
   where as' = if null as then mempty else  brack (commas $ map (texType 0 vs) as)
 
 unicodeTextual :: String -> TeX
@@ -248,6 +251,7 @@ unicodeToTex 'Δ' = cmd0 "Delta"
 unicodeToTex 'Ξ' = cmd0 "Xi"
 unicodeToTex c = tex [c]
 
+texNeg :: Bool -> TeX
 texNeg True = mempty
 texNeg False = tex "^" <> braces (cmd0 "bot")
 
@@ -305,8 +309,8 @@ pClosure (seq,env,typeEnv) =
   brac (texUntypedProg unknownTypeEnv (map fst env) seq) <> brack (commas $ [texVar' nm r | (nm,r) <- env])
   
 texVar' :: String -> SymRef -> TeX  
-texVar' "" r = "…"
-texVar' ('?':x) r = texVar x
+texVar' "" _r = "…"
+texVar' ('?':x) _r = texVar x
 texVar' x r = texVar x <> "=" <> texRef r
   
 
