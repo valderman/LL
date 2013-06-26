@@ -1,4 +1,4 @@
-module GraphViz where
+module GraphViz (couplingDiag) where
     
 import qualified Text.PrettyPrint.HughesPJ as P
 import LL
@@ -30,7 +30,7 @@ node extraAttrs  = do
 edge, edge' :: NodeRef -> NodeRef -> Type -> GGen ()
 
 edge sn tn ty@(Meta True "Ξ" []) = edge' tn sn (neg ty)
-edge sn tn ty@(Meta False x xs) = edge' tn sn (neg ty)
+edge sn tn ty@(Meta False _  _ ) = edge' tn sn (neg ty)
 edge sn tn ty = edge' sn tn ty
 
 edge' sn tn ty = do
@@ -39,10 +39,11 @@ edge' sn tn ty = do
   -- len=\"0.5\", : Does not really work; the edge label is placed as if len=1
   where typ = show $ concat $ render $ math $ texClosedType ty
   
+{-
 rm :: Maybe Int -> [t] -> [t]
 rm Nothing xs = xs        
 rm (Just x) xs = l++r where (l,_:r) = splitAt x xs
-
+-}
 comment :: String -> GGen ()
 comment x = tell $ ["// " ++ x]
 
@@ -117,7 +118,7 @@ dot2tex gv = unsafePerformIO $ do
   return (lines o, lines e)
 
 couplingDiag :: Deriv -> TeX
-couplingDiag d = displayMath $ do
+couplingDiag d = do
   forM_ gv $ \l -> texLn $ "%" ++ l
   env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.08"] $ do
     forM_ o $ texLn 

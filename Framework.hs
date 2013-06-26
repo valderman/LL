@@ -16,6 +16,7 @@ import AM
 import DiagPretty
 import Control.Monad
 import GraphViz
+import Data.Monoid
 
 
 ----------
@@ -39,7 +40,9 @@ citet,citep :: TeX -> TeX
 [citet,citep] = map cmd ["citet","cite"]
 
 --------------
--- Math
+-- Math 
+
+-- Envs
 
 mathpreamble :: TeX
 mathpreamble = do
@@ -47,6 +50,7 @@ mathpreamble = do
   usepackage "amsmath"  [] 
   usepackage "amsthm"   [] 
   usepackage "amssymb"  []   -- extra symbols such as □ 
+  usepackage "stmaryrd" [] -- has ⟦ and ⟧
   
   newtheorem "theorem" "Theorem"
   newtheorem "corollary" "Corollary"
@@ -75,13 +79,23 @@ theorem,lemma ::  String -> TeX -> TeX -> Tex SortedLabel
 definition,corollary :: String -> TeX -> Tex SortedLabel
 [definition,corollary] = map deflike ["definition", "corollary"]
 
+-- Other stuff
+oxford :: Tex a -> Tex a
+oxford = bigParenthesize (textual "⟦") (textual "⟧")
+
+(.=.) :: TeX -> TeX -> TeX
+x .=. y = x <> "=" <> y
+ 
+dm = displayMath          
+
+multiline' body = env "multline*" $ mkrows body
 -------
 -- LL
 
 -- | Render a derivation tree. 
 deriv :: Bool -- ^ Show terms?
          -> Deriv -> TeX
-deriv showProg (Deriv tvs vs s) = displayMath $ derivationTree $ texSeq showProg tvs vs s
+deriv showProg (Deriv tvs vs s) = derivationTree $ texSeq showProg tvs vs s
 
 derivation, sequent :: Deriv -> TeX
 derivation = deriv True 

@@ -55,8 +55,26 @@ header = do
   acmCategories
   acmKeywords
 
-cutRule :: TeX
-cutRule = ruleName "Cut"
+cut_,with_,plus_ :: TeX
+cut_ = ruleName "Cut"
+with_ = "&"
+plus_ = "⊕"
+
+chanRules :: [(Deriv,TeX)]               
+chanRules =   
+  [(channelRule,       "A channel containing no data")
+  ,(chanPlusRule True, "A channel containing a bit")
+  ,(chanCrossRule,     "A half-split channel (par side)")
+  ,(chanParRule,       "A half-split channel (par side)")
+  ,(chanTypRule,       "A channel containing a type")
+  ,(chanEmptyRule 3,   "A memory cell (empty)")
+  ,(chanFullRule 3,    "A memory cell (full)")]
+
+typesetChanRules = figure "Rules for explicit channel management" $ 
+    env "center" $ do
+    forM_ chanRules $ \(r,comment) -> do 
+        math $ deriv False r
+        cmd0 "hspace{1em}"
 
 outputTexMp :: String -> IO ()
 outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["preprint"] preamble $ @"
@@ -119,13 +137,13 @@ represented either by an ingoing egde labeled with an edge @tA or an outgoing ed
 with @neg(tA). 
 
 Using this convention, we can then represent cuts by edges between nodes. For example the sequent
-@sequent(simpleCut)
+@dm(sequent(simpleCut))
 can be represented by the graph
-@couplingDiag(simpleCut)
+@dm(couplingDiag(simpleCut))
 and
-@sequent(doubleCut')
+@dm(sequent(doubleCut'))
 can be represented by the graph
-@couplingDiag(doubleCut')
+@dm(couplingDiag(doubleCut'))
 
 It can be useful to think of a node in such diagrams as a process, 
 and an edge as a communication channel; and the label defines which 
@@ -153,9 +171,9 @@ This notation relieves much burden from the cut notation, and it may be enlighte
 to review some cut-reduction rules with this view. Here is the reduction of a cut in the 
 multiplicative fragment:
 
-@couplingDiag(cutParCross)
+@dm(couplingDiag(cutParCross))
 
-@couplingDiag(eval cutParCross)
+@dm(couplingDiag(eval cutParCross))
 
 The graph notation make plain that this reduction 
 splits the process on the par side into two separate, 
@@ -217,7 +235,8 @@ only on the structure of the rules.
 
 @theorem("Liveness"){
 There is no infinite chain of outermost evaluations. This means that, eventually, 
-outermost evaluation will yield a program waiting on one of its channels.
+outermost evaluation will yield a program waiting on one of its channels. 
+In other words: every process must eventually communicate with its environment.
 }{
 Because there is no infinite chain of evaluations (TODO cite), 
 there cannot be in particular an infinite chain of outermost ones.
@@ -258,8 +277,24 @@ In the next section we proceed to attack this shortcoming.
 
 @section{Explicit Channels}
 
-@subsection{Translation}
+There is a standard trick to transform a synchronous communication into an asynchronous one:
+insert buffers between the communicating parties.  
+We will apply this trick here (calling the buffers explicit channels). 
+Notably, we perform this insertion of buffers within the framework of linear logic,
+merely adding new rules and reductions.
+
+The idea is then that channels will mediate the interaction between
+the non-structural rules. For example, when a @with_ rule is connected
+to a @plus_ rule via a channel, the @with_ rule will write a bit of information
+to the channel indicating which side of the sum to take. The contination of with will be 
+ready to run. Asynchronously, the @plus_ rule will read the bit of info as soon as 
+it becomes available, and restore the communication channel to an unwritten one.
+
+
+
 @subsection{Reduction rules}
+
+
 Multiplicative Fragment
 
 @subsection{``black'' reduction}
@@ -281,6 +316,8 @@ Efficiency?
 
 @subsection{Related Work}
 
+
+
 @paragraph{Systems based on intuitionistic variants}
 @citep{hyland_full_1993}
 @citep{barber_dual_1996}
@@ -289,10 +326,24 @@ Efficiency?
 @paragraph{Session Types}
 @citep{caires_concurrent_2012} (also ILL)
 
+
+
 @citet{wadler_propositions_2012}
+
+No need for a session-typed functional programming language.
+
+The ⊗ and ⅋ connectors, together with negation, suffice to express all sessions.
+
+Complete symmetry between @id(tA :⊗: tB) and @id(tB :⊗: tA).
+
+A functional fragment can be trivially embedded into LL. 
+
+We also refine the understanding of deadlock (a purely structural property) and liveness.
 
 @paragraph{Graphical representation}
 @citet{hirschowitz_topological_2008}
+
+Proof nets: we do not attempt to represent the whole proof graphically; only the top-level structure.
 
 @bibliography
 
