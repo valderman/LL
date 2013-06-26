@@ -294,21 +294,25 @@ it becomes available.
 
 @dm(couplingDiag(cutWithPlus True))
 @dm(couplingDiag $ eval' $ cutWithPlus True)
-@dm(sequent $ eval' $ cutWithPlus True)
-@dm(sequent $ eval' $ eval' $ eval' $ eval' $ cutWithPlus True)
+@comment{
+Switches the cut structure.
+@dm(couplingDiag $ eval $ eval' $ cutWithPlus True)}
+@dm(couplingDiag $ eval' $ eval' $ eval' $ cutWithPlus True)
 
 One can metaphorically talk about the intermediate rule being created
 as a particle travelling from left to right. 
 By analogy with the elementary particles mediating physical 
 forces, we will call such mediating rules bosons.
 
-For completeness, the logical rule representing it is as follows
-
-TODO
-
-and the reduction rules involving it are:
-
-TODO
+For completeness, the logical rules representing it are as follows:
+@dm(sequent (chanPlusRule True)
+    <> cmd0 "quad" <>
+    sequent (chanPlusRule False)
+    )
+and the reduction rules involving them are:
+@dm(sequent (withRule True) <>"⇒"<> sequent (eval' $ withRule True) )
+TODO: read rule
+(and similarly for transmitting the 0 bit)
 
 For the quantifiers fragment, a similar boson and set of reduction rule exists. The
 difference is that a type is being transmitted instead of a bit.

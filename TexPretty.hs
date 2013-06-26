@@ -29,7 +29,7 @@ ruleName = math . cmd "text" . smallcaps
 
 index ix = tex "_" <> braces ix
 
-indicator b = if b then "1" else "2"
+indicator b = if b then "1" else "0"
 
 seqName = seqName' unknownTypeEnv
 seqName' ctx s = case s of
@@ -50,10 +50,10 @@ seqName' ctx s = case s of
    (Ignore _ _)        -> ruleName "Weaken"
    (Alias _ _ _)       -> ruleName "Contract"
 --   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
-   (ChanPlus b ta tb)  -> ruleName "Ch" <>  (indicator b)
+   (ChanPlus b ta tb)  -> ruleName "B" <>  (indicator b)
    (ChanCross ta tb)   -> ruleName "Ch(<)"
    (ChanPar   ta tb)   -> ruleName "Ch(>)" <> math (texType 0 ctx (ta :|: tb))
-   (ChanTyp   tmono _) -> ruleName "Ch" <> math ( (texType 0 ctx tmono))
+   (ChanTyp   tmono _) -> ruleName "B" <> math ( (texType 0 ctx tmono))
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
 
@@ -113,7 +113,12 @@ texSeq showProg = foldSeq sf where
   sdemand w _ ty s = rul [s]
   signore w ty s = rul [s]
   salias w w' ty s = rul [s]
-  swhat a _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> if showProg then texVar a else mempty))  []
+  swhat a _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> 
+                                                  -- if showProg then texVar a else mempty
+                                                  texVar a -- always show the program so we know how to refer to this proof continuation.
+                                                 )) [] 
+                -- [defaultLink ::> Node (Rule () None mempty mempty (textual a)) []]
+                
   rul :: [Derivation] -> Derivation
   rul subs = Node (Rule () Simple mempty (seqName' (map fst vs) seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty

@@ -217,7 +217,7 @@ eval' (Deriv ts vs s) = Deriv ts vs $ cheval s
 
 cheval :: Seq -> Seq
 cheval (With ty v c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c nein nein) s 
-cheval (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 a (Cut w w' ty 1 (b) c) -- fixme: exchange [1,0] b
+cheval (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 b (Cut w w' ty 1 (a) c) -- fixme: exchange [1,0] b
 cheval (Cut _ _ _ 1 (ChanPlus c _ _) (Plus _ _ 0 s t)) = if c then s else t
 cheval (Cut w w' ty x a b) = Cut w w' ty x (cheval a) (cheval b)
 cheval s = s
