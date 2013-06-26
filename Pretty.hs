@@ -10,7 +10,6 @@ import Text.PrettyPrint.HughesPJ hiding ((<>))
 import Data.Monoid
 import LL
 import AM
-import Control.Lens
 import Symheap
 import qualified Data.Map as M
 import Data.List (intercalate)
@@ -83,7 +82,7 @@ deriving instance Show Seq
 -- instance Show Seq where
 --   show = render . pSeq [] []
 
-pCtx ts vs = pCtx' (over (mapped._2) (pType 0 ts) vs)
+pCtx ts vs = pCtx' (fmap (second (pType 0 ts)) vs)
 
 pCtx' :: [(Name,Doc)] ->  Doc
 pCtx' vs = sep $ punctuate comma $ [text v <> " : " <> t | (v,t) <- vs]
