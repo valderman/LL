@@ -57,6 +57,33 @@ seqName' ctx s = case s of
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
 
+seqLab :: Seq -> String 
+seqLab s = case s of
+   (Exchange _ s)      -> "X"
+   (Ax _ )             -> "Ax"
+   (Cut _ _ _ _ _ _)   -> "Cut"
+   (Cross _ _ _ _ _)   -> "$\\otimes$"
+   (Par _ _ _ _ _ _)   -> "$\\parr$"
+   (Plus  _ _ _ _ _)   -> "$\\oplus$"
+   (With _ b _ _)      -> "&"
+   (SOne _ _)          -> "1"
+   (SZero _)           -> "0"
+   SBot                -> "⊥"
+   (TApp _ _ _ _ _)    -> "∀"
+   (TUnpack _ _ _)     -> "∃"
+   (Offer _ _ _)       -> "?"
+   (Demand _ _ _ _)    -> "!"
+   (Ignore _ _)        -> "Wk"
+   (Alias _ _ _)       -> "Ct"
+   (Channel ty)        -> "Ch"
+   (ChanPlus b ta tb)  -> indicator b
+   (ChanCross ta tb)   -> "<"
+   (ChanPar   ta tb)   -> ">"
+   (ChanTyp   tmono _) -> "T"
+   (MemEmpty  _ n)     -> "E"
+   (MemFull   _ n)     -> "F"
+
+
 texSeq :: Bool -> [String] -> [(String,Type)] -> Seq -> Derivation
 texSeq showProg = foldSeq sf where
  sf (Deriv ts vs seq) = SeqFinal {..} where

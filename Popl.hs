@@ -18,14 +18,16 @@ import DiagPretty
 import Control.Monad
 import GraphViz
 import Framework
-import Mem
+import Data.List
 
 simpleCut :: Deriv
 simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
 
 doubleCut :: Deriv
-doubleCut = Deriv [] [gamma,xi] $ Cut "_x" "x" tA 1 (Cut "_y" "y" tB 1 whatA whatB) (Cut "_z" "z" tB 1 whatC whatD)
+doubleCut = Deriv [] [gamma,xi] $ Cut "_x" "x" tB 1 (Cut "_y" "y" (neg tA) 1 whatA whatB) (Cut "_z" "z" tC 1 whatC whatD)
 
+doubleCut' :: Deriv
+doubleCut' = Deriv [] [gamma,delta] $ Cut "_x" "x" (neg tA) 0 whatA $ Cut "_y" "y" (neg tC) 1 (Cut "_z" "z" (neg tB) 0 whatB whatD) whatC 
 vX,vX' :: TeX
 vX = math "x"
 vX' = math "x'"
@@ -34,16 +36,67 @@ graph1, graph2 :: TeX
 graph1 = math "σ"
 graph2 = math "σ'"
 
+acmCategories,acmKeywords :: TeX
+acmCategories = do
+  cmdn_ "category" ["F.4.1","Mathematical Logic","Lambda calculus and related system"]
+  cmdn_ "category" ["D.3.3","Language Constructs and Features","Concurrent programming structures"]
+  
+acmKeywords = do  
+  cmd0 "keywords"
+  mconcat $ intersperse "," ["linear logic","lambda calculus"]
+
+abstract = env "abstract" $ @"
+Awesome Paper
+@"
+
+header = do
+  maketitle
+  abstract
+  acmCategories
+  acmKeywords
+
+cutRule :: TeX
+cutRule = ruleName "Cut"
+
 outputTexMp :: String -> IO ()
 outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["preprint"] preamble $ @"
-@maketitle
+@header
 
-@env("abstract"){
-Awesome Paper
-}
-TODO: Keywords
-Acm Classification
 @intro<-section{Intro}
+
+@paragraph{Line of work}
+
+Computational interpretation of proofs.
+
+Linear Logic as Concurrent Programming Language.
+
+Propositions as Sessions.
+
+
+@paragraph{Gap/Identify a niche}
+
+Lack of presence of CLL in programming language research.
+
+Current work is mostly based on ILL (DILL). 
+
+CLL treated as a pi-calculus.
+
+
+@paragraph{Contributions}
+Presentation of CLL in a functional, ISWIM style. 
+
+No reference to an external calculus.
+
+Proper treatment of the multiplicative fragment.  (allow asynchronicity).
+
+Technically:
+@itemize{
+ @item An ISWIM-style term assignment for the one-sided sequent calculus of linear logic
+ @item An adaptation of standard concepts of lambda-calculus evaluation (head normal form, etc.)
+       to linear logic. 
+ @item An abstract machine capable of running linear logic sequents in a concurrent manner,
+       based on a von neumann architecture.
+}
 
 @section{Syntax}
 
@@ -70,9 +123,9 @@ Using this convention, we can then represent cuts by edges between nodes. For ex
 can be represented by the graph
 @couplingDiag(simpleCut)
 and
-@sequent(doubleCut)
+@sequent(doubleCut')
 can be represented by the graph
-@couplingDiag(doubleCut)
+@couplingDiag(doubleCut')
 
 It can be useful to think of a node in such diagrams as a process, 
 and an edge as a communication channel; and the label defines which 
@@ -134,8 +187,8 @@ an hypothesis edge is ready if the single node  connected to it is  waiting on i
 and a cut     edge is ready if both       nodes connected to it are waiting on it.
 
 
-@lemma(""){In a graph where all outermost cuts are represented by an edge,
-           there is always at least an edge ready, or the system is terminated.
+@theorem("No deadlock"){In a graph where all outermost cuts are represented by an edge,
+           there is always at least an edge ready.
 }{
 If all outermost cuts are represented, then every node begins either with a rule non-strucutral rule
 or Contract or Weakening. Therefore, every node is waiting on at least one variable, except if it
@@ -143,8 +196,7 @@ is just the Bot program, which cannot be connected to any node.
 
 
 We then proceed by induction on the size of the tree. If the tree has a single node, then
-all the edges are hypotheses. It must either be waiting on one of them, which is then ready; or be the
-terminated system (Bot).
+all the edges are hypotheses. It must either be waiting on one of them, which is then ready.
 
 For the inductive case, we assume two graphs @graph1 and @graph2 satisfying the induction hypothesis, 
 with and hypothesis @vX in @graph1 and an hypothesis @vX' in @graph2.
@@ -158,17 +210,24 @@ We have the following cases:
    edge in that system must be ready; and it remains ready in the combined system.
 }}
 
-@theorem(""){In a closed system, the outermost evaluation strategy is a terminating
-reduction strategy}{
-Indeed, a closed system is either the terminated program, or must start with a cut.
-By the above lemma, this cut latter case cannot occur in a program evaluated using the
-outermost evaluation strategy, which must terminate (any reduction strategy terminates). 
+The proof depends crucially on the graph structure being a tree. That is, if a cut could
+create two edges between subsystems, then the proof would fail. On the other hand, and 
+perhaps surprisingly, this property does not depend on the specifics of the evaluation, 
+only on the structure of the rules.
+
+@theorem("Liveness"){
+There is no infinite chain of outermost evaluations. This means that, eventually, 
+outermost evaluation will yield a program waiting on one of its channels.
+}{
+Because there is no infinite chain of evaluations (TODO cite), 
+there cannot be in particular an infinite chain of outermost ones.
 }
 
 In sum, the above theorem means that linear logic programs can be run in a way similar
-to traditional ways to run the lambda calculus. 
+to usual ways of running the lambda calculus. 
 A ready edge corresponds to a lambda-calculus redex in head position. 
 Inner cuts correspond to redexes under lambdas. Non-structural rules correspond to constructors.
+A lambda term in head normal form corresponds to a linear program in with a ready hypothesis.
 
 The behaviour of Krivine's (TODO SECD) abstract machine is to traverse
 a term  inwards and leftwards until it finds a redex, then reduce it.

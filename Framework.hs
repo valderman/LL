@@ -5,7 +5,7 @@ module Framework where
 import MarXup
 import MarXup.Latex
 import MarXup.Tex
-import MarXup.DerivationTrees
+import MarXup.DerivationTrees hiding (label)
 import Control.Applicative
 import MarXup.MultiRef
 import Reductions
@@ -22,7 +22,7 @@ import GraphViz
 -- Text
 
 comment :: Tex a -> TeX
-comment x = ""
+comment _ = ""
 
 italic :: Tex a -> Tex a
 italic = cmd "textit"
@@ -54,22 +54,22 @@ mathpreamble = do
 newtheorem :: String -> TeX -> TeX
 newtheorem ident txt = cmd "newtheorem" (tex ident) >> braces txt
 
-deflike :: String -> String -> TeX -> Tex Label
+deflike :: String -> String -> TeX -> Tex SortedLabel
 deflike nv name statement = env' nv [name] $ do
   statement
-  newLabel
+  label nv 
   
-thmlike :: String -> String -> TeX -> TeX -> Tex Label
+thmlike :: String -> String -> TeX -> TeX -> Tex SortedLabel
 thmlike nv name statement proof = do
   x <- deflike nv name statement
   env "proof" proof
   return x
 
-theorem,lemma ::  String -> TeX -> TeX -> Tex Label
+theorem,lemma ::  String -> TeX -> TeX -> Tex SortedLabel
 [theorem,lemma] = map thmlike ["theorem","lemma"]
 
 
-definition,corollary :: String -> TeX -> Tex Label
+definition,corollary :: String -> TeX -> Tex SortedLabel
 [definition,corollary] = map deflike ["definition", "corollary"]
 
 -------

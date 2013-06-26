@@ -17,18 +17,23 @@ type GGen a = RWS () [String] Int a
 type NodeRef = String
 type Port = Int
 
-node :: String -> GGen NodeRef
-node extraAttrs'  = do
-  let extraAttrs = extraAttrs' ++ [','|not $ null extraAttrs']
+node :: [String] -> GGen NodeRef
+node extraAttrs  = do
+  let attrs = "fixedsize=true" : 
+              "width=5" : extraAttrs
   r <- get
   put (r+1)
   let ref = "nd" ++ show r 
-  tell [ref ++ "[" ++ extraAttrs ++ "width=5,label=\"\"];"]
+  tell [ref ++ "[" ++ intercalate "," attrs  ++ "];"]
   return ref
   
-edge :: NodeRef -> NodeRef -> Type -> GGen ()
-edge sn tn ty@(Meta True "Ξ" []) = edge tn sn (neg ty)
-edge sn tn ty = do
+edge, edge' :: NodeRef -> NodeRef -> Type -> GGen ()
+
+edge sn tn ty@(Meta True "Ξ" []) = edge' tn sn (neg ty)
+edge sn tn ty@(Meta False x xs) = edge' tn sn (neg ty)
+edge sn tn ty = edge' sn tn ty
+
+edge' sn tn ty = do
   comment $ "  edge of type " ++ P.render (pClosedType ty)
   tell [sn ++ " -> " ++ tn ++ "[label=" ++ typ ++ "];"]
   -- len=\"0.5\", : Does not really work; the edge label is placed as if len=1
@@ -43,6 +48,9 @@ comment x = tell $ ["// " ++ x]
 
 data HInfo = External Type | Internal NodeRef Type | Done
 
+emptyLab :: String
+emptyLab = "label=\"\""
+
 toGraphPart :: Maybe Port -> [Name] -> [(Name,HInfo)] -> Seq -> GGen NodeRef
 toGraphPart parent te e (Cut v v' ty γ s t) = do
     comment $ "  cut"
@@ -53,18 +61,23 @@ toGraphPart parent te e (Cut v v' ty γ s t) = do
 toGraphPart parent te e (Exchange π s) = do
   comment $ "  exchange"
   toGraphPart ((`indexOf` π) `fmap` parent) te [e !! i | i <- π] s
-toGraphPart _parent _te e _ = do
+toGraphPart _parent _te e s = do
   comment $ "  leaf"
-  thisNode <- node "" -- "circle"
+  thisNode <- node $ getNodeLab s
   forM_ e $ \ (_name,h) -> do
     case h of
       Done -> return ()
       External ty -> do 
         -- hypNode <- node $ "shape = " ++ show "none"
-        hypNode <- node "color=white" -- $ "shape = " ++ show "none"
+        hypNode <- node ["color=white",emptyLab] -- $ "shape = " ++ show "none"
         edge hypNode thisNode ty
       Internal n ty -> edge n thisNode ty
   return thisNode    
+  
+getNodeLab :: Seq -> [String]
+getNodeLab (What x _) = ["label=" ++ show x]
+getNodeLab s = ["label=" ++ show (seqLab s)]
+getNodeLab _ = [emptyLab]
     
 indexOf :: Eq a => a -> [a] -> Int
 indexOf _x [] = error "indexOf: not found"
@@ -104,7 +117,7 @@ dot2tex gv = unsafePerformIO $ do
   return (lines o, lines e)
 
 couplingDiag :: Deriv -> TeX
-couplingDiag d = do
+couplingDiag d = displayMath $ do
   forM_ gv $ \l -> texLn $ "%" ++ l
   env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.08"] $ do
     forM_ o $ texLn 
