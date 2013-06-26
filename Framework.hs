@@ -18,6 +18,23 @@ import Control.Monad
 import GraphViz
 
 
+----------
+-- Text
+
+comment :: Tex a -> TeX
+comment x = ""
+
+italic :: Tex a -> Tex a
+italic = cmd "textit"
+
+-------------
+-- Bib
+
+bibliography :: TeX
+bibliography = do
+  cmd "bibliographystyle" $ textual "abbrvnat"
+  cmd "bibliography" $ textual "jp"
+
 --------------
 -- Math
 

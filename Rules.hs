@@ -11,6 +11,7 @@ tdelta = meta "Δ"
 
 tA = meta "A"
 tB = meta "B"
+tC = meta "C"
 
 gamma = ("?γ",tgamma)
 delta = ("?δ",tdelta)

@@ -37,7 +37,7 @@ preamble = do
   mathpreamble
 
   cmd "input" (tex "unicodedefs")
-  title "Linear Logic: I see what it means!"
+  title "Technical appendix of ``Linear Logic: I see what it means!''"
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
                     ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
@@ -50,11 +50,7 @@ rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[tex
 
 toSystem' h =  toSystem h . fillTypes
 
-comment :: Tex a -> TeX
-comment x = ""
-
 allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
-
 
 allRules = 
   [[(axRule, "Copy the data between the closures; when it's ready.")]

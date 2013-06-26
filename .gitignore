@@ -1,3 +1,5 @@
+.cake
+*.mps
 dist
 cabal-dev
 *.o
