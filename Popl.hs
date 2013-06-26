@@ -272,11 +272,27 @@ Equivalent to outermost reductions in the system with explicit channels.
 
 @section{Discussion}
 
-Efficiency?
-
 Bi-cut; mix.
 
+Deadlock freedom ~ tree structure ~ resource-management process.
+
+@subsection{Future Work}
+Efficiency?
+
 @subsection{Related Work}
+
+@paragraph{Systems based on intuitionistic variants}
+@citep{hyland_full_1993}
+@citep{barber_dual_1996}
+@citep{benton_term_1993}
+
+@paragraph{Session Types}
+@citep{caires_concurrent_2012} (also ILL)
+
+@citet{wadler_propositions_2012}
+
+@paragraph{Graphical representation}
+@citet{hirschowitz_topological_2008}
 
 @bibliography
 

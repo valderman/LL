@@ -35,6 +35,9 @@ bibliography = do
   cmd "bibliographystyle" $ textual "abbrvnat"
   cmd "bibliography" $ textual "jp"
 
+citet,citep :: TeX -> TeX
+[citet,citep] = map cmd ["citet","cite"]
+
 --------------
 -- Math
 
