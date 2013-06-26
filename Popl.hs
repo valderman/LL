@@ -64,6 +64,11 @@ It can be useful to think of a node in such diagrams as a process,
 and an edge as a communication channel; and the label defines which 
 communication protocol which is employed on the channel.
 
+However we emphasize that the direction of edges do not represent the
+direction of flow of data; they are a mere convention which allows to
+know on which side of the arrow should be interpreted as @tA and which side should be interpreted 
+as @neg(tA).
+
 We can so represent all outermost cuts in a sequent.
 @outermostCut<-definition("Outermost Cut"){
 A instance of a cut rule in a derivation tree is called an outermost cut if
@@ -74,11 +79,16 @@ an outermost cut.
 Topologisation of structural rules
 
 This notation relieves much burden from the cut notation, and it may be enlightening 
-to review some cut-reduction rules with this view. Here is the multiplicative cut elimination:
+to review some cut-reduction rules with this view. Here is the reduction of a cut in the 
+multiplicative fragment:
 
 @couplingDiag(cutParCross)
 
 @couplingDiag(eval cutParCross)
+
+The graph notation make plain that this reduction 
+splits the process on the par side into two separate, 
+non-communicating processes.
 
 @subsection{Outermost Evaluation Strategy}
 In this section we show that the strategy of evaluation which
