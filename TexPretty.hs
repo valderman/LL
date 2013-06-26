@@ -39,7 +39,7 @@ seqName' ctx s = case s of
    (Cross _ _ _ _ _)   -> "⊗"
    (Par _ _ _ _ _ _)   -> "⅋"
    (Plus  _ _ _ _ _)   -> "⊕"
-   (With _ b _ _)      -> math $ (amp <> index (indicator b))
+   (With _ _ b _ _)      -> math $ (amp <> index (indicator b))
    (SOne _ _)          -> "1"
    (SZero _)           -> "0"
    SBot                -> "⊥"
@@ -49,7 +49,7 @@ seqName' ctx s = case s of
    (Demand _ _ _ _)    -> "!"
    (Ignore _ _)        -> ruleName "Weaken"
    (Alias _ _ _)       -> ruleName "Contract"
-   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
+--   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
    (ChanPlus b ta tb)  -> ruleName "Ch" <>  (indicator b)
    (ChanCross ta tb)   -> ruleName "Ch(<)"
    (ChanPar   ta tb)   -> ruleName "Ch(>)" <> math (texType 0 ctx (ta :|: tb))
@@ -65,7 +65,7 @@ seqLab s = case s of
    (Cross _ _ _ _ _)   -> "$\\otimes$"
    (Par _ _ _ _ _ _)   -> "$\\parr$"
    (Plus  _ _ _ _ _)   -> "$\\oplus$"
-   (With _ b _ _)      -> "&"
+   (With _ _ b _ _)      -> "\\&"
    (SOne _ _)          -> "1"
    (SZero _)           -> "0"
    SBot                -> "⊥"
@@ -75,7 +75,7 @@ seqLab s = case s of
    (Demand _ _ _ _)    -> "!"
    (Ignore _ _)        -> "Wk"
    (Alias _ _ _)       -> "Ct"
-   (Channel ty)        -> "Ch"
+--   (Channel ty)        -> "Ch"
    (ChanPlus b ta tb)  -> indicator b
    (ChanCross ta tb)   -> "<"
    (ChanPar   ta tb)   -> ">"
@@ -101,7 +101,7 @@ texSeq showProg = foldSeq sf where
   scross w v vt v' vt' t = rul [t]
   spar w _ vt _ vt' s t = rul [s,t]
   splus w _ vt _ vt' s t = rul [s,t]
-  swith b w _ _ s = rul [s]
+  swith _ b w _ _ s = rul [s]
   sbot v = rul []
   szero w vs = rul []
   sone w t = rul [t]
@@ -202,7 +202,7 @@ texProg'' what showTypes = foldSeq sf where
       splus w v vt v' vt' s t = Split (case_ <> texVar w <> keyword " of")
                       [(keyword "inl " <> texVar v,s),
                        (keyword "inr " <> texVar v',t)]
-      swith b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
+      swith _ b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
       sbot v = Final $ texVar v
       szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w

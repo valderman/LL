@@ -55,15 +55,16 @@ header = do
   acmCategories
   acmKeywords
 
-cut_,with_,plus_ :: TeX
+cut_,with_,plus_,par_,tensor_ :: TeX
 cut_ = ruleName "Cut"
 with_ = "&"
 plus_ = "⊕"
+par_ = "⅋"
+tensor_ = "⊗"
 
 chanRules :: [(Deriv,TeX)]               
 chanRules =   
-  [(channelRule,       "A channel containing no data")
-  ,(chanPlusRule True, "A channel containing a bit")
+  [(chanPlusRule True, "A channel containing a bit")
   ,(chanCrossRule,     "A half-split channel (par side)")
   ,(chanParRule,       "A half-split channel (par side)")
   ,(chanTypRule,       "A channel containing a type")
@@ -77,7 +78,7 @@ typesetChanRules = figure "Rules for explicit channel management" $
         cmd0 "hspace{1em}"
 
 outputTexMp :: String -> IO ()
-outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["preprint"] preamble $ @"
+outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["authoryear","preprint"] preamble $ @"
 @header
 
 @intro<-section{Intro}
@@ -116,7 +117,7 @@ Technically:
        based on a von neumann architecture.
 }
 
-@section{Syntax}
+@syntaxSec<-section{Syntax}
 
 @subsection{Types}
 @subsection{Typing rules (with term assignment)}
@@ -275,30 +276,80 @@ This goes against at least two commonly admitted principles:
 
 In the next section we proceed to attack this shortcoming.
 
-@section{Explicit Channels}
+@section{Mediating particles}
 
 There is a standard trick to transform a synchronous communication into an asynchronous one:
 insert buffers between the communicating parties.  
-We will apply this trick here (calling the buffers explicit channels). 
+We will apply this trick here.
 Notably, we perform this insertion of buffers within the framework of linear logic,
-merely adding new rules and reductions.
+merely adding new rules, and replacing the standard reduction rules by another set of reductions.
 
-The idea is then that channels will mediate the interaction between
+The idea is that buffers will mediate the interaction between
 the non-structural rules. For example, when a @with_ rule is connected
 to a @plus_ rule via a channel, the @with_ rule will write a bit of information
-to the channel indicating which side of the sum to take. The contination of with will be 
-ready to run. Asynchronously, the @plus_ rule will read the bit of info as soon as 
-it becomes available, and restore the communication channel to an unwritten one.
+to the channel indicating which side of the sum to take. The children of @with_ will be 
+ready to run regardless of a @plus_ rule being ready to read. 
+Asynchronously, the @plus_ rule will read the bit of info as soon as 
+it becomes available.
 
+@dm(couplingDiag(cutWithPlus True))
+@dm(couplingDiag $ eval' $ cutWithPlus True)
+@dm(sequent $ eval' $ cutWithPlus True)
+@dm(sequent $ eval' $ eval' $ eval' $ eval' $ cutWithPlus True)
 
+One can metaphorically talk about the intermediate rule being created
+as a particle travelling from left to right. 
+By analogy with the elementary particles mediating physical 
+forces, we will call such mediating rules bosons.
 
-@subsection{Reduction rules}
+For completeness, the logical rule representing it is as follows
 
+TODO
 
-Multiplicative Fragment
+and the reduction rules involving it are:
 
-@subsection{``black'' reduction}
-@subsection{Completeness}
+TODO
+
+For the quantifiers fragment, a similar boson and set of reduction rule exists. The
+difference is that a type is being transmitted instead of a bit.
+
+For the multiplicative fragment, we propose two possible ways to encode asynchronicity,
+to eventually settle on the second proposition.
+
+The first possible way is similar to what happens in the additive fragment: a boson travels
+from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
+boson must connect two processes. The downside of this approach is that, until the
+@par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
+does not actually need wait for any information: the behaviour of the continuation does
+not depend on anything that the @par_ rule @emph{itself} will provide. In fact, one might
+just as well imagine that a boson should travel in the other direction, from @tensor_ to @par_.
+However, such a particle would break the invariant we have so far: it would create a cycle
+in the coupling graph.
+
+This observation leads us to a second and, in our opinion, preferable option to
+model asynchronicity. The solution is to consider @par_ and @tensor_ as structural rules.
+The bosons < and > in fact represent @emph{the rules themselves}.
+That is, we consider children of @par_ and @tensor_ as processes. 
+This means @par_ and @tensor_ behave completely asynchronously: as soon as they are
+encountered their children are ready to run.
+
+TODO: graphs.
+
+TODO: Exponentials
+Axioms transmit the bosons from one side to the other.
+
+@subsection{Boson-oblivious reduction}
+
+The boson-aware reduction relation is a strict refinement of the reduction relation presented 
+in @fxref(syntaxSec).
+
+@theorem(""){
+  if neither a nor b contain a boson, then
+  a reduces to b if and only if a boson-reduces to b
+}{
+  This is a consequence of the local result,  and the fact that bosons travel linearly
+  in the coupling graph.
+}
 
 @section{Abstract Machine}
 

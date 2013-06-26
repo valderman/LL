@@ -29,7 +29,7 @@ axRule     = Deriv ["Θ"] [("x",meta "A"),("y",neg (meta "A"))] (Ax dum)
 cutRule    = Deriv ["Θ"] [gamma,xi] (Cut "x" "y" (meta "A") 1 whatA whatB)
 crossRule  = Deriv ["Θ"] [gamma, ("z",meta "A" :⊗: meta "B"),delta] (Cross dum "x" "y" 1 whatA)
 parRule    = Deriv ["Θ"] [gamma, ("z",meta "A" :|: meta "B"),delta] (Par dum "x" "y" 1 whatA whatB)
-withRule b = Deriv ["Θ"] [gamma,("z",meta "A" :&: meta "B")] (With "x" b 1 whatA)
+withRule b = Deriv ["Θ"] [gamma,("z",meta "A" :&: meta "B")] (With dum "x" b 1 whatA)
 plusRule   = Deriv ["Θ"] [gamma,("z",meta "A" :⊕: meta "B")] (Plus "x" "y" 1 whatA whatB)
 oneRule    = Deriv ["Θ"] [gamma,("x",One)] (SOne 1 whatA)
 zeroRule   = Deriv ["Θ"] [gamma,("x",Zero)] (SZero 1)
@@ -42,7 +42,7 @@ weakenRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore 1 whatA
 contractRule  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias 1 "z'" whatA
 
 
-channelRule = fillTypes $ Deriv ["θ"] [("x",meta "A"),("y",neg (meta "A"))] (Channel dum)
+-- channelRule = fillTypes $ Deriv ["θ"] [("x",meta "A"),("y",neg (meta "A"))] (Channel dum)
 chanPlusRule b = Deriv ["θ"] [("z",neg (tA :⊕: tB)),("x",if b then tA else tB)] (ChanPlus b dum dum)
 chanCrossRule = Deriv ["θ"] [("z",tA :⊗: tB),("x",neg tA),("y",neg tB)] (ChanCross dum dum)
 chanParRule = Deriv ["θ"] [("z",tA :|: tB),("x",neg tA),("y",neg tB)] (ChanPar dum dum)

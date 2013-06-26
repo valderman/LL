@@ -106,7 +106,7 @@ runClosure h (Par ty x y v a b,e,te)
   = Just (h,[(a,el++[(x,z)],te)
             ,(b,[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
     where (el,(_,z):er) = splitAt v e
-runClosure h (With x t v a,e,te)
+runClosure h (With ty x t v a,e,te)
   = Just (replace (e!!+v) (Tag t) h,[(a,increment v x e,te)])
   -- FIXME: free the part which is unused (half of the time)
 runClosure h (SOne v a,e,te)
@@ -168,8 +168,8 @@ increment n nm e = let (l,(_,x):r) = splitAt n e
 
 copy'' :: Type -> Seq
 copy'' (t1 :⊕: t2) = Plus "z" "w"  0
-                       (With "r" True 1 (copy'' t1))
-                       (With "s" False 1 (copy'' t2))
+                       (With t1 "r" True 1 (copy'' t1))
+                       (With t2 "s" False 1 (copy'' t2))
 copy'' (t1 :⊗: t2) = Cross t1 "z" "w" 0 $
                      Exchange [0,2,1] $
                      Par t1 "r" "s" 1 (copy'' t1) (copy'' t2)
