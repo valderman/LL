@@ -6,7 +6,6 @@ import Pretty
 import MarXup
 import MarXup.Latex
 import MarXup.Tex
-import Control.Applicative
 import Reductions
 import Data.Monoid
 import Symheap
@@ -71,11 +70,18 @@ chanRules =
   ,(chanEmptyRule 3,   "A memory cell (empty)")
   ,(chanFullRule 3,    "A memory cell (full)")]
 
+typesetChanRules :: Tex SortedLabel
 typesetChanRules = figure "Rules for explicit channel management" $ 
     env "center" $ do
     forM_ chanRules $ \(r,comment) -> do 
         math $ deriv False r
         cmd0 "hspace{1em}"
+
+allPosTypes :: [Type]
+allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
+
+norm :: TeX -> TeX
+norm x = math $ "|" <> x <> "|"
 
 outputTexMp :: String -> IO ()
 outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["authoryear","preprint"] preamble $ @"
@@ -276,13 +282,14 @@ This goes against at least two commonly admitted principles:
 
 In the next section we proceed to attack this shortcoming.
 
-@section{Mediating particles}
+@section{Mediating Rules}
 
 There is a standard trick to transform a synchronous communication into an asynchronous one:
 insert buffers between the communicating parties.  
 We will apply this trick here.
 Notably, we perform this insertion of buffers within the framework of linear logic,
-merely adding new rules, and replacing the standard reduction rules by another set of reductions.
+merely adding new rules, and replacing the standard (synchronous) reduction rules by another 
+set of reductions which all involve an intermediate buffer.
 
 The idea is that buffers will mediate the interaction between
 the non-structural rules. For example, when a @with_ rule is connected
@@ -320,26 +327,28 @@ difference is that a type is being transmitted instead of a bit.
 For the multiplicative fragment, we propose two possible ways to encode asynchronicity,
 to eventually settle on the second proposition.
 
-The first possible way is similar to what happens in the additive fragment: a boson travels
+The first possible way is similar to what happens in the additive fragment: a boson (called >) travels
 from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
 boson must connect two processes. The downside of this approach is that, until the
 @par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
-does not actually need wait for any information: the behaviour of the continuation does
+does not actually need to wait for any information: the behaviour of the continuation does
 not depend on anything that the @par_ rule @emph{itself} will provide. In fact, one might
-just as well imagine that a boson should travel in the other direction, from @tensor_ to @par_.
-However, such a particle would break the invariant we have so far: it would create a cycle
-in the coupling graph.
+just as well imagine that a boson (called <) should travel in the other direction, from @tensor_ to @par_.
+(On the face of it, such a particle would break the invariant we have so far, it would create a cycle
+in the coupling graph. Fortunately, this boson has exactly the same structure as the @tensor_ rule
+itself, so no possible deadlock can occur.)
 
 This observation leads us to a second and, in our opinion, preferable option to
-model asynchronicity. The solution is to consider @par_ and @tensor_ as structural rules.
-The bosons < and > in fact represent @emph{the rules themselves}.
-That is, we consider children of @par_ and @tensor_ as processes. 
+model asynchronicity. The solution is to send both bosons, and add a reduction rule between them.
+(The bosons < and > are in fact mere renamings of the rules themselves. Sending the bosons is equivalent to
+bring the cuts under @par_ and @tensor_ to the outermost level.)
 This means @par_ and @tensor_ behave completely asynchronously: as soon as they are
 encountered their children are ready to run.
 
 TODO: graphs.
 
 TODO: Exponentials
+
 Axioms transmit the bosons from one side to the other.
 
 @subsection{Boson-oblivious reduction}
@@ -357,14 +366,59 @@ in @fxref(syntaxSec).
 
 @section{Abstract Machine}
 
+In this section we describe an abstract machine for execution of LL programs. The
+machine follows closely the refined reduction relation presented in the previous section.
+It is similar in spirit to classical abstract machines for the lambda calculus, such as the 
+SECD machine.
+
+The machine state is composed of a list of closures and a heap.
+A closure is a sequent, together with an environment associating each variable
+to a pointer in the heap, and an environment associating each type variable to a
+a type representation.
+
+The heap is an ordered sequence of cells. Each cell can evetually be used to 
+transmit some piece of information between closure. Each cell starts its lifetime
+as empty (devoid of information). It may then contain some information, which will
+be eventually read. Then the cell is deallocated. (In a real system is should made 
+available for reuse, but we do bother do do so in this presentation.)
+
+A number of contiguous cells is allocated for each channel in the heap. The number of
+cells allocated depends on the type of the channel, and is computed as follows.
+
+@definition("layout"){
+  @dm(array[] "ccc" [[element t,element (neg t),element (mkLayout t)] | t <- allPosTypes]
+)
+}
+
+There will be exactly two closures pointing to each channel of non-exponential a type @tA. One
+of these will consider the channel as @tA and the other as @neg(tA), which justifies @mkLayout(tA) = |@neg(tA)|.
+
+
 @subsection{Reduction rules}
-Equivalent to outermost reductions in the system with explicit channels.
+
+@subsection{Adequacy}
+
+@definition("Sequent to AM "){
+  Straightforward.
+}
+@definition("AM to Sequent"){
+}
+
+@theorem("AM Adequacy"){
+- Operational rules are in clear one-to-one correspondance.
+- Difficulty: it is not possible to discover if the >< rule has been executed or not.
+- Solution: we merely claim adequacy up to that rule (as we do up to cut reordering)
+}{
+
+}
 
 @section{Discussion}
 
 Bi-cut; mix.
 
 Deadlock freedom ~ tree structure ~ resource-management process.
+
+Complete asynchronicity of multiplicative essential for efficient handling of tuples.
 
 @subsection{Future Work}
 Efficiency?
@@ -400,8 +454,15 @@ We also refine the understanding of deadlock (a purely structural property) and 
 
 Proof nets: we do not attempt to represent the whole proof graphically; only the top-level structure.
 
+@section{Conclusion}
+
+In our journey to build an AM for LL, we have encountered a number of useful concepts.
+Coupling diagrams, the structural reasons of deadlock avoidance, mediating information 
+particles. This has allowed us to shed a new light to some poorly understood
+aspects of LL, such as the structural character of the multiplicative fragment.
+
+
 @bibliography
 
-@xref(intro)
 
 @"
