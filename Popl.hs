@@ -86,32 +86,45 @@ This section will present our language based on  classical linear logic.
 @subsection{Types}
 
 The types of our language are directly taken from classical linear logic.
+They are shown in the figure @xref(tytab).
 
 @tytab<-typeTable
 
-Explanation of the types:
+We provide some intuition for how to understand these types.
 @itemize{
-@item @id(tA ⊗ tB): both @tA and @tB. The program chooses when to use either of them.
+@item @id(tA ⊗ tB): the tensor product provide both @tA and @tB. 
 @item @id(tA ⅋ tB): both @tA and @tB. The context chooses when to use either of them.
 @item @id(tA ⊕ tB): either @tA and @tB. The context chooses which one.
 @item @id(tA & tB): both @tA and @tB. The program chooses which one.
-@item @id(Forall "α" tAofAlpha): Usual polymorphic type.
-@item @id(Exists "α" tAofAlpha): Usual existential.
+@item @id(Forall "α" tAofAlpha): Polymorphism
+@item @id(Exists "α" tAofAlpha): Existentials
 @item @id(Bang tA): As many @tA 's as one wants.
 @item @id(Quest tA): Must produce as many @tA as the context wants.
 }
-The neutrals are respectively @One, @Bot, @Zero and @Top.
 
-There is no type representing negation. Instead, negation is a defined notion.
+Four of the types come with neutral elements. In figure @xref(tytab) the 
+neutral element are written to the right of their respective type. For example, 
+the tensor product has neutral element @One, which means that 
+@tA @tensor_ @One = @tA. 
 
-Also, there is no type for linear functions. Functions can be defined using as 
+There is no type representing negation. Instead, negation is a defined notion 
+along the rules below. We only show half of the translations, the other half
+are demorgan duals.
+
+@array([])("ccc")(
+  [ [ @" (@tA @tensor_ @tB)^@Bot@" , @" = @", @" @tA^@Bot @par_ @tB^@Bot @"]
+  , [ @" (@tA @par_ @tB)^@Bot@"    , @" = @", @" @tA^@Bot @tensor_ @tB^@Bot@"]
+  , [ @" (@id(Forall "α" tAofAlpha))^@Bot@" , @" = @", @" @id(Exists "α" tAofAlpha) @"]
+  , [ @" (!@tA)^@Bot @", @" = @", @" ?@tA^@Bot @"]
+  , [ @" @One^@Bot @" , @" = @", @" @Bot @" ]
+  , [ @" @Zero^@Bot @" , @" = @" , @" @Top @" ]
+  ]
+)
+
+Furthermore , there is no type for linear functions.
+Functions can be defined using as 
 follows:
 @tA @lollipop_ @tB = @id(tA ⊸ tB)
-
-@itemize{
-@item @id(tA ⊗ tB)
-}
-
 
 @subsection{Typing rules (with term assignment)}
 
