@@ -121,8 +121,9 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
             [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
          newline  
          cmd0 "vspace{1em}"
-              
--------------------------------
+
+
+----------
 -- Examples
 
 simpleCut :: Deriv

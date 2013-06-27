@@ -120,3 +120,4 @@ preamble inMetaPost = do
   authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
                       ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
+
