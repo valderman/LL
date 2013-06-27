@@ -221,19 +221,24 @@ rightChild (Deriv ts vs (Cut _ w ty x _ a)) = Deriv ts ((w,    ty):drop x vs) a
 eval' (Deriv ts vs s) = Deriv ts vs $ cheval (length vs) s
 
 cheval :: Int -> Seq -> Seq
-cheval _ (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 b (Cut w w' ty 1 (a) c) -- fixme: exchange [1,0] b
+cheval _ (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 b (Cut w w' ty 1 (a) c) -- FIXME: exchange [1,0] b
 
+-- Sending bosons
 cheval _ (With ty v c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c) s 
+cheval _ (Cross False ty w w' x c) = Cross True ty w w' x c
+cheval _ (Par False ty w w' γ a b) = Par True ty w w' γ a b
 
+-- Receiving them
 cheval _ (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t
-
-cheval n (Cut _ _ (ta :⊗: tb) γδ (Exchange π (Par _ _ _ _ γ a b)) (Cross _ _ w w' 0 c)) 
+cheval n (Cut _ _ (ta :⊗: tb) γδ (Exchange π (Par True _ _ _ γ a b)) (Cross True _ w w' 0 c)) 
   = exchange (remove 0 π++[length π-1..n-1]) $ Cut w w' ta γ
     a
     (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b (exchange ([1,0]++[2..n-γ]) c))
    where δ = γδ - γ
          
+-- Recursing         
 cheval n (Cut w w' ty γ a b) = Cut w w' ty γ (cheval (1+γ) a) (cheval (1+n-γ) b)
+cheval n (Exchange π s) = Exchange π (cheval n s)
 cheval _ s = s
 
   {-
@@ -319,8 +324,16 @@ isPos (TApp _ _ _ _ _) = True
 isPos SBot = True
 isPos _ = False
 
+indexOf :: Eq a => a -> [a] -> Int
+indexOf _x [] = error "indexOf: not found"
+indexOf x (y:ys) | x == y = 0
+                 | otherwise = 1 + indexOf x ys
+
 inverse :: Permutation -> Permutation
-inverse π = [π!!x | x <- [0..length π-1]]
+inverse π = [indexOf x π | x <- [0..length π-1]]
+
+applyPerm π e = [e !! i | i <- π]
+
 
 exchange = subst
 
@@ -420,7 +433,7 @@ foldSeq sf ts0 vs0 s0 =
          where (v0,(w,~Zero):v1) = splitAt x vs
       (SOne x t) -> sone w $ recurse ts (v0++v1) t
         where (v0,(w,~One):v1) = splitAt x vs
-      (Exchange p t) -> sxchg p $ recurse ts [vs !! i | i <- p] t
+      (Exchange p t) -> sxchg p $ recurse ts (applyPerm p vs) t
       (TApp _ v x tyB s) -> stapp w (sty (v:ts) tyA) v (fty tyB) $ recurse ts (v0++(v,ty):v1) s
         where (v0,(w,~(Forall _ tyA)):v1) = splitAt x vs
               ty = subst0 tyB ∙ tyA

@@ -11,6 +11,7 @@ import System.IO.Unsafe
 import System.IO
 import System.Process
 import Data.List (intercalate)
+import Control.Applicative
 
 
 type GGen a = RWS () [String] Int a
@@ -47,10 +48,53 @@ rm (Just x) xs = l++r where (l,_:r) = splitAt x xs
 comment :: String -> GGen ()
 comment x = tell $ ["// " ++ x]
 
-data HInfo = External Type | Internal NodeRef Type | Done
-
 emptyLab :: String
 emptyLab = "label=\"\""
+
+toGraphPart' :: [Name] -> [(Name,Type)] -> Seq -> GGen [NodeRef]
+toGraphPart' te e (Cut v v' ty γ s t) = do
+  let (e0,e1) = splitAt γ e
+  (s':sn) <- toGraphPart' te ((v,neg ty):e0) s
+  (t':tn) <- toGraphPart' te ((v', ty)  :e1) t
+  edge s' t' ty
+  return $ sn ++ tn
+toGraphPart' te e (Exchange π s) = do
+  comment $ "  exchange"
+  applyPerm π <$> toGraphPart' te (applyPerm π e) s  
+toGraphPart' te e this@(Par True _ v v' x s t) = do
+  let (v0,(_w,(vt :|: vt')):v1) = splitAt x e
+  tn0 <- toGraphPart' te (v0++[(v,vt)]) s
+  let tn = init tn0
+      t' = last tn
+  (s':sn) <- toGraphPart' te ((v',vt'):v1) t
+  thisNode <- node $ getNodeLab this
+  edge thisNode s' vt
+  edge thisNode t' vt'
+  return (sn++thisNode:tn)
+toGraphPart' te e s@(Cross True _ v v' x t) = do
+  let (v0,(_w,(vt :⊗: vt')):v1) = splitAt x e
+  tn <- toGraphPart' te (v0++(v,vt):(v',vt'):v1) t 
+  let (ts0,(t1:t2:ts3)) = splitAt x tn
+  thisNode <- node $ getNodeLab s
+  edge thisNode t1 vt
+  edge thisNode t2 vt'
+  return (ts0++thisNode:ts3)
+toGraphPart' _te e s = do 
+  comment $ "  leaf"
+  thisNode <- node $ getNodeLab s
+  return $ replicate (length e) thisNode
+  
+  
+toGraphMain' (Deriv te e s) = do
+  hs <- toGraphPart'  te e s
+  forM_ (zip hs e) $ \(n,(_,ty)) -> do
+    hypNode <- node ["color=white",emptyLab] -- $ "shape = " ++ show "none"
+    edge hypNode n ty
+    
+  {-
+
+data HInfo = External Type | Internal NodeRef Type | Done
+
 
 toGraphPart :: Maybe Port -> [Name] -> [(Name,HInfo)] -> Seq -> GGen NodeRef
 toGraphPart parent te e (Cut v v' ty γ s t) = do
@@ -59,6 +103,7 @@ toGraphPart parent te e (Cut v v' ty γ s t) = do
     tn <- toGraphPart (Just 0) te ((v',Internal sn ty)   :e1) t
     return $ if maybe True (< γ) parent then sn else tn
   where (e0,e1) = splitAt γ e
+-- toGraphPart parent te e (Cross True _ _ _ x         
 toGraphPart parent te e (Exchange π s) = do
   comment $ "  exchange"
   toGraphPart ((`indexOf` π) `fmap` parent) te [e !! i | i <- π] s
@@ -75,31 +120,32 @@ toGraphPart _parent _te e s = do
       Internal n ty -> edge n thisNode ty
   return thisNode    
   
+toGraphMain :: Deriv -> GGen ()
+toGraphMain (Deriv te e s) = do
+  toGraphPart Nothing te [(nm,External ty) | (nm,ty) <- e] s
+  return ()
+-}
+
 getNodeLab :: Seq -> [String]
 getNodeLab (What x _) = ["label=" ++ show x]
 getNodeLab s = ["label=" ++ show (seqLab s)]
 getNodeLab _ = [emptyLab]
     
-indexOf :: Eq a => a -> [a] -> Int
-indexOf _x [] = error "indexOf: not found"
-indexOf x (y:ys) | x == y = 0
-                 | otherwise = 1 + indexOf x ys
-
-toGraphMain :: Deriv -> GGen ()
-toGraphMain (Deriv te e s) = do
-  tell ["digraph G {"
-       ,"node[shape=circle]"
-        --       ,"node[fixedsize=True,width=0.5]"
---        ,"graph[start=2];" -- Seed
-       ,"rankdir=LR;"
-       ,"ranksep=0;"
-        --      ,  "size=5;"
-       ,"edge [arrowhead=\"vee\",dir=\"forward\"];"]
-  toGraphPart Nothing te [(nm,External ty) | (nm,ty) <- e] s
-  tell ["}"]
-
 toGraph :: Deriv -> [String]    
-toGraph d = w where (_,_,w) = runRWS (toGraphMain d) () 1
+toGraph d = w 
+  where (_,_,w) = runRWS tg () 1
+        tg = do
+          tell ["digraph G {"
+               ,"node[shape=circle]"
+                --       ,"node[fixedsize=True,width=0.5]"
+                --        ,"graph[start=2];" -- Seed
+               ,"rankdir=LR;"
+               ,"ranksep=0;"
+                --      ,  "size=5;"
+               ,"edge [arrowhead=\"vee\",dir=\"forward\"];"]
+          toGraphMain' d
+          tell ["}"]           
+                     
 
 dot2tex :: [String] -> ([String], [String])
 dot2tex gv = unsafePerformIO $ do

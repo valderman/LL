@@ -117,7 +117,7 @@ One way to understand the judgement form is that there is always
 @subsection{Reduction rules}
 
 
-@section{Graphical Representation}
+@section{Coupling Diagrams}
 
 In this section we introduce a graphical representation for programs.
 
@@ -323,7 +323,9 @@ bring the cuts under @par_ and @tensor_ to the outermost level.)
 This means @par_ and @tensor_ behave completely asynchronously: as soon as they are
 encountered their children are ready to run.
 
-TODO: graphs.
+@dm(couplingDiag(cutParCross))
+@dm(couplingDiag(eval' $ cutParCross))
+@dm(couplingDiag(eval' $ eval' $ cutParCross))
 
 TODO: Exponentials
 
