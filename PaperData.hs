@@ -37,11 +37,8 @@ sequent = deriv False
 program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
-{- DEPRECATED deriv' -}
 -- | Render a derivation tree, showing terms.
-deriv' = sequent
-
-deriv'' (x,_) = deriv' x
+deriv'' (x,_) = program x
 
 
 -- Element instances
@@ -165,7 +162,7 @@ typesetBosonReds reds = env "center" $
       
       return ()
 
-texBosonReds =  figure "Asynchronous reduction rules" $ 
+texBosonReds =  figure_ "Asynchronous reduction rules" $ 
                 env "center" $ 
                 typesetBosonReds chanRedRules
                 
