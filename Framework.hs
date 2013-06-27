@@ -19,14 +19,26 @@ import GraphViz
 import Data.Monoid
 
 
+return' :: a -> Tex a
+return' = return
+
+
 ----------
 -- Text
+
 
 comment :: Tex a -> TeX
 comment _ = ""
 
 italic :: Tex a -> Tex a
 italic = cmd "textit"
+
+figure_ :: TeX -> TeX -> Tex SortedLabel
+figure_ caption body = env "figure*" $ do
+  body
+  cmd "caption" caption
+  label "Fig."
+
 
 -------------
 -- Bib
@@ -89,32 +101,6 @@ x .=. y = x <> "=" <> y
 dm = displayMath          
 
 multiline' body = env "multline*" $ mkrows body
--------
--- LL
-
--- | Render a derivation tree. 
-deriv :: Bool -- ^ Show terms?
-         -> Deriv -> TeX
-deriv showProg (Deriv tvs vs s) = derivationTree $ texSeq showProg tvs vs s
-
-derivation, sequent :: Deriv -> TeX
-derivation = deriv True 
-sequent = deriv False
-
--- | Render a derivation as a program (term)
-program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = indentation (texProg tvs vs s)
-
-
--- Element instances
-
-instance Element Type where
-  type Target Type = TeX
-  element = texClosedType
-
-instance Element Layout where
-  type Target Layout = TeX
-  element = math . texLayout
 
 --------------------
 

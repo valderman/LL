@@ -20,22 +20,6 @@ import Framework
 import Data.List
 import PaperData
 
-simpleCut :: Deriv
-simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
-
-doubleCut :: Deriv
-doubleCut = Deriv [] [gamma,xi] $ Cut "_x" "x" tB 1 (Cut "_y" "y" (neg tA) 1 whatA whatB) (Cut "_z" "z" tC 1 whatC whatD)
-
-doubleCut' :: Deriv
-doubleCut' = Deriv [] [gamma,delta] $ Cut "_x" "x" (neg tA) 0 whatA $ Cut "_y" "y" (neg tC) 1 (Cut "_z" "z" (neg tB) 0 whatB whatD) whatC 
-vX,vX' :: TeX
-vX = math "x"
-vX' = math "x'"
-
-graph1, graph2 :: TeX
-graph1 = math "σ"
-graph2 = math "σ'"
-
 acmCategories,acmKeywords :: TeX
 acmCategories = do
   cmdn_ "category" ["F.4.1","Mathematical Logic","Lambda calculus and related system"]
@@ -54,69 +38,6 @@ header = do
   abstract
   acmCategories
   acmKeywords
-
-cut_,with_,plus_,par_,tensor_ :: TeX
-cut_ = ruleName "Cut"
-with_ = "&"
-plus_ = "⊕"
-par_ = "⅋"
-tensor_ = "⊗"
-
-
-allPosTypes :: [Type]
-allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
-
-return' :: a -> Tex a
-return' = return
-
-allRules = 
-  [[(axRule, "Copy the data between the closures; when it's ready.")]
-  ,[(cutRule, "similar to ⅋ but connects the two closures directly together.")]
-  ,[(parRule, "split the environment and spawn a new closure. (No communication)"),
-    (crossRule, "add an entry in the context for @tB, at location @math{n + @mkLayout(tA)} (No communication)")]
-  ,[(withRule True,"Write the tag and the pointer. Deallocate if the other possibility uses less memory."),
-    (plusRule,"wait for the data to be ready; then chose a branch according to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.")]
-  ,[(botRule,"terminate (delete the closure)"),
-    (oneRule,"continue")]  
-  ,[(zeroRule,"crash")]
-  ,[(forallRule,"Write the (pointer to) representation of the concrete type @tB (found in the code) to the 1st cell.")
-   ,(existsRule,existComment)]
-  ,[(questRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
-    (bangRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
-                  the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")]
-  ,[(weakenRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
-  ,[(contractRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
-  ] 
-
-existComment = @"Wait for the type representation to be ready. Copy the
-  (pointer to) the representation to the type environment. Free the
-  type variable from the memory. Rename the linear variable (as in
-  ⊗). NOTE: It is tempting to avoid the sync. point here and instead have 
-  one when the type-variable is accessed. However
-  because the type variable will be copied around (when a closure is spawned), 
-  then this rule must be responsible for freeing the memory (or we need garbage collection;
-  yuck).@"
-
--- | Print all derivation rules               
-typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
-    env "center" $ do
-    forM_ allRules $ \r -> do 
-         case r of
-            [a] -> math $ deriv'' a
-            [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
-         newline  
-         cmd0 "vspace{1em}"
-
--- | Render a derivation tree, showing terms.
-deriv' = deriv True
-
-deriv'' (x,_) = deriv' x
-
-figure_ :: TeX -> TeX -> Tex SortedLabel
-figure_ caption body = env "figure*" $ do
-  body
-  cmd "caption" caption
-  label "Fig."
 
 outputTexMp :: String -> IO ()
 outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["authoryear","preprint"] preamble $ @"
