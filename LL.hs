@@ -106,7 +106,7 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | Alias Int Name (Seq)
            
          -- | Channel (Forced Type) -- Exactly 2 vars
-         | ChanPlus Bool Type Type -- Channel Loaded with a bit
+         | ChanPlus Bool -- Channel Loaded with a bit
          | ChanCross Type Type -- Channel split on the cross side
          | ChanPar Type Type -- Channel split on the par side
          | ChanTyp Type Type -- Channel loaded with a monotype
@@ -217,14 +217,12 @@ rightChild (Deriv ts vs (Cut _ w ty x _ a)) = Deriv ts ((w,    ty):drop x vs) a
 ----------------------------
 -- Evaluation via channels
 
-nein = meta "Nein!" 
-
 eval' (Deriv ts vs s) = Deriv ts vs $ cheval s
 
 cheval :: Seq -> Seq
-cheval (With ty v c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c nein nein) s 
+cheval (With ty v c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c) s 
 cheval (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 b (Cut w w' ty 1 (a) c) -- fixme: exchange [1,0] b
-cheval (Cut _ _ _ 1 (ChanPlus c _ _) (Plus _ _ 0 s t)) = if c then s else t
+cheval (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t
 cheval (Cut w w' ty x a b) = Cut w w' ty x (cheval a) (cheval b)
 cheval s = s
 
@@ -321,7 +319,7 @@ isIdentity π = π == [0..length π-1]
 subst π t | isIdentity π = t
 subst π t = case t of
   (Ax ty) -> (Ax (neg ty)) -- because the identity case was handled above.
-  b@(ChanPlus _ _ _) -> b
+  b@(ChanPlus _) -> b
   (Cross ty w w' x c) -> Cross ty w w' (f x) (s' x c)
   Exchange ρ a -> subst (map f ρ) a
   (With ty w c x a) -> With ty w c (f x) (s a)
@@ -387,7 +385,7 @@ foldSeq sf ts0 vs0 s0 =
  recurse ts0 vs0 s0 where
  recurse ts vs seq = case seq of
 --      Channel _ ->  schannel vt where [(v0,_),(v1,vt)] = vs
-      ChanPlus b _ _ -> schplus b ta tb where [(v1,ta :&: tb),_] = vs
+      ChanPlus b -> schplus b ta tb where [(v1,ta :&: tb),_] = vs
       ChanCross _ _ -> schcross ta tb where [(v1,ta :⊗: tb),_,_] = vs
       ChanPar _ _ -> schpar ta tb where [(v1,ta :|: tb),_,_] = vs
       ChanTyp ty _ -> schtyp ty tgen where [(v0,tgen),_] = vs
@@ -457,7 +455,7 @@ fillTypes' = foldSeq sf where
     signore _ _ s = Ignore x s
     salias _ w' _ s = Alias x w' s
 --    schannel t = Channel t
-    schplus b ta tb = ChanPlus b ta tb
+    schplus b _ta _tb = ChanPlus b
     schcross ta tb = ChanCross ta tb
     schpar ta tb = ChanPar ta tb
     schtyp tmono tgen = ChanTyp tmono tgen

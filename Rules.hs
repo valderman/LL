@@ -43,7 +43,7 @@ contractRule  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias 1 "z'" whatA
 
 
 -- channelRule = fillTypes $ Deriv ["θ"] [("x",meta "A"),("y",neg (meta "A"))] (Channel dum)
-chanPlusRule b = Deriv ["θ"] [("z",neg (tA :⊕: tB)),("x",if b then tA else tB)] (ChanPlus b dum dum)
+chanPlusRule b = Deriv ["θ"] [("z",neg (tA :⊕: tB)),("x",if b then tA else tB)] (ChanPlus b)
 chanCrossRule = Deriv ["θ"] [("z",tA :⊗: tB),("x",neg tA),("y",neg tB)] (ChanCross dum dum)
 chanParRule = Deriv ["θ"] [("z",tA :|: tB),("x",neg tA),("y",neg tB)] (ChanPar dum dum)
 chanTypRule = Deriv ["θ"] [("z",neg (Exists "α" tAofAlpha)),("x",(Meta True "A" [tB]))] (ChanTyp tB dum)

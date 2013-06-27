@@ -50,7 +50,7 @@ seqName' ctx s = case s of
    (Ignore _ _)        -> ruleName "Weaken"
    (Alias _ _ _)       -> ruleName "Contract"
 --   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
-   (ChanPlus b ta tb)  -> ruleName "B" <>  (indicator b)
+   (ChanPlus b)  -> ruleName "B" <>  (indicator b)
    (ChanCross ta tb)   -> ruleName "Ch(<)"
    (ChanPar   ta tb)   -> ruleName "Ch(>)" <> math (texType 0 ctx (ta :|: tb))
    (ChanTyp   tmono _) -> ruleName "B" <> math ( (texType 0 ctx tmono))
@@ -76,7 +76,7 @@ seqLab s = case s of
    (Ignore _ _)        -> "Wk"
    (Alias _ _ _)       -> "Ct"
 --   (Channel ty)        -> "Ch"
-   (ChanPlus b ta tb)  -> indicator b
+   (ChanPlus b)  -> indicator b
    (ChanCross ta tb)   -> "<"
    (ChanPar   ta tb)   -> ">"
    (ChanTyp   tmono _) -> "T"
