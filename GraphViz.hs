@@ -16,16 +16,22 @@ import Control.Applicative
 
 type GGen a = RWS () [String] Int a
 type NodeRef = String
-type Port = Int
+type Attr = (String,String)
 
-node :: [String] -> GGen NodeRef
+mkAttrs :: [Attr] -> String
+mkAttrs as = "[" ++ intercalate "," (map mkEq as)  ++ "]"
+  where mkEq :: Attr -> String
+        mkEq (x,y) = x ++ "=" ++ y
+
+node :: [Attr] -> GGen NodeRef
 node extraAttrs  = do
-  let attrs = "fixedsize=true" : 
-              "width=5" : extraAttrs
+  let attrs = -- "fixedsize=true" : 
+              -- "width=5" : 
+              extraAttrs
   r <- get
   put (r+1)
   let ref = "nd" ++ show r 
-  tell [ref ++ "[" ++ intercalate "," attrs  ++ "];"]
+  tell [ref ++ mkAttrs attrs ++ ";"]
   return ref
   
 edge, edge' :: NodeRef -> NodeRef -> Type -> GGen ()
@@ -36,9 +42,14 @@ edge sn tn ty = edge' sn tn ty
 
 edge' sn tn ty = do
   comment $ "  edge of type " ++ P.render (pClosedType ty)
-  tell [sn ++ " -> " ++ tn ++ "[label=" ++ typ ++ "];"]
-  -- len=\"0.5\", : Does not really work; the edge label is placed as if len=1
-  where typ = show $ concat $ render $ math $ texClosedType ty
+  tell [sn ++ " -> " ++ tn ++ mkAttrs [("label",typ)
+                                      -- ,("len","0.1") -- Does not seem to work; the edge label is placed as if len=1
+                                      ] ++ ";"]
+  where typ = dotQuote $ concat $ render $ texClosedTypeNoMath ty
+  
+dotQuote x = '"': concatMap esc x ++ "\""
+  where esc '\\' = "\\\\"
+        esc x = [x]
   
 {-
 rm :: Maybe Int -> [t] -> [t]
@@ -48,8 +59,8 @@ rm (Just x) xs = l++r where (l,_:r) = splitAt x xs
 comment :: String -> GGen ()
 comment x = tell $ ["// " ++ x]
 
-emptyLab :: String
-emptyLab = "label=\"\""
+emptyLab :: Attr
+emptyLab = ("label",dotQuote " ")
 
 toGraphPart' :: [Name] -> [(Name,Type)] -> Seq -> GGen [NodeRef]
 toGraphPart' te e (Cut v v' ty γ s t) = do
@@ -85,14 +96,15 @@ toGraphPart' _te e s = do
   return $ replicate (length e) thisNode
   
   
-toGraphMain' (Deriv te e s) = do
+toGraphMain :: Deriv -> GGen ()
+toGraphMain (Deriv te e s) = do
   hs <- toGraphPart'  te e s
   forM_ (zip hs e) $ \(n,(_,ty)) -> do
-    hypNode <- node ["color=white",emptyLab] -- $ "shape = " ++ show "none"
+    hypNode <- node [("color","white"),emptyLab] -- $ "shape = " ++ show "none"
     edge hypNode n ty
     
   {-
-
+type Port = Int
 data HInfo = External Type | Internal NodeRef Type | Done
 
 
@@ -126,9 +138,9 @@ toGraphMain (Deriv te e s) = do
   return ()
 -}
 
-getNodeLab :: Seq -> [String]
-getNodeLab (What x _) = ["label=" ++ show x]
-getNodeLab s = ["label=" ++ show (seqLab s)]
+getNodeLab :: Seq -> [Attr]
+getNodeLab (What x _) = [("label", dotQuote x)]
+getNodeLab s = [("label", dotQuote (seqLab s))]
 getNodeLab _ = [emptyLab]
     
 toGraph :: Deriv -> [String]    
@@ -140,10 +152,11 @@ toGraph d = w
                 --       ,"node[fixedsize=True,width=0.5]"
                 --        ,"graph[start=2];" -- Seed
                ,"rankdir=LR;"
-               ,"ranksep=0;"
+               ,"ranksep=0.1;" -- none of this seems
+--               ,"minlen=0.1;"
                 --      ,  "size=5;"
-               ,"edge [arrowhead=\"vee\",dir=\"forward\"];"]
-          toGraphMain' d
+               ,"edge [arrowhead=\"vee\",dir=\"forward\",len=\"0.1\"];"]
+          toGraphMain d
           tell ["}"]           
                      
 
@@ -152,8 +165,8 @@ dot2tex gv = unsafePerformIO $ do
   let c = intercalate " " ["dot2tex" 
                           ,"--prog=dot" 
                           ,"--format=tikz" 
-                          ,"--tikzedgelabels"
-                          ,"--texmode=raw"
+--                          ,"--tikzedgelabels"
+                          ,"--texmode=math"
                           ,"--codeonly"]
   putStrLn $ "running " ++ c
   (stdin',stdout',stderr',_procId) <- runInteractiveCommand c
@@ -166,7 +179,7 @@ dot2tex gv = unsafePerformIO $ do
 couplingDiag :: Deriv -> TeX
 couplingDiag d = do
   forM_ gv $ \l -> texLn $ "%" ++ l
-  env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.08"] $ do
+  env' "tikzpicture" [">=latex","line join=bevel","auto","scale=1"] $ do
     forM_ o $ texLn 
   forM_ e $ \l -> texLn $ "%" ++ l
   where (o,e) = dot2tex gv

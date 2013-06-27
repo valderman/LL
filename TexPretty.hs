@@ -62,9 +62,9 @@ seqLab s = case s of
    (Exchange _ s)      -> "X"
    (Ax _ )             -> "Ax"
    (Cut _ _ _ _ _ _)   -> "Cut"
-   (Cross b _ _ _ _ _) -> if b then "$<$" else "$\\otimes$"
-   (Par b _ _ _ _ _ _) -> if b then "$>$" else "$\\parr$"
-   (Plus  _ _ _ _ _)   -> "$\\oplus$"
+   (Cross b _ _ _ _ _) -> if b then "<" else "⊗"
+   (Par b _ _ _ _ _ _) -> if b then ">" else "⅋"
+   (Plus  _ _ _ _ _)   -> "\\oplus"
    (With _ _ b _ _)      -> "\\&"
    (SOne _ _)          -> "1"
    (SZero _)           -> "0"
@@ -232,7 +232,7 @@ texVarT v t = texVar v <> ":" <> t
        
 texVar :: String -> TeX              
 texVar ('_':nm) = cmd "bar" $ texVar nm
-texVar nm = unicodeTextual nm
+texVar nm = textual nm
              
 prn p k = if p > k then paren else id
        
@@ -255,11 +255,11 @@ texLayout (Union a b) = texLayout a <> "⊔" <> texLayout b
 texLayout Empty = "0"
 
 texType :: Int -> [String] -> Type -> TeX
-texType p vs (Forall v t) = prn p 0 $ cmd0 "forall" <> texVar v <> ". "  <> texType 0 (v:vs) t
-texType p vs (Exists v t) = prn p 0 $ cmd0 "exists" <> texVar v <> ". "  <> texType 0 (v:vs) t
-texType p vs (x :|: y) = prn p 0 $ texType 1 vs x <> par <> texType 0 vs y
-texType p vs (x :⊕: y) = prn p 1 $ texType 2 vs x <> cmd0"oplus" <> texType 1 vs y
-texType p vs (x :⊗: y) = prn p 2 $ texType 2 vs x <> cmd0"otimes" <> texType 2 vs y
+texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
+texType p vs (Exists v t) = prn p 0 $ "∃" <> texVar v <> ". "  <> texType 0 (v:vs) t
+texType p vs (x :|: y) = prn p 0 $ texType 1 vs x <> "⅋" <> texType 0 vs y
+texType p vs (x :⊕: y) = prn p 1 $ texType 2 vs x <> "⊕" <> texType 1 vs y
+texType p vs (x :⊗: y) = prn p 2 $ texType 2 vs x <> "⊗" <> texType 2 vs y
 texType p vs (x :&: y) = prn p 3 $ texType 3 vs x <> amp <> texType 3 vs y
 texType _  _ Zero = "0"
 texType _  _ One = "1"
@@ -268,9 +268,10 @@ texType _  _ Bot = cmd0 "bot"
 texType _ vs (TVar b x) = texVar (vs!!x) <> texNeg b
 texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
-texType _ vs (Meta b x as) = unicodeTextual x <> as' <> texNeg b
+texType _ vs (Meta b x as) = textual x <> as' <> texNeg b
   where as' = if null as then mempty else  brack (commas $ map (texType 0 vs) as)
 
+{-
 unicodeTextual :: String -> TeX
 unicodeTextual = foldMap unicodeToTex
 
@@ -282,17 +283,22 @@ unicodeToTex 'Γ' = cmd0 "Gamma"
 unicodeToTex 'Δ' = cmd0 "Delta"
 unicodeToTex 'Ξ' = cmd0 "Xi"
 unicodeToTex c = tex [c]
+-}
 
 texNeg :: Bool -> TeX
 texNeg True = mempty
-texNeg False = tex "^" <> braces (cmd0 "bot")
+texNeg False = "⟂" -- I am using just one character so that graphviz
+                   -- doesn't get crazy; the proper rendering is done
+                   -- at the latex level.
 
 --------------------------------
 -- Pretty printing of closures
 
 unknownTypeEnv = repeat "VAR"
 
-texClosedType = math . texType 0 unknownTypeEnv
+texClosedType = math . texClosedTypeNoMath
+texClosedTypeNoMath = texType 0 unknownTypeEnv
+
 texRef Null = cmd "mathsf" "NULL"
 texRef (Named _ x) = textual x
 texRef (Shift t x) = texRef x <> "+" <> texLayout t
