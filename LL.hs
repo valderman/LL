@@ -80,6 +80,7 @@ positiveType t = case t of
 mkPositive t = if positiveType t then t else neg t
 
 type Permutation = [Int]
+type Boson = Bool
 
 -- | Sequents. A 'Forced Type' is a type which is fully determined by
 -- the context. They can be filled in by the function 'fillTypes' below.
@@ -87,8 +88,8 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | Ax (Forced Type) -- Exactly 2 vars
          | Cut Name Name (Type) Int (Seq) (Seq) -- new vars in position 0
 
-         | Cross (Forced Type) Name Name Int (Seq)
-         | Par (Forced Type) Name Name Int (Seq) (Seq) -- splits at given pos.
+         | Cross Boson (Forced Type) Name Name Int (Seq)
+         | Par Boson (Forced Type) Name Name Int (Seq) (Seq) -- splits at given pos.
          | Plus Name Name Int (Seq) (Seq) -- Rename to Case
          | With (Forced Type) Name Bool Int (Seq) -- Rename to Choose
 
@@ -123,8 +124,8 @@ data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], deri
 -- | The variable that the sequent operates on. Remark that there is
 -- always exactly one.
 varOf (Cut _ _ _ x _ _) = x
-varOf (Cross _ _ _ x _) = x
-varOf (Par   _ _ _ x _ _) = x
+varOf (Cross _ _ _ _ x _) = x
+varOf (Par  _ _ _ _ x _ _) = x
 varOf (Plus _ _ x _ _) = x
 varOf (With _ _ _ x _) = x
 varOf (SOne x _) = x
@@ -193,8 +194,8 @@ applyS f t = case t of
 --  Channel ty -> Channel (f ∙ ty)
   (Exchange π a) -> Exchange π (s a)
   Cut w w' ty x a b -> Cut w w' (f ∙ ty) x (s a) (s b)
-  Cross ty w w' x a -> Cross ty w w' x (s a)
-  Par ty w w' x a b -> Par ty w w' x (s a) (s b)
+  Cross β ty w w' x a -> Cross β ty w w' x (s a)
+  Par β ty w w' x a b -> Par β ty w w' x (s a) (s b)
   Plus w w' x a b -> Plus w w' x (s a) (s b)
   With ty w c x a -> With ty w c x (s a)
   SOne x a -> SOne x (s a)
@@ -217,14 +218,23 @@ rightChild (Deriv ts vs (Cut _ w ty x _ a)) = Deriv ts ((w,    ty):drop x vs) a
 ----------------------------
 -- Evaluation via channels
 
-eval' (Deriv ts vs s) = Deriv ts vs $ cheval s
+eval' (Deriv ts vs s) = Deriv ts vs $ cheval (length vs) s
 
-cheval :: Seq -> Seq
-cheval (With ty v c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c) s 
-cheval (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 b (Cut w w' ty 1 (a) c) -- fixme: exchange [1,0] b
-cheval (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t
-cheval (Cut w w' ty x a b) = Cut w w' ty x (cheval a) (cheval b)
-cheval s = s
+cheval :: Int -> Seq -> Seq
+cheval _ (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 b (Cut w w' ty 1 (a) c) -- fixme: exchange [1,0] b
+
+cheval _ (With ty v c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c) s 
+
+cheval _ (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t
+
+cheval n (Cut _ _ (ta :⊗: tb) γδ (Exchange π (Par _ _ _ _ γ a b)) (Cross _ _ w w' 0 c)) 
+  = exchange (remove 0 π++[length π-1..n-1]) $ Cut w w' ta γ
+    a
+    (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b (exchange ([1,0]++[2..n-γ]) c))
+   where δ = γδ - γ
+         
+cheval n (Cut w w' ty γ a b) = Cut w w' ty γ (cheval (1+γ) a) (cheval (1+n-γ) b)
+cheval _ s = s
 
   {-
 cut n w w' ty γ (With v c 0 s) (Channel (ta :&: tb)) = Cut w w' (neg $ if c then ta else tb) γ s (Exchange [1,0] $ ChanPlus c ta tb)
@@ -259,10 +269,10 @@ cut :: Int -> -- ^ size of the context
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 
 cut n w w' ty γ (SOne x s) t | x > 0 = SOne (x-1) (Cut w w' ty (γ-1) s t)
-cut n w w' ty γ (Par ty' v v' x s t) u | x > 0 = Exchange ([γ..n-1] ++ [0..γ-1]) $ Par ty' v v' ((n-γ)+x-1) (Cut w w' (neg ty) (n-γ) s t) u
-cut n w w' ty γ (Exchange π (Par ty' v v' x s t)) u | π!!x > 0 = exchange ((remove 0 π) ++ [γ..n-1])  $
-                                                                Par ty' v v' x s (Cut w w' ty (γ-x) (exchange ([1..γ-x] ++ [0]) t) u)
-cut n w w' ty γ (Cross ty' v v' x s) t | x > 0 = Cross ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
+cut n w w' ty γ (Par β ty' v v' x s t) u | x > 0 = Exchange ([γ..n-1] ++ [0..γ-1]) $ Par  β ty' v v' ((n-γ)+x-1) (Cut w w' (neg ty) (n-γ) s t) u
+cut n w w' ty γ (Exchange π (Par β ty' v v' x s t)) u | π!!x > 0 = exchange ((remove 0 π) ++ [γ..n-1])  $
+                                                                Par β ty' v v' x s (Cut w w' ty (γ-x) (exchange ([1..γ-x] ++ [0]) t) u)
+cut n w w' ty γ (Cross β ty' v v' x s) t | x > 0 = Cross β ty' v v' (x-1) (Cut w w' ty (γ+1) s t)
 cut n w w' ty γ (Plus v v' x s t) u | x > 0 = Plus v v' (x-1) (Cut w w' ty γ s u) (Cut w w' ty γ t u)
 cut n w w' ty γ (With ta v c x s) t | x > 0 = With ta v c (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (SZero x) t | x > 0 = SZero (x-1)
@@ -277,7 +287,7 @@ cut n w w' ty γ (Alias x v s) t | x > 0 = Alias (x-1) v (Cut w w' ty (γ+1) s t
 cut 2 _ _ ty 1 (Ax _) a = a
 -- FIXME: side condition π!!x == 0
 cut n _ _ (ta :⊗: tb)
-           γδ (Exchange π (Par _ _ _ γ a b)) (Cross _ w w' 0 c) = exchange (remove 0 π++[length π-1..n-1]) $ cut' n w w' ta γ
+           γδ (Exchange π (Par _ _ _ _ γ a b)) (Cross _ _ w w' 0 c) = exchange (remove 0 π++[length π-1..n-1]) $ cut' n w w' ta γ
                                                           a
                                                           (exchange ([1..δ] ++ [0] ++ [δ+1..n-1]) $ cut' (n-γ+1) w w' tb δ b (exchange ([1,0]++[2..n-γ]) c))
    where δ = γδ - γ
@@ -302,7 +312,7 @@ alias [] a = a
 alias (x:xs) a = Alias x mempty $ alias xs a
 
 isPos (Ax _) = True
-isPos (Exchange _ (Par _ _ _ _ _ _)) = True
+isPos (Exchange _ (Par _ _ _ _ _ _ _)) = True
 isPos (With _ _ _  _ _) = True
 isPos (Offer _ _ _) = True
 isPos (TApp _ _ _ _ _) = True
@@ -320,7 +330,7 @@ subst π t | isIdentity π = t
 subst π t = case t of
   (Ax ty) -> (Ax (neg ty)) -- because the identity case was handled above.
   b@(ChanPlus _) -> b
-  (Cross ty w w' x c) -> Cross ty w w' (f x) (s' x c)
+  (Cross β ty w w' x c) -> Cross β ty w w' (f x) (s' x c)
   Exchange ρ a -> subst (map f ρ) a
   (With ty w c x a) -> With ty w c (f x) (s a)
   (Plus w w' x a b) -> Plus w w' (f x) (s a) (s b)
@@ -352,8 +362,8 @@ data SeqFinal t a = SeqFinal
      { sty :: [Name] -> Type -> t
      , sax :: (Name -> Name -> Type -> a)
      , scut :: (Name -> Name -> t -> a -> t -> a -> a)
-     , scross :: (Name -> Name -> t -> Name -> t -> a -> a)
-     , spar   :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
+     , scross :: (Boson -> Name -> Name -> t -> Name -> t -> a -> a)
+     , spar   :: (Boson -> Name -> Name -> t -> Name -> t -> a -> a -> a)
      , swith :: (t -> Bool -> Name -> Name -> t -> a -> a)
      , splus :: (Name -> Name -> t -> Name -> t -> a -> a -> a)
      , sxchg :: (Permutation -> a -> a)
@@ -395,9 +405,9 @@ foldSeq sf ts0 vs0 s0 =
       (Cut v v' vt x s t) -> scut v v' (fty (neg vt)) (recurse ts ((v,neg vt):v0) s)
                                        (fty      vt ) (recurse ts ((v',vt):v1) t)
         where (v0,v1) = splitAt x vs
-      (Cross _ v v' x t) -> scross w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
+      (Cross β _ v v' x t) -> scross β w v (fty vt) v' (fty vt') $ recurse ts (v0++(v,vt):(v',vt'):v1) t
         where (v0,(w,~(vt :⊗: vt')):v1) = splitAt x vs
-      (Par _ v v' x s t) -> spar w v (fty vt) v' (fty vt') (recurse ts (v0++[(v,vt)]) s) (recurse ts ((v',vt'):v1) t)
+      (Par β _ v v' x s t) -> spar β w v (fty vt) v' (fty vt') (recurse ts (v0++[(v,vt)]) s) (recurse ts ((v',vt'):v1) t)
         where (v0,(w,~(vt :|: vt')):v1) = splitAt x vs
       (Plus v v' x s t) -> splus w v (fty vt) v' (fty vt') (recurse ts (v0++(v,vt ):v1) s) (recurse ts (v0++(v',vt'):v1) t)
         where (v0,(w,~(vt :⊕: vt')):v1) = splitAt x vs
@@ -440,8 +450,8 @@ fillTypes' = foldSeq sf where
     sty _ t = t
     sax _ _ t = Ax t
     scut v v' _ s vt t = Cut v v' vt x s t
-    scross _ v ty v' ty' s = Cross ty v v' x s
-    spar _ v ty v' ty' s t = Par ty v v' x s t
+    scross β _ v ty v' ty' s = Cross β ty v v' x s
+    spar β _ v ty v' ty' s t = Par β ty v v' x s t
     splus _ v vt v' vt' s t = Plus v v' x s t
     swith ty b _ v _ t = With ty v b x t
     sbot _ = SBot

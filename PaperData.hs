@@ -138,8 +138,8 @@ chanRules :: [(Deriv,TeX)]
 chanRules =   
   [(chanPlusRule True,  "A channel containing a bit")
   ,(chanPlusRule False, "A channel containing a bit")
---  ,(chanCrossRule,     "A half-split channel (par side)")
---  ,(chanParRule,       "A half-split channel (par side)")
+  ,(chanCrossRule,     "A half-split channel (par side)")
+  ,(chanParRule,       "A half-split channel (par side)")
 --  ,(chanTypRule,       "A channel containing a type")
 --  ,(chanEmptyRule 3,   "A memory cell (empty)")
 --  ,(chanFullRule 3,    "A memory cell (full)")

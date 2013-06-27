@@ -99,10 +99,10 @@ runClosure h (Plus x y v a b,e,te)
 --   | Redirect r <- ... Plus x y v a b,...r.
   | Tag c <- h!(e!!+v) = Just (replace (e!!+v) Freed h,
                               [(if c then a else b,increment v (if c then x else y) e,te)])
-runClosure h (Cross ty x y v a,e,te)
+runClosure h (Cross _ ty x y v a,e,te)
   = Just (h,[(a,el++[(x,z),(y,shift (mkLayout (te∙ty)) z)] ++ er,te)])
   where (el,(_,z):er) = splitAt v e
-runClosure h (Par ty x y v a b,e,te)
+runClosure h (Par _ ty x y v a b,e,te)
   = Just (h,[(a,el++[(x,z)],te)
             ,(b,[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
     where (el,(_,z):er) = splitAt v e
@@ -170,9 +170,9 @@ copy'' :: Type -> Seq
 copy'' (t1 :⊕: t2) = Plus "z" "w"  0
                        (With t1 "r" True 1 (copy'' t1))
                        (With t2 "s" False 1 (copy'' t2))
-copy'' (t1 :⊗: t2) = Cross t1 "z" "w" 0 $
+copy'' (t1 :⊗: t2) = Cross False t1 "z" "w" 0 $
                      Exchange [0,2,1] $
-                     Par t1 "r" "s" 1 (copy'' t1) (copy'' t2)
+                     Par False t1 "r" "s" 1 (copy'' t1) (copy'' t2)
 copy'' Zero = error "Impossible"
 copy'' One = SOne 0 SBot
 copy'' t@(TVar True _) = Ax t

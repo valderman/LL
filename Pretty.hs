@@ -53,8 +53,8 @@ pSeq showTypes = foldSeq sf where
         scut v v' vt s vt' t = "connect " <>
                                       "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
                                                   varT v' vt' <> " in " <> t] <>"}"
-        scross w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
-        spar w v vt v' vt' s t = "connect "<>text w <>
+        scross _ w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
+        spar _ w v vt v' vt' s t = "connect "<>text w <>
                                       "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
                                                   varT v' vt' <> " in " <> t] <>"}"
         splus w v vt v' vt' s t = "case " <> text w <> " of {" <> 

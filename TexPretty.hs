@@ -36,8 +36,8 @@ seqName' ctx s = case s of
    (Exchange _ _)      -> ruleName "Ex."
    (Ax _ )             -> ruleName "Ax"
    (Cut _ _ _ _ _ _)   -> ruleName "Cut"
-   (Cross _ _ _ _ _)   -> "⊗"
-   (Par _ _ _ _ _ _)   -> "⅋"
+   (Cross b _ _ _ _ _)   -> if b then "<" else "⊗"
+   (Par b _ _ _ _ _ _)   -> if b then ">" else "⅋"
    (Plus  _ _ _ _ _)   -> "⊕"
    (With _ _ b _ _)      -> math $ (amp <> index (indicator b))
    (SOne _ _)          -> "1"
@@ -51,8 +51,8 @@ seqName' ctx s = case s of
    (Alias _ _ _)       -> ruleName "Contract"
 --   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
    (ChanPlus b)  -> ruleName "B" <>  (indicator b)
-   (ChanCross ta tb)   -> ruleName "Ch(<)"
-   (ChanPar   ta tb)   -> ruleName "Ch(>)" <> math (texType 0 ctx (ta :|: tb))
+   -- (ChanCross ta tb)   -> ruleName "Ch(<)"
+   -- (ChanPar   ta tb)   -> ruleName "Ch(>)" <> math (texType 0 ctx (ta :|: tb))
    (ChanTyp   tmono _) -> ruleName "B" <> math ( (texType 0 ctx tmono))
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
@@ -62,8 +62,8 @@ seqLab s = case s of
    (Exchange _ s)      -> "X"
    (Ax _ )             -> "Ax"
    (Cut _ _ _ _ _ _)   -> "Cut"
-   (Cross _ _ _ _ _)   -> "$\\otimes$"
-   (Par _ _ _ _ _ _)   -> "$\\parr$"
+   (Cross b _ _ _ _ _) -> if b then "<" else "$\\otimes$"
+   (Par b _ _ _ _ _ _) -> if b then ">" else "$\\parr$"
    (Plus  _ _ _ _ _)   -> "$\\oplus$"
    (With _ _ b _ _)      -> "\\&"
    (SOne _ _)          -> "1"
@@ -98,8 +98,8 @@ texSeq showProg = foldSeq sf where
   
   sax v v' _ = rul []
   scut v _ _ s _ t = rul [s,t]
-  scross w v vt v' vt' t = rul [t]
-  spar w _ vt _ vt' s t = rul [s,t]
+  scross _ w v vt v' vt' t = rul [t]
+  spar _ w _ vt _ vt' s t = rul [s,t]
   splus w _ vt _ vt' s t = rul [s,t]
   swith _ b w _ _ s = rul [s]
   sbot v = rul []
@@ -200,8 +200,8 @@ texProg'' what showTypes = foldSeq sf where
       sax v v' _ = Final $ texVar v <> " ↔ " <> texVar v'
       scut v v' vt' s vt t = connect mempty (texVarT' v   vt') s
                                             (texVarT' v'  vt ) t
-      scross w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w) t
-      spar w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
+      scross _ w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w) t
+      spar _ w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
                         (texVarT' v  vt ) s
                         (texVarT' v' vt') t
       splus w v vt v' vt' s t = Split (case_ <> texVar w <> keyword " of")

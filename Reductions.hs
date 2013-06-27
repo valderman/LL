@@ -17,11 +17,11 @@ cutWithPlus b = fillTypes $
                 (With dum "x" b 0 (whatA)) 
                 (Plus "_x" "_y" 0 (whatB) (whatC)))
               
-cutParCross = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
+cutParCross' b = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
               (Cut "z" "_z" (meta "A" :⊗: meta "B") 2 
-               (Exchange [1,0,2] $ Par dum "_x" "_y" 1 whatA whatB)
-               (Cross dum "x" "y" 0 whatC))
-
+               (Exchange [1,0,2] $ Par b dum "_x" "_y" 1 whatA whatB)
+               (Cross b dum "x" "y" 0 whatC))
+cutParCross = cutParCross' False
 cutBang = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
           Cut "z" "_z" (Bang $ meta "A") 1 (Offer "x" 0 whatA) (Demand "_x" dum 0 whatB)
 
@@ -48,7 +48,7 @@ syncRules = [
     ("?Weaken",cutIgnore)
     ] 
 
-altParPush = Deriv ["Θ"] (derivContext parRule ++ [xi]) (Cut "z" "_z" (meta "C") 3 (Par dum "_x" "_y" 2 whatA whatB) whatB)
+altParPush = Deriv ["Θ"] (derivContext parRule ++ [xi]) (Cut "z" "_z" (meta "C") 3 (Par False dum "_x" "_y" 2 whatA whatB) whatB)
 
 pushRules = (textual "κ⅋0", altParPush) :
    [(textual "κ"<>seqName s, Deriv ["Θ"] (derivContext d ++ [xi]) 
@@ -77,6 +77,9 @@ pushRules = (textual "κ⅋0", altParPush) :
 chanRedRules = map (second fillTypes)
    [("bit write", leftChild $ cutWithPlus True) -- because the boson evaluation is not complete.
    ,("bit read" , Deriv ["Θ"] [("z",tA),gamma] $ Cut "x" "_x" (tA :⊕: tB) 1 (ChanPlus True)  (Plus "x" "y" 0 whatA whatB))
+   ,("left split", parRule)
+   ,("right split", crossRule)
+   ,("><",cutParCross' True)
 --   ,("output",    Deriv ["Θ"] [gamma,delta,("z",neg (tA :⊗: tB))] $ Cut "w" "_w" (tA :⊗: tB) 2 (Exchange [1,0,2] $ Par dum "x" "y" 1 whatA whatB) (Channel dum))
 --   ,("input",    Deriv ["Θ"]  [("x",tA), ("y",tB),delta] $ Cut "w" "_w" (tA :⊗: tB) 2 (ChanPar dum dum) (Cross dum "x" "y" 0 whatA) )
     ]
