@@ -61,12 +61,13 @@ graph1 = math "σ"
 graph2 = math "σ'"
   
   
-cut_,with_,plus_,par_,tensor_ :: TeX
+cut_,with_,plus_,par_,tensor_, lollipop_ :: TeX
 cut_ = ruleName "Cut"
 with_ = "&"
 plus_ = "⊕"
 par_ = "⅋"
 tensor_ = "⊗"
+lollipop_ = "⊸"
 
 ---------------------------------------
 -- Types
@@ -74,8 +75,19 @@ tensor_ = "⊗"
 
 allPosTypes :: [Type]
 allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
-  
-  
+
+multicolumn n fmt c = cmdn "multicolumn" [(tex (show n)),(textual fmt),c]
+
+typeTable = figure "Types " $
+    env "center" $ math $ do
+      array [] (textual "cccc") $
+        [ [ @" @multicolumn(2)("c")("Positive") @", @" @multicolumn(2)("c")("Negative") @"]
+        , [  @" @id(tA ⊗ tB) @", @" @One @" , @" @id(tA ⅋ tB) @" , @" @Bot @"]
+        , [  @" @id(tA ⊕ tB) @", @" @Zero @", @"  @id(tA & tB) @" , @" @Top @"]
+        , [  @" @id(Forall "α" tAofAlpha) @" , @" @" , @" @id(Exists "α" tAofAlpha) @" , @"@"]
+        , [  @" @id(Bang tA) @", @"@", @" @id(Quest tA) @" , @"@"]
+          ]
+
 ------------------------              
 -- Typing rules
 
@@ -163,5 +175,3 @@ typesetBosonReds reds = env "center" $
 texBosonReds =  figure_ "Asynchronous reduction rules" $ 
                 env "center" $ 
                 typesetBosonReds chanRedRules
-                
-                
