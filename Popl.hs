@@ -87,6 +87,8 @@ This section will present our language based on  classical linear logic.
 
 The types of our language are directly taken from classical linear logic.
 
+@tytab<-typeTable
+
 Explanation of the types:
 @itemize{
 @item @id(tA ⊗ tB): both @tA and @tB. The program chooses when to use either of them.
@@ -100,6 +102,15 @@ Explanation of the types:
 }
 The neutrals are respectively @One, @Bot, @Zero and @Top.
 
+There is no type representing negation. Instead, negation is a defined notion.
+
+Also, there is no type for linear functions. Functions can be defined using as 
+follows:
+@tA @lollipop_ @tB = @id(tA ⊸ tB)
+
+@itemize{
+@item @id(tA ⊗ tB)
+}
 
 
 @subsection{Typing rules (with term assignment)}
