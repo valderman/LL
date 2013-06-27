@@ -107,17 +107,6 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
          newline  
          cmd0 "vspace{1em}"
 
--- | Render a derivation tree, showing terms.
-deriv' = deriv True
-
-deriv'' (x,_) = deriv' x
-
-figure_ :: TeX -> TeX -> Tex SortedLabel
-figure_ caption body = env "figure*" $ do
-  body
-  cmd "caption" caption
-  label "Fig."
-
 outputTexMp :: String -> IO ()
 outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["authoryear","preprint"] preamble $ @"
 @header

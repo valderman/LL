@@ -89,6 +89,13 @@ x .=. y = x <> "=" <> y
 dm = displayMath          
 
 multiline' body = env "multline*" $ mkrows body
+
+figure_ :: TeX -> TeX -> Tex SortedLabel
+figure_ caption body = env "figure*" $ do
+  body
+  cmd "caption" caption
+  label "Fig."
+
 -------
 -- LL
 
@@ -100,6 +107,11 @@ deriv showProg (Deriv tvs vs s) = derivationTree $ texSeq showProg tvs vs s
 derivation, sequent :: Deriv -> TeX
 derivation = deriv True 
 sequent = deriv False
+
+-- | Render a derivation tree, showing terms.
+deriv' = deriv True
+
+deriv'' (x,_) = deriv' x
 
 -- | Render a derivation as a program (term)
 program :: Deriv -> Tex ()
@@ -134,3 +146,4 @@ preamble inMetaPost = do
   authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
                       ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
+
