@@ -150,6 +150,7 @@ chanRules :: [(Deriv,TeX)]
 chanRules =   
   [(chanPlusRule True,  "A channel containing a bit")
   ,(chanPlusRule False, "A channel containing a bit")
+   -- FIXME: add quantifiers fragment
   ,(chanCrossRule,     "A half-split channel (par side)")
   ,(chanParRule,       "A half-split channel (par side)")
 --  ,(chanTypRule,       "A channel containing a type")
@@ -158,11 +159,8 @@ chanRules =
   ]
 
 texBosons :: Tex SortedLabel
-texBosons = figure "Rules mediating interaction" $ 
-    env "center" $ do
-    forM_ chanRules $ \(r,_comment) -> do 
-        math $ deriv False r
-        cmd0 "hspace{1em}"
+texBosons = figure "Rules mediating interaction" $ mathpar 
+            [ [ deriv False r | (r,_comment) <- chanRules ] ]
 
 typesetBosonReds reds = env "center" $ 
     forM_ reds $ \(name,input) -> math $ do
@@ -173,5 +171,9 @@ typesetBosonReds reds = env "center" $
       return ()
 
 texBosonReds =  figure_ "Asynchronous reduction rules" $ 
-                env "center" $ 
-                typesetBosonReds chanRedRules
+                mathpar [
+                  [ sequent input <>
+                    cmd0 "Longrightarrow" <>
+                    sequent (eval' input)
+                   | (name,input) <- chanRedRules ] 
+                        ]

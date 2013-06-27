@@ -63,12 +63,16 @@ mathpreamble = do
   usepackage "amsthm"   [] 
   usepackage "amssymb"  []   -- extra symbols such as □ 
   usepackage "stmaryrd" [] -- has ⟦ and ⟧
+  usepackage "mathpartir" [] -- mathpar environment
   
   newtheorem "theorem" "Theorem"
   newtheorem "corollary" "Corollary"
   newtheorem "lemma" "Lemma"
   newtheorem "definition" "Definition"
   
+mathpar :: [[TeX]] -> TeX
+mathpar = env "mathpar" . mkrows . map mk . filter (not . null)
+ where mk = foldr1 (\x y -> x <> cmd0 "and" <> y) 
 
 newtheorem :: String -> TeX -> TeX
 newtheorem ident txt = cmd "newtheorem" (tex ident) >> braces txt
