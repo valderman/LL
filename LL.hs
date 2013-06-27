@@ -208,6 +208,12 @@ applyS f t = case t of
  where s = applyS f
        s' = applyS (var 0 : wk ∙ f)
 
+--------------
+-- Extraction
+rightChild,leftChild :: Deriv -> Deriv
+leftChild  (Deriv ts vs (Cut w _ ty x a _)) = Deriv ts ((w,neg ty):take x vs) a
+rightChild (Deriv ts vs (Cut _ w ty x _ a)) = Deriv ts ((w,    ty):drop x vs) a
+
 ----------------------------
 -- Evaluation via channels
 

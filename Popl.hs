@@ -18,6 +18,7 @@ import Control.Monad
 import GraphViz
 import Framework
 import Data.List
+import PaperData
 
 simpleCut :: Deriv
 simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
@@ -61,24 +62,12 @@ plus_ = "⊕"
 par_ = "⅋"
 tensor_ = "⊗"
 
-chanRules :: [(Deriv,TeX)]               
-chanRules =   
-  [(chanPlusRule True, "A channel containing a bit")
-  ,(chanCrossRule,     "A half-split channel (par side)")
-  ,(chanParRule,       "A half-split channel (par side)")
-  ,(chanTypRule,       "A channel containing a type")
-  ,(chanEmptyRule 3,   "A memory cell (empty)")
-  ,(chanFullRule 3,    "A memory cell (full)")]
-
-typesetChanRules :: Tex SortedLabel
-typesetChanRules = figure "Rules for explicit channel management" $ 
-    env "center" $ do
-    forM_ chanRules $ \(r,comment) -> do 
-        math $ deriv False r
-        cmd0 "hspace{1em}"
 
 allPosTypes :: [Type]
 allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
+
+return' :: a -> Tex a
+return' = return
 
 allRules = 
   [[(axRule, "Copy the data between the closures; when it's ready.")]
@@ -386,15 +375,8 @@ as a particle travelling from left to right.
 By analogy with the elementary particles mediating physical 
 forces, we will call such mediating rules bosons.
 
-For completeness, the logical rules representing it are as follows:
-@dm(sequent (chanPlusRule True)
-    <> cmd0 "quad" <>
-    sequent (chanPlusRule False)
-    )
-and the reduction rules involving them are:
-@dm(sequent (withRule True) <>"⇒"<> sequent (eval' $ withRule True) )
-TODO: read rule
-(and similarly for transmitting the 0 bit)
+@texBosons
+@texBosonReds
 
 For the quantifiers fragment, a similar boson and set of reduction rule exists. The
 difference is that a type is being transmitted instead of a bit.

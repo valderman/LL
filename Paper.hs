@@ -80,7 +80,6 @@ existComment = @"Wait for the type representation to be ready. Copy the
   then this rule must be responsible for freeing the memory (or we need garbage collection;
   yuck).@"
      
-chanRules :: [(Deriv,TeX)]               
 chanRules =   
   [(channelRule,       "A channel containing no data")
   ,(chanPlusRule True, "A channel containing a bit")
