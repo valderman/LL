@@ -38,9 +38,7 @@ program :: Deriv -> Tex ()
 program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
 -- | Render a derivation tree, showing terms.
-deriv'' (x,_) = program x
-
-
+deriv'' (x,_) = derivation x
 -- Element instances
 
 instance Element Type where
