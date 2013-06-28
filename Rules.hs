@@ -23,6 +23,7 @@ whatC = What "c" []
 whatD = What "d" []
 
 tAofAlpha = Meta True "A" [var 0]
+tAofB     = Meta True "A" [tB]
 
 
 axRule     = Deriv ["Θ"] [("x",meta "A"),("y",neg (meta "A"))] (Ax dum)
@@ -48,6 +49,6 @@ contractRule  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias 1 "z'" whatA
 chanPlusRule b = Deriv ["θ"] [("z",neg (tA :⊕: tB)),("x",if b then tA else tB)] (ChanPlus b)
 chanCrossRule = crossRule' True
 chanParRule = parRule' True
-chanTypRule = Deriv ["θ"] [("z",neg (Exists "α" tAofAlpha)),("x",(Meta True "A" [tB]))] (ChanTyp tB)
+chanTypRule = Deriv ["θ"] [("z",neg (Exists "α" tAofAlpha)),("x",tAofB)] (ChanTyp tB)
 chanEmptyRule n = Deriv ["θ"] (("z",Bang tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemEmpty tA n)
 chanFullRule n = Deriv ["θ"] (("z",tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemFull tA n)

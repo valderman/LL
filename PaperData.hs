@@ -126,39 +126,45 @@ typeTable = figure "Types " $
 ------------------------              
 -- Typing rules
 
-allRules, structuralRules, operationalRules :: [[(Deriv, TeX)]]
+allRules, structuralRules, operationalRules, cutRules :: [[(Deriv, TeX)]]
 allRules = structuralRules ++ operationalRules
 
-structuralRules = 
-  [[(axRule, "Copy the data between the closures; when it's ready.")]
-  ,[(cutRule, "similar to ⅋ but connects the two closures directly together.")]
-  ]
+cutRules = [[(cutRule, @"It allocates @math{|@tA|} cells on the heap. The children become new closures, each with an additional 
+                         entry in the environment pointing to the newly allocated area.@")]]
+
+structuralRules = cutRules ++ [[(axRule, "Copy the data between the closures; when it's ready.")]]
 
 operationalRules = 
-  [[(parRule, "split the environment and spawn a new closure. (No communication)"),
-    (crossRule, "add an entry in the context for @tB, at location @math{n + @mkLayout(tA)} (No communication)")]
-  ,[(withRule True,"Write the tag and the pointer. Deallocate if the other possibility uses less memory."),
-    (plusRule,"wait for the data to be ready; then chose a branch according to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.")]
-  ,[(botRule,"terminate (delete the closure)"),
-    (oneRule,"continue")]  
-  ,[(zeroRule,"crash")]
-  ,[(forallRule,"Write the (pointer to) representation of the concrete type @tB (found in the code) to the 1st cell.")
+  [[(parRule, "It splits the environment in two parts. Each becomes a closure, whose environment is either of the parts."),
+    (crossRule, @"It adds an entry in the context for @tB, pointing to the location @math{z + @mkLayout(tA)}.@")]
+  ,[(withRule True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
+                     not to be used (in this case @math{|@tB|-|@tA|}.@"),
+    (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
+                A branch is then chosen according to the tag. The cell holding the tag is freed.@")]
+  ,[(botRule,"The closure is deleted."),
+    (oneRule,"An entry of the environment is deleted.")]  
+  ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system.")]
+  ,[(forallRule,@"An area in the heap of size @math{|@tAofB|} is allocated.
+                  The representation of the concrete type @tB is written in the cell,
+                  together with a pointer to the newly allocated area.
+                @")
    ,(existsRule,existComment)]
-  ,[(questRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
-    (bangRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
-                  the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")]
-  ,[(weakenRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
-  ,[(contractRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
+  ,[(questRule,@"The pointer to the closure @math{a} is written to the cell pointed by @math{x}. In the environment of that closure, 
+                 replace the pointer to TODO by a null pointer.
+                 The closure is then removed from 
+                 the list of ready closures.@"),
+    (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
+                cells, and spawn a new closure, which is obtained from copying that pointed by 
+                 by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
+                 The reference count of the cell is decremented.@")]
+  ,[(weakenRule,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
+                  The closure is deallocated if the count reached zero.@")]
+  ,[(contractRule,"The the pointer is copied to a new environment entry, and the reference count incremented.")]
   ] 
 
-existComment = @"Wait for the type representation to be ready. Copy the
-  (pointer to) the representation to the type environment. Free the
-  type variable from the memory. Rename the linear variable (as in
-  ⊗). NOTE: It is tempting to avoid the sync. point here and instead have 
-  one when the type-variable is accessed. However
-  because the type variable will be copied around (when a closure is spawned), 
-  then this rule must be responsible for freeing the memory (or we need garbage collection;
-  yuck).@"
+existComment = @"(In particular the closure waits if the cell pointed by @math{z} is empty.) 
+                 One copies the type representation found in the cell to the type environment. 
+                 The cell is then freed, and one proceeds with the execution of the child.@"
 
 -- | Print all derivation rules               
 typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
@@ -173,7 +179,7 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
 --------------------
 -- Abstract Machine         
          
-texAmRules = itemize $ forM_ allRules $ amRule
+texAmRulesExplanation = itemize $ forM_ (cutRules ++ operationalRules) $ amRule
 
 -- | Render abstract machine rules
 amRule = amRule' emptyHeap
@@ -186,13 +192,14 @@ amRule' :: SymHeap -> [(Deriv,TeX)] -> TeX
 amRule' _ [] = ""
 amRule' h0 ((sequ,explanation):seqs) = do
   item
-  @"Rule: @seqName(derivSequent sequ) @"
+  @"@seqName(derivSequent sequ). @"
   case msys1 of
-     Nothing -> "Represents a crashed system (will never occur in a well-typed system)"
+     Nothing -> explanation
      Just sys1 -> do
        @"The rule assumes an input heap of this form:@"
        displayMath $ diagSystem sys0
        explanation
+       @"The heap after execution is:@"
        displayMath $ diagSystem sys1
 
        amRule' (snd sys1) seqs

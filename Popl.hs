@@ -439,7 +439,9 @@ We emphasize this fact by assigning them an infinite number of cells.
 
 @subsection{Reduction rules}
 
-@texAmRules
+TODO: explain axiom.
+
+@texAmRulesExplanation
 
 
 @subsection{Adequacy}
