@@ -107,10 +107,10 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | Alias Int Name (Seq)
            
          -- | Channel (Forced Type) -- Exactly 2 vars
-         | ChanPlus Bool -- Channel Loaded with a bit
+         | ChanPlus Bool -- Bit boson
          | ChanCross Type Type -- Channel split on the cross side
          | ChanPar Type Type -- Channel split on the par side
-         | ChanTyp Type Type -- Channel loaded with a monotype
+         | ChanTyp Type -- Monotype boson
          | MemEmpty Type Int -- Memory with n readers, but not written yet
          | MemFull Type Int  -- Memory with n readers, already written to
            
@@ -224,12 +224,14 @@ cheval :: Int -> Seq -> Seq
 cheval _ (Cut w w' ty 1 (Cut v v' ty' 1 a b) c) = Cut v v' (neg ty') 1 b (Cut w w' ty 1 (a) c) -- FIXME: exchange [1,0] b
 
 -- Sending bosons
-cheval _ (With ty v c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c) s 
+cheval _ (With ty _ c 0 s) = Cut "w" "_w" ty 1 (ChanPlus c) s 
+cheval _ (TApp tp _ 0 ty a) = Cut "w" "_w" (subst0 ty ∙ tp) 1 (ChanTyp ty) a
 cheval _ (Cross False ty w w' x c) = Cross True ty w w' x c
 cheval _ (Par False ty w w' γ a b) = Par True ty w w' γ a b
 
 -- Receiving them
 cheval _ (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t
+cheval _ (Cut _ _ _ 1 (ChanTyp ty) (TUnpack _ 0 s)) = subst0 ty ∙ s
 cheval n (Cut _ _ (ta :⊗: tb) γδ (Exchange π (Par True _ _ _ γ a b)) (Cross True _ w w' 0 c)) 
   = exchange (remove 0 π++[length π-1..n-1]) $ Cut w w' ta γ
     a
@@ -411,7 +413,7 @@ foldSeq sf ts0 vs0 s0 =
       ChanPlus b -> schplus b ta tb where [(v1,ta :&: tb),_] = vs
       ChanCross _ _ -> schcross ta tb where [(v1,ta :⊗: tb),_,_] = vs
       ChanPar _ _ -> schpar ta tb where [(v1,ta :|: tb),_,_] = vs
-      ChanTyp ty _ -> schtyp ty tgen where [(v0,tgen),_] = vs
+      ChanTyp ty -> schtyp ty tgen where [(v0,tgen),_] = vs
       MemEmpty _ _ -> schempty ty (length rest) where ((_,Bang ty):rest) = vs
       MemFull _ _ -> schfull ty (length rest) where ((_,ty):rest) = vs
       Ax _ -> sax v0 v1 vt where [(v0,_),(v1,vt)] = vs
@@ -481,7 +483,7 @@ fillTypes' = foldSeq sf where
     schplus b _ta _tb = ChanPlus b
     schcross ta tb = ChanCross ta tb
     schpar ta tb = ChanPar ta tb
-    schtyp tmono tgen = ChanTyp tmono tgen
+    schtyp tmono _ = ChanTyp tmono
     schempty ty n = MemEmpty ty n
     schfull ty n = MemFull ty n
     swhat a _ _ = What a xs where What _ xs = seq

@@ -53,7 +53,7 @@ seqName' ctx s = case s of
    (ChanPlus b)  -> ruleName "B" <>  (indicator b)
    -- (ChanCross ta tb)   -> ruleName "Ch(<)"
    -- (ChanPar   ta tb)   -> ruleName "Ch(>)" <> math (texType 0 ctx (ta :|: tb))
-   (ChanTyp   tmono _) -> ruleName "B" <> math ( (texType 0 ctx tmono))
+   (ChanTyp   tmono)   -> ruleName "B" <> math ( (index (texType 0 ctx tmono)))
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
 
@@ -64,8 +64,8 @@ seqLab s = case s of
    (Cut _ _ _ _ _ _)   -> "Cut"
    (Cross b _ _ _ _ _) -> if b then "<" else "⊗"
    (Par b _ _ _ _ _ _) -> if b then ">" else "⅋"
-   (Plus  _ _ _ _ _)   -> "\\oplus"
-   (With _ _ b _ _)      -> "\\&"
+   (Plus  _ _ _ _ _)   -> "⊕"
+   (With _ _ b _ _)      -> "\&"
    (SOne _ _)          -> "1"
    (SZero _)           -> "0"
    SBot                -> "⊥"
@@ -79,7 +79,7 @@ seqLab s = case s of
    (ChanPlus b)  -> indicator b
    (ChanCross ta tb)   -> "<"
    (ChanPar   ta tb)   -> ">"
-   (ChanTyp   tmono _) -> "T"
+   (ChanTyp   tmono)   -> "T" 
    (MemEmpty  _ n)     -> "E"
    (MemFull   _ n)     -> "F"
 
@@ -120,7 +120,7 @@ texSeq showProg = foldSeq sf where
                 -- [defaultLink ::> Node (Rule () None mempty mempty (textual a)) []]
                 
   rul :: [Derivation] -> Derivation
-  rul subs = Node (Rule () Simple mempty (seqName' (map fst vs) seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
+  rul subs = Node (Rule () Simple mempty (seqName' ts seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
   maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
 
 

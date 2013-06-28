@@ -77,6 +77,8 @@ pushRules = (textual "κ⅋0", altParPush) :
 chanRedRules = map (second fillTypes)
    [("bit write", leftChild $ cutWithPlus True) -- because the boson evaluation is not complete.
    ,("bit read" , Deriv ["Θ"] [("z",tA),gamma] $ Cut "x" "_x" (tA :⊕: tB) 1 (ChanPlus True)  (Plus "x" "y" 0 whatA whatB))
+   ,("type write", leftChild $ cutQuant) -- because the boson evaluation is not complete.
+   ,("type read" , Deriv ["Θ"] [("z",Meta True "A" [tB]),gamma] $ Cut "x" "_x" (Exists "α" tAofAlpha) 1 (ChanTyp tB)  (TUnpack "z" 0 whatA))
    ,("left split", parRule)
    ,("right split", crossRule)
    ,("><",cutParCross' True)
