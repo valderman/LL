@@ -19,32 +19,27 @@ import Rules
 import DiagPretty
 import Control.Monad
 import GraphViz
-import Mem
+-- import Mem
 import Framework
+import PaperData ()
 
-
-preamble :: Tex ()
-preamble = do
-  usepackage ["utf8"] "inputenc"
-  usepackage [] "graphicx" -- used for import metapost diagrams
-  usepackage [] "amsmath"
-  usepackage [] "amsthm"
-  usepackage [] "amssymb" -- extra symbols such as □ 
-  usepackage [] "cmll" -- for the operator "par"
-  usepackage [] "dot2texi"
-  -- usepackage [] "tikz" >> cmd "usetikzlibrary" $ tex "shapes,arrows"
-  usepackage ["a4paper","margin=2cm"] "geometry"
+preamble :: Bool -> Tex ()
+preamble inMetaPost = do
+  stdPreamble
+  usepackage "cmll" [] -- for the operator "par"
   mathpreamble
-
   cmd "input" (tex "unicodedefs")
-  title "Technical appendix of ``Linear Logic: I see what it means!''"
+  -- unless inMetaPost $ do
+    -- usepackage "dot2texi" []
+    -- usepackage "tikz" []
+    -- cmd "usetikzlibrary" $ tex "shapes,arrows"
+    
+  title "Linear Logic: I see what it means!"
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                    ("Josef Svenningsson","",ch)]
+                      ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
 
--- | Render a derivation tree, showing terms.
-deriv' = deriv True
 
 rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return ()
 
@@ -80,15 +75,6 @@ existComment = @"Wait for the type representation to be ready. Copy the
   then this rule must be responsible for freeing the memory (or we need garbage collection;
   yuck).@"
      
-chanRules =   
-  [(channelRule,       "A channel containing no data")
-  ,(chanPlusRule True, "A channel containing a bit")
-  ,(chanCrossRule,     "A half-split channel (par side)")
-  ,(chanParRule,       "A half-split channel (par side)")
-  ,(chanTypRule,       "A channel containing a type")
-  ,(chanEmptyRule 3,   "A memory cell (empty)")
-  ,(chanFullRule 3,    "A memory cell (full)")]
-
 -- | Print all derivation rules               
 typeRules = figure "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
     env "center" $ do
@@ -99,16 +85,14 @@ typeRules = figure "Typing rules of Classical Linear Logic, with an ISWIM-style 
          newline  
          cmd0 "vspace{1em}"
 
-typesetChanRules = figure "Rules for explicit channel management" $ 
-    env "center" $ do
-    forM_ chanRules $ \(r,comment) -> do 
-        math $ deriv False r
-        cmd0 "hspace{1em}"
-
 deriv'' (x,_) = deriv' x
                
-operationalRules = itemize $ forM_ allRules $ amRule' emptyHeap
-                  
+operationalRules = itemize $ forM_ allRules $ amRule
+
+program :: Deriv -> Tex ()
+program (Deriv tvs vs s) = indentation (texProg tvs vs s)
+           
+                           
 amRule' :: SymHeap -> [(Deriv,TeX)] -> TeX
 amRule' _ [] = ""
 amRule' h0 ((seq,comment):seqs) = do
@@ -141,7 +125,7 @@ typesetReductions reds = env "center" $
           "name:" <> name
           newline
           cmd0 "vspace{3pt}"
-          red1 (deriv False)
+          red1 deriv
           newline
           cmd "fbox" $ red1 (program)
           cmd0 "vspace{1em}"
@@ -181,14 +165,20 @@ texProgM = texProg'' what True
   where what a ws fs = mem (Meta True a []) z w
           where (z:w:_) = map fst fs
 
-
+{-
 memTranslation = do
   deriv False cutRule
   textual "="
   deriv False $ Deriv ["Θ"] [gamma,delta] (Cut "x" "z" (meta "A") 1 whatA $
                                            Cut "z" "y" (meta "A") 1 (Channel dum) whatB)
+-}
 
-outputTexMp name = renderToDisk' name $ latexDocument "article" ["10pt"] preamble $ @"
+-- | Render a derivation tree, showing terms.
+deriv' (Deriv tvs vs s) =  derivationTree $ texSeq True tvs vs s 
+
+deriv (Deriv tvs vs s) =  derivationTree $ texSeq False tvs vs s 
+
+outputTexMp name = renderToDisk' name $ latexDocument "article" ["10pt"] Paper.preamble $ @"
 @maketitle
 
 @section{Introduction}
@@ -411,7 +401,7 @@ We call an edge ready if all nodes connected to it are waiting on it. In particu
 an hypothesis edge is ready if the single nodes connected to it is waiting on it.
 }
 
-@lemma{In any tree, there is always at least an edge ready, or the system is terminated.
+@lemma(""){In any tree, there is always at least an edge ready, or the system is terminated.
 }{
 Remark that every node is waiting on at least one port; except for the terminated node
 which cannot be connected to any node. The terminated system trivially satisfies the
@@ -432,21 +422,9 @@ We have the following cases:
    edge in that system must be ready; and it remains ready in the combined system.
 }}
 
-@corollary{In a closed system, reducing only the top-level cuts is a terminating
+@corollary(""){In a closed system, reducing only the top-level cuts is a terminating
 reduction strategy}
 
-
-@section{Memory reification}
-
-@memory
-
-There is no rule for 0.
-
-@section{Channel reification}
-
-@memTranslation
-
-@typesetChanRules
 
 @section{Related Work}
 
