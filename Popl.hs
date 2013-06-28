@@ -128,13 +128,33 @@ follows:
 
 @subsection{Typing rules (with term assignment)}
 
-The judgement form we use for classical linear logic is a one-sided, Tait-style
-sequent calculus with only hypotheses. The inference rules can be seen in figure
-@xref(rules). 
+Figure @xref(rules) shows the typing rules for our language. The judgement form 
+we use is a one-sided, Tait-style sequent calculus with only hypotheses. This 
+means that there is only hypotheses in our judgement, no conclusion. The program
+terms are the only thing occurring to the right of the turnstile. The judgement
+may look peculiar at first, in particular since the terms don't have any
+return types. However, it can be helpful to think of the programs as "returning"
+@Bot.
 
 @rules<-typeRules
 
-One way to understand the judgement form is that there is always 
+Similar to other languages based on linear logic, ours is also a concurrent
+language. Computation corresponds to communication over channels.
+
+We will now explain the different language constructs as found in figure 
+@xref(rules).
+
+The axiom rule connects two channels and exchange information. The types of the 
+channels must be duals such that one channel is a producer and the other a
+consumer.
+
+The cut rule creates a new channel with two ends, @math{x} and @math{y}, which 
+are connected. The channels are used in two separate threads, @math{a} and 
+@math{b}, which run concurrently.
+
+There is a similar construct to the cut rule which is the @par_ rule. The 
+difference is that the @par_ rule doesn't create a new channel, it splits a 
+channel which has type @tA @par_ @tB.
 
 @subsection{Note CPS relation}
 @subsection{Examples}
