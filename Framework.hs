@@ -109,19 +109,3 @@ multiline' body = env "multline*" $ mkrows body
 --------------------
 
 
-preamble :: Bool -> Tex ()
-preamble inMetaPost = do
-  stdPreamble
-  usepackage "cmll" [] -- for the operator "par"
-  mathpreamble
-  cmd "input" (tex "unicodedefs")
-  unless inMetaPost $ do
-    -- usepackage "dot2texi" []
-    usepackage "tikz" []
-    cmd "usetikzlibrary" $ tex "shapes,arrows"
-    
-  title "Linear Logic: I see what it means!"
-  authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                      ("Josef Svenningsson","",ch)]
- where ch = "Chalmers University of Technology and University of Gothenburg"
-

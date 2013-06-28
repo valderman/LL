@@ -264,10 +264,11 @@ We have the following cases:
    edge in that system must be ready; and it remains ready in the combined system.
 }}
 
-The proof depends crucially on the graph structure being a tree. That is, if a cut could
+The proof depends crucially on the graph structure being a tree. That is, if a @cut_ could
 create two edges between subsystems, then the proof would fail. On the other hand, and 
 perhaps surprisingly, this property does not depend on the specifics of the evaluation, 
-only on the structure of the rules.
+only on the structure of the rules. 
+
 
 @theorem("Liveness"){
 There is no infinite chain of outermost evaluations. This means that, eventually, 
@@ -279,7 +280,12 @@ there cannot be in particular an infinite chain of outermost ones.
 }
 
 In sum, the above theorem means that linear logic programs can be run in a way similar
-to usual ways of running the lambda calculus. 
+to usual ways of running the lambda calculus. In both cases, the elimination of a top-level
+cut involves in-depth rewriting of the term, which is costly and moreover does not correspond
+to the notion that programs are static entities. In both cases, it is possible to delay the 
+elimination of a cut up to the point where direct interaction occurs.
+
+The analogy between the above execution scheme and execution of lambda terms as programs is deep. 
 A ready edge corresponds to a lambda-calculus redex in head position. 
 Inner cuts correspond to redexes under lambdas. Non-structural rules correspond to constructors.
 A lambda term in head normal form corresponds to a linear program in with a ready hypothesis.
@@ -310,6 +316,9 @@ This goes against at least two commonly admitted principles:
 }
 
 In the next section we proceed to attack this shortcoming.
+
+@subsection{Detour: Mix and Bi-cut}
+
 
 @section{Mediating Rules}
 
@@ -396,29 +405,42 @@ It is similar in spirit to classical abstract machines for the lambda calculus, 
 SECD machine.
 
 The machine state is composed of a list of closures and a heap.
-A closure is a sequent, together with an environment associating each variable
+A closure is a sequent of LL (no mediating rule is found there), 
+together with an environment associating each variable
 to a pointer in the heap, and an environment associating each type variable to a
-a type representation.
+a type representation. Each closure corresponds to a proccess, and each variable
+in its environment corresponds to a port into a channel.
+The execution of a closure corresponds to sending or receiving a boson. This 
+is implemented by interacting with the heap. 
 
-The heap is an ordered sequence of cells. Each cell can evetually be used to 
+The heap is an indexable sequence of cells. Each cell can evetually be used to 
 transmit some piece of information between closure. Each cell starts its lifetime
 as empty (devoid of information). It may then contain some information, which will
 be eventually read. Then the cell is deallocated. (In a real system is should made 
 available for reuse, but we do bother do do so in this presentation.)
 
 A number of contiguous cells is allocated for each channel in the heap. The number of
-cells allocated depends on the type of the channel, and is computed as follows.
+cells allocated depends on the type of the channel. 
+
+The number of cells allocated for a channel of type @tA 
+is computed by the function @norm(tA).
 
 @definition("layout"){
-  @dm(array[] "ccc" [[element t,element (neg t),element (mkLayout t)] | t <- allPosTypes]
-)
-}
-
+  The layout function maps a type to a number of cells, 
+  in an environment @rho  mapping type variables to type representations.
+  @dm(layoutTable)
+} 
 There will be exactly two closures pointing to each channel of non-exponential a type @tA. One
-of these will consider the channel as @tA and the other as @neg(tA), which justifies @mkLayout(tA) = |@neg(tA)|.
+of these will consider the channel as @tA and the other as @neg(tA), which justifies @norm(tA) = @norm(neg $ tA).
+
+Neither @Zero nor @Top can ever occur in the execution of a program.
+We emphasize this fact by assigning them an infinite number of cells.
 
 
 @subsection{Reduction rules}
+
+@texAmRules
+
 
 @subsection{Adequacy}
 
@@ -456,12 +478,31 @@ Efficiency?
 @citep{barber_dual_1996}
 @citep{benton_term_1993}
 
+Many presentations of LL for programming needlessly polarize (dualize)
+the presentation. We remain faithful to the spirit of Girard's LL ---
+LL is already intuitionistic: there is no need to restrict the system
+to give it computational content.
+
+
 @paragraph{Session Types}
 @citep{caires_concurrent_2012} (also ILL)
 
 
 
 @citet{wadler_propositions_2012}
+
+A correspondance has recently been identified between linear logic
+propositions and session types. A proof of a proposition A can be
+identified with process obeying protocol A. This correspondance
+departs from the usual linear logic in that the type @math{A ⊗ B} is
+interpreted as @math{A} then @math{B}, whereas the usual interpretation of the
+linear formula is symmetric with respect to time. Our interpretation
+keeps the symmetry intact. The associated calculus is close to the
+π-calculus, which we observe is unintuitive to functional programmers
+in two respect. On a superficial level, they much prefer ISWIM-like
+syntaxes. On a semantic level, the ability to transmit channel names,
+departs fundamentally from the tradition of functional programming.
+
 
 No need for a session-typed functional programming language.
 

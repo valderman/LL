@@ -65,7 +65,7 @@ seqLab s = case s of
    (Cross b _ _ _ _ _) -> if b then "<" else "⊗"
    (Par b _ _ _ _ _ _) -> if b then ">" else "⅋"
    (Plus  _ _ _ _ _)   -> "⊕"
-   (With _ _ b _ _)      -> "\&"
+   (With _ _ b _ _)      -> "\\&"
    (SOne _ _)          -> "1"
    (SZero _)           -> "0"
    SBot                -> "⊥"

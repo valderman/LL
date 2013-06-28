@@ -20,7 +20,25 @@ import GraphViz
 import Framework
 import Data.List
 
+-----------------
+-- Preamble 
+preamble :: Bool -> Tex ()
+preamble inMetaPost = do
+  stdPreamble
+  usepackage "cmll" [] -- for the operator "par"
+  mathpreamble
+  cmd "input" (tex "unicodedefs")
+  unless inMetaPost $ do
+    -- usepackage "dot2texi" []
+    usepackage "tikz" []
+    cmd "usetikzlibrary" $ tex "shapes,arrows"
+    
+  title "Linear Logic: I see what it means!"
+  authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
+                      ("Josef Svenningsson","",ch)]
+ where ch = "Chalmers University of Technology and University of Gothenburg"
 
+  
 -------------------------
 -- Generic renderers.
 
@@ -60,9 +78,11 @@ graph1, graph2 :: TeX
 graph1 = math "σ"
 graph2 = math "σ'"
   
+rho = "ρ"         
   
-cut_,with_,plus_,par_,tensor_, lollipop_ :: TeX
+ax_,cut_,with_,plus_,par_,tensor_, lollipop_ :: TeX
 cut_ = ruleName "Cut"
+ax_ = ruleName "Ax"
 with_ = "&"
 plus_ = "⊕"
 par_ = "⅋"
@@ -72,9 +92,22 @@ lollipop_ = "⊸"
 ---------------------------------------
 -- Types
 
+norm :: Type -> TeX
+norm ty = math $ "|" <> texClosedType ty <> "|" <> index rho
 
-allPosTypes :: [Type]
-allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
+
+allPosTypes :: [(Type,TeX)]
+allPosTypes = [(One,"0")
+              ,(Zero,"∞")
+              ,(tA:⊕:tB,@"1 + @norm(tA) ⊔ @norm(tB) @")
+              ,(tA:⊗:tB,@"@norm(tA) + @norm(tB) @")
+              ,(Bang tA,"1")
+              ,(Forall "α" tAofAlpha,"1")
+              ,(meta "α", "|ρ(α)|" <> index rho)
+              ]
+
+layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
+  [[norm t,norm (neg t),sz] | (t,sz) <- allPosTypes]
 
 multicolumn n fmt c = cmdn "multicolumn" [(tex (show n)),(textual fmt),c]
 
@@ -88,13 +121,21 @@ typeTable = figure "Types " $
         , [  @" @id(Bang tA) @", @"@", @" @id(Quest tA) @" , @"@"]
           ]
 
+ -- [ multicolumn 2 "c" "Positive", multicolumn 2 "c" "Negative"]
+          
 ------------------------              
 -- Typing rules
 
-allRules = 
+allRules, structuralRules, operationalRules :: [[(Deriv, TeX)]]
+allRules = structuralRules ++ operationalRules
+
+structuralRules = 
   [[(axRule, "Copy the data between the closures; when it's ready.")]
   ,[(cutRule, "similar to ⅋ but connects the two closures directly together.")]
-  ,[(parRule, "split the environment and spawn a new closure. (No communication)"),
+  ]
+
+operationalRules = 
+  [[(parRule, "split the environment and spawn a new closure. (No communication)"),
     (crossRule, "add an entry in the context for @tB, at location @math{n + @mkLayout(tA)} (No communication)")]
   ,[(withRule True,"Write the tag and the pointer. Deallocate if the other possibility uses less memory."),
     (plusRule,"wait for the data to be ready; then chose a branch according to the tag. Free the pointer and the tag.  Free the non-used part of the disjunction.")]
@@ -129,6 +170,35 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
          newline  
          cmd0 "vspace{1em}"
 
+--------------------
+-- Abstract Machine         
+         
+texAmRules = itemize $ forM_ allRules $ amRule
+
+-- | Render abstract machine rules
+amRule = amRule' emptyHeap
+
+toSystem' h =  toSystem h . fillTypes
+               
+rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return () 
+               
+amRule' :: SymHeap -> [(Deriv,TeX)] -> TeX
+amRule' _ [] = ""
+amRule' h0 ((sequ,explanation):seqs) = do
+  item
+  @"Rule: @seqName(derivSequent sequ) @"
+  case msys1 of
+     Nothing -> "Represents a crashed system (will never occur in a well-typed system)"
+     Just sys1 -> do
+       @"The rule assumes an input heap of this form:@"
+       displayMath $ diagSystem sys0
+       explanation
+       displayMath $ diagSystem sys1
+
+       amRule' (snd sys1) seqs
+  
+  where sys0 = toSystem' h0 sequ
+        msys1 = stepSystem sys0       
 
 ----------
 -- Examples
@@ -146,14 +216,13 @@ doubleCut' = Deriv [] [gamma,delta] $ Cut "_x" "x" (neg tA) 0 whatA $ Cut "_y" "
 -------------------------------
 -- Mediating interaction
 
-chanRules :: [(Deriv,TeX)]               
+chanRules :: [(Deriv,TeX)]
 chanRules =   
   [(chanPlusRule True,  "A channel containing a bit")
   ,(chanPlusRule False, "A channel containing a bit")
-   -- FIXME: add quantifiers fragment
   ,(chanCrossRule,     "A half-split channel (par side)")
   ,(chanParRule,       "A half-split channel (par side)")
---  ,(chanTypRule,       "A channel containing a type")
+  ,(chanTypRule,       "A channel containing a type")
 --  ,(chanEmptyRule 3,   "A memory cell (empty)")
 --  ,(chanFullRule 3,    "A memory cell (full)")
   ]
@@ -162,18 +231,23 @@ texBosons :: Tex SortedLabel
 texBosons = figure "Rules mediating interaction" $ mathpar 
             [ [ deriv False r | (r,_comment) <- chanRules ] ]
 
+{-
 typesetBosonReds reds = env "center" $ 
-    forM_ reds $ \(name,input) -> math $ do
+    forM_ reds $ \(_name,input) -> math $ do
       sequent input
       cmd0 "Longrightarrow"
       sequent (eval' input)
       
       return ()
+-}
 
-texBosonReds =  figure_ "Asynchronous reduction rules" $ 
+texBosonReds :: Tex SortedLabel
+texBosonReds =  figure_ @"Asynchronous reduction rules. (Rules involving @ax_ are omitted) @" $ 
                 mathpar [
                   [ sequent input <>
                     cmd0 "Longrightarrow" <>
                     sequent (eval' input)
-                   | (name,input) <- chanRedRules ] 
+                   | (_name,input) <- chanRedRules ] 
                         ]
+
+

@@ -257,6 +257,7 @@ cut n w w' ty γ (ChanPar ta tb) (Cross _ v v' 0 s) =  Exchange [1,0,2] $ Cut w 
 -- | One step to eliminate the principal cut.
 eval :: Deriv -> Deriv
 eval (Deriv ts vs (Cut w w' ty γ a b)) = Deriv ts vs $ cut (length vs) w w' ty γ a b
+eval x = x
 
 cut' n = Cut
 
