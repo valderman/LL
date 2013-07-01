@@ -383,6 +383,14 @@ In a fashion similar to additives, a 'ready to run' boson propagates from @offer
 @demand_. That is, @demand_ does not send a boson, only receives one. However,  @contract_
 rule does send one. A possible execution is shown below.
 
+@dm(sequent $ exponentialSimple)
+@dm(couplingDiag $ exponentialSimple)
+
+@dm(sequent $ eval' $ exponentialSimple)
+@dm(couplingDiag $ eval' $ exponentialSimple)
+
+TODO: ignore boson
+
 Axioms transmit the bosons from one side to the other.
 
 @subsection{Boson-oblivious reduction}

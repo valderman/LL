@@ -113,8 +113,6 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | ChanTyp Type -- Monotype boson
          | MemEmpty Type Int -- Memory with n readers, but not written yet
          | MemFull Type Int  -- Memory with n readers, already written to
-           
-
          | Mem Type [Int] Seq Seq
 
 memSplit :: [Int] -> [a] -> [[a]]
@@ -206,7 +204,7 @@ applyS f t = case t of
   TApp β tp w x ty a -> TApp β ((var 0:wk∙f)∙tp) w x (f ∙ ty) (s a)
   TUnpack w x a -> TUnpack w x (s' a)
   Offer β w x a -> Offer β w x (s a)
-  Mem ty xs t ts -> Mem (f ∙ ty) xs (s t) (s ts)
+  Mem ty xs u ts -> Mem (f ∙ ty) xs (s u) (s ts)
   Demand w ty x a -> Demand w ty x (s a)
   Ignore x a -> Ignore x (s a)
   Alias β x w a -> Alias β x w (s a)
@@ -237,7 +235,7 @@ cheval _ (SOne False x s) = SOne True x s
 cheval _ (SBot False) = SBot True
 cheval _ (Alias False x w s) = Alias True x w s
 -- cheval _ (Offer False w x s) = Offer True w x s
-cheval _ (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty (γ:[]) s t
+cheval n (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty (γ:[]) s (cheval  (n-γ+1) t)
 
 -- Interactions
 cheval _ (Mem tA (x:xs) s (Alias False 0 "x" t)) = Mem tA (x:0:xs) s t

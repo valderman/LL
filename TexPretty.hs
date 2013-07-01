@@ -50,8 +50,8 @@ seqName' ctx s = case s of
    (TUnpack _ _ _)     -> "∃"
    (Offer  β _ _ _)       -> isBoson β "?"
    (Demand _ _ _ _)    -> "!"
-   (Ignore _ _)        -> ruleName "Weaken"
-   (Alias  β _ _ _)       -> isBoson β $ ruleName "Contract"
+   (Ignore _ _)        -> ruleName "Wk"
+   (Alias  β _ _ _)       -> isBoson β $ ruleName "Con"
 --   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
    (ChanPlus b)  -> ruleName "B" <>  (indicator b)
    -- (ChanCross ta tb)   -> ruleName "Ch(<)"
@@ -79,6 +79,7 @@ seqLab s = case s of
    (Demand _ _ _ _)    -> "!"
    (Ignore _ _)        -> "Wk"
    (Alias β _ _ _)       -> "Ct"
+   (Mem _ _ _ _)       -> "M"
 --   (Channel ty)        -> "Ch"
    (ChanPlus b)  -> indicator b
    (ChanCross ta tb)   -> "<"

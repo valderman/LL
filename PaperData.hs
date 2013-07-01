@@ -227,6 +227,13 @@ doubleCut = Deriv [] [gamma,xi] $ Cut "_x" "x" tB 1 (Cut "_y" "y" (neg tA) 1 wha
 doubleCut' :: Deriv
 doubleCut' = Deriv [] [gamma,delta] $ Cut "_x" "x" (neg tA) 0 whatA $ Cut "_y" "y" (neg tC) 1 (Cut "_z" "z" (neg tB) 0 whatB whatD) whatC 
 
+exponentialSimple = fillTypes $
+  Deriv [] [gamma,xi] $ 
+  Cut "_x" "x" (Bang tA) 1 (Offer False "x" 0 whatA) $
+  Alias False 0 "y" $ 
+  Demand "z" dum 1 $ 
+  whatB
+                    
   
 -------------------------------
 -- Mediating interaction
@@ -291,6 +298,18 @@ chanRedRules =
                                    Deriv ["θ"] [gammaBang,xi] $
                                    -- Cut "w" "_w" (Bang tA) $
                                    Mem tA [1,0] whatA (Alias False 0 "x" whatB) )
+   ,(eval',"pointer delete (right)",  fillTypes $ weakenRule) -- TODO? Probably we can't asynchronicize this.
+   ,(eval',"pointer delete (left)",  
+     fillTypes $ 
+     Deriv ["θ"] [gammaBang,xi] $
+     -- Cut "w" "_w" (Bang tA) $
+     Mem tA [1,0] whatA (Ignore 0 whatB) ) -- TODO
+    
+   ,(eval',"mem dealloc",  fillTypes $ 
+                                   Deriv ["θ"] [gammaBang,xi] $
+                                   -- Cut "w" "_w" (Bang tA) $
+                                   Mem tA [] whatA whatB) -- TODO
+    
 --   ,("client spawn", cutBang' True)
    ]
 --   ,("output",    Deriv ["Θ"] [gamma,delta,("z",neg (tA :⊗: tB))] $ Cut "w" "_w" (tA :⊗: tB) 2 (Exchange [1,0,2] $ Par dum "x" "y" 1 whatA whatB) (Channel dum))
