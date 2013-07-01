@@ -59,6 +59,7 @@ seqName' ctx s = case s of
    (ChanTyp   tmono)   -> ruleName "B" <> math ( (index (texType 0 ctx tmono)))
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
+   (Mem ty n _ _)      -> ruleName "Mem" <> math ( index (textual (show $ length n)) <> texType 0 ctx ty) 
 
 seqLab :: Seq -> String 
 seqLab s = case s of
@@ -116,6 +117,7 @@ texSeq showProg = foldSeq sf where
   sdemand w _ ty s = rul [s]
   signore w ty s = rul [s]
   salias _ w w' ty s = rul [s]
+  smem _ t u = rul [t,u]
   swhat a _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> 
                                                   -- if showProg then texVar a else mempty
                                                   texVar a -- always show the program so we know how to refer to this proof continuation.
@@ -223,6 +225,7 @@ texProg'' what showTypes = foldSeq sf where
       signore w ty s = Instr (keyword "ignore " <> texVar w)  s
       salias _ w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
       swhat a ws fs = Final $ what a ws fs
+      smem ty t tx = Final $ "MEM"
       let'' w    v t = Instr (let_ <> w <> "=" <> v) t
    texVarT' x y | showTypes = texVarT x y
                 | otherwise = texVar x                            

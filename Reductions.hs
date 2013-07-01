@@ -36,7 +36,7 @@ cutUnit = cutUnit' False
 cutQuant' β = Deriv ["Θ"] [gamma,xi] $
            Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp β dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
 cutQuant = cutQuant' False
-syncRules,pushRules,chanRedRules :: [(TeX,Deriv)]
+syncRules,pushRules :: [(TeX,Deriv)]
 syncRules = [
     ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),

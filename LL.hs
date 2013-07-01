@@ -101,7 +101,7 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | TApp Boson (Forced Type) Name Int Type (Seq)
          | TUnpack Name Int (Seq)
 
-         | Offer Boson Name Int (Seq)
+         | Offer Boson Name Int (Seq) -- FIXME: no boson
          | Demand Name (Forced Type) Int (Seq)
          | Ignore Int Seq
          | Alias Boson Int Name (Seq)
@@ -115,8 +115,12 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | MemFull Type Int  -- Memory with n readers, already written to
            
 
-         | Mem Name Name (Forced Type) -- "memory" sequent used to relax order of cut elimination to mimic the abstract machine
+         | Mem Type [Int] Seq Seq
 
+memSplit :: [Int] -> [a] -> [[a]]
+memSplit [] x = [x]
+memSplit (i:is) x = l:memSplit is r
+  where (l,r) = splitAt i x
 
 -- | A full derivation
 data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], derivSequent :: Seq}
@@ -202,6 +206,7 @@ applyS f t = case t of
   TApp β tp w x ty a -> TApp β ((var 0:wk∙f)∙tp) w x (f ∙ ty) (s a)
   TUnpack w x a -> TUnpack w x (s' a)
   Offer β w x a -> Offer β w x (s a)
+  Mem ty xs t ts -> Mem (f ∙ ty) xs (s t) (s ts)
   Demand w ty x a -> Demand w ty x (s a)
   Ignore x a -> Ignore x (s a)
   Alias β x w a -> Alias β x w (s a)
@@ -230,11 +235,14 @@ cheval _ (Cross False ty w w' x c) = Cross True ty w w' x c
 cheval _ (Par False ty w w' γ a b) = Par True ty w w' γ a b
 cheval _ (SOne False x s) = SOne True x s
 cheval _ (SBot False) = SBot True
-cheval _ (Offer False w x s) = Offer True w x s
 cheval _ (Alias False x w s) = Alias True x w s
+-- cheval _ (Offer False w x s) = Offer True w x s
+cheval _ (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty (γ:[]) s t
+
+-- Interactions
+cheval _ (Mem tA (x:xs) s (Alias False 0 "x" t)) = Mem tA (x:0:xs) s t
 
 {-
--- Interactions
 cheval _ (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t
 cheval _ (Cut _ _ _ 1 (ChanTyp ty) (TUnpack _ 0 s)) = subst0 ty ∙ s
 cheval n (Cut _ _ (ta :⊗: tb) γδ (Exchange π (Par True _ _ _ γ a b)) (Cross True _ w w' 0 c)) 
@@ -406,7 +414,7 @@ data SeqFinal t a = SeqFinal
      , signore :: (Name -> t -> a -> a)
      , salias :: (Boson -> Name -> Name -> t -> a -> a)
      , swhat :: (Name -> [Name] -> [(Name,Type)] -> a)
---     , schannel :: Type -> a
+     , smem :: t -> a -> a -> a
      , schplus :: Bool -> Type -> Type -> a
      , schcross :: Type -> Type -> a
      , schpar :: Type -> Type -> a
@@ -465,7 +473,9 @@ foldSeq sf ts0 vs0 s0 =
       (Alias β x w' s) -> salias β w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       What x ws -> swhat x [fst (vs !! w) | w <- ws] vs
-
+      Mem ty xs t u -> smem (fty ty) (recurse ts (("_x",neg ty):t') t)
+                                      (recurse ts (concatMap (("x",Bang ty):) us') u)
+        where (t':us') = memSplit xs vs
    where fty = sty ts
          fctx = map (second fty)
          SeqFinal{..} = sf (Deriv ts vs seq)
@@ -500,6 +510,7 @@ fillTypes' = foldSeq sf where
     schtyp tmono _ = ChanTyp tmono
     schempty ty n = MemEmpty ty n
     schfull ty n = MemFull ty n
+    smem ty t ts = Mem ty xs t ts where Mem _ xs _ _ = seq
     swhat a _ _ = What a xs where What _ xs = seq
     x = varOf seq
 

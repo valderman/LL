@@ -273,8 +273,8 @@ texBosonReds =  figure_ @"Asynchronous reduction rules. (Rules involving @ax_ ar
                         ]
 
 chanRedRules =
-   [(eval' ,"bit write"  ,          fillTypes $ withRule False True)
-   ,(eval,"bit read"   ,          fillTypes $ cutWithPlus' True True)
+   [(eval' ,"bit write"  ,         fillTypes $ withRule False True)
+   ,(eval,"bit read"   ,           fillTypes $ cutWithPlus' True True)
    ,(eval',"type write" ,          fillTypes $ forallRule False) 
    ,(eval ,"type read"  ,          fillTypes $ cutQuant' True)
    ,(eval',"left split" ,          fillTypes $ parRule' False)
@@ -283,9 +283,14 @@ chanRedRules =
    ,(eval',"left sever" ,          fillTypes $ botRule False)
    ,(eval',"right sever",          fillTypes $ oneRule False)
    ,(eval ,"sever meet" ,          fillTypes $ cutUnit' True)
-   ,(eval',"server wait",          fillTypes $ questRule False)
-   ,(eval',"pointer copy (right)", fillTypes $ contractRule False)   
---   ,(eval',"pointer copy (left)", contractRule False)
+   ,(eval',"server wait",          fillTypes $ 
+                                   Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+                                   Cut "z" "_z" (Bang tA) 1 (Offer False "x" 0 whatA) whatB)
+   ,(eval',"pointer copy (right)", fillTypes $ contractRule False)
+   ,(eval',"pointer copy (left)",  fillTypes $ 
+                                   Deriv ["θ"] [gammaBang,xi] $
+                                   -- Cut "w" "_w" (Bang tA) $
+                                   Mem tA [1,0] whatA (Alias False 0 "x" whatB) )
 --   ,("client spawn", cutBang' True)
    ]
 --   ,("output",    Deriv ["Θ"] [gamma,delta,("z",neg (tA :⊗: tB))] $ Cut "w" "_w" (tA :⊗: tB) 2 (Exchange [1,0,2] $ Par dum "x" "y" 1 whatA whatB) (Channel dum))

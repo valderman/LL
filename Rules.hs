@@ -5,6 +5,7 @@ import MarXup.Latex
 import LL
 import Pretty
 import Symheap
+import Numeric (showIntAtBase)
 
 tgamma = meta "Γ"
 tdelta = meta "Δ"
@@ -14,8 +15,19 @@ tB = meta "B"
 tC = meta "C"
 
 gamma = ("?γ",tgamma)
+gammaBang = ("?γ",Bang tgamma)
 delta = ("?δ",tdelta)
 xi    = ("?ξ",meta "Ξ")
+xi' i = ("?ξ" ++ show i,meta $ "Ξ" ++ subscriptShow i)
+
+scriptShow ::  (Integral a, Show a) => [Char] -> a -> [Char]
+scriptShow []             _ = error "scriptShow on empty list"
+scriptShow (minus:digits) x = if x < 0 then minus : sho (negate x) else sho x
+  where sho z = showIntAtBase 10 (\i -> digits !! i) z []
+
+subscriptShow :: Int -> String
+subscriptShow  = scriptShow "-₀₁₂₃₄₅₆₇₈₉"
+
 
 whatA = What "a" []
 whatB = What "b" []
