@@ -355,10 +355,10 @@ forces, we will call such mediating rules bosons.
 For the quantifiers fragment, a similar boson and set of reduction rule exists. The
 difference is that a type is being transmitted instead of a bit.
 
-For the multiplicative fragment, we propose two possible ways to encode asynchronicity,
-to eventually settle on the second proposition.
+For the multiplicative fragment, we examine two possible ways to encode asynchronicity,
+to eventually settle on the second one.
 
-The first possible way is similar to what happens in the additive fragment: a boson (called >) travels
+The first option is similar to what happens in the additive fragment: a boson (called >) travels
 from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
 boson must connect two processes. The downside of this approach is that, until the
 @par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
@@ -380,7 +380,10 @@ encountered their children are ready to run.
 @dm(couplingDiag(eval' $ cutParCross))
 @dm(couplingDiag(eval' $ eval' $ cutParCross))
 
-TODO: Exponentials
+Exponentials borrow concepts from both additive and multiplicative fragment. 
+In a fashion similar to additives, a 'ready to run' boson propagates from @offer_ to
+@demand_. That is, @demand_ does not send a boson, only receives one. However,  @contract_
+rule does send one. A possible execution is shown below.
 
 Axioms transmit the bosons from one side to the other.
 
@@ -461,6 +464,8 @@ TODO: explain axiom.
 }
 
 @section{Discussion}
+
+Optimising axiom
 
 Bi-cut; mix.
 

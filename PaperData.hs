@@ -80,13 +80,20 @@ graph2 = math "σ'"
   
 rho = "ρ"         
   
-ax_,cut_,with_,plus_,par_,tensor_, lollipop_ :: TeX
+-- To be used as rule names within the text. (some should probably be expanded).
+ax_,cut_,with_,plus_,par_,tensor_,contract_,weaken_,offer_,demand_::TeX
 cut_ = ruleName "Cut"
 ax_ = ruleName "Ax"
 with_ = "&"
 plus_ = "⊕"
 par_ = "⅋"
 tensor_ = "⊗"
+contract_ = ruleName "Contract"
+weaken_ = ruleName "Weaken"
+offer_ = ruleName "Offer"
+demand_ = ruleName "Demand"
+
+lollipop_ :: TeX
 lollipop_ = "⊸"
 
 ---------------------------------------
