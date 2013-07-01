@@ -267,8 +267,27 @@ texBosonReds =  figure_ @"Asynchronous reduction rules. (Rules involving @ax_ ar
                 mathpar [
                   [ sequent input <>
                     cmd0 "Longrightarrow" <>
-                    sequent (eval' input)
-                   | (_name,input) <- chanRedRules ] 
+                    sequent (evaluator input)
+                   | (evaluator,_name,input) <- chanRedRules ] 
                         ]
 
-
+chanRedRules =
+   [(eval' ,"bit write"  ,          fillTypes $ withRule False True)
+   ,(eval,"bit read"   ,          fillTypes $ cutWithPlus' True True)
+   ,(eval',"type write" ,          fillTypes $ forallRule False) 
+   ,(eval ,"type read"  ,          fillTypes $ cutQuant' True)
+   ,(eval',"left split" ,          fillTypes $ parRule' False)
+   ,(eval',"right split",          fillTypes $ crossRule' False)
+   ,(eval ,"split meet" ,          fillTypes $ cutParCross' True)
+   ,(eval',"left sever" ,          fillTypes $ botRule False)
+   ,(eval',"right sever",          fillTypes $ oneRule False)
+   ,(eval ,"sever meet" ,          fillTypes $ cutUnit' True)
+   ,(eval',"server wait",          fillTypes $ questRule False)
+   ,(eval',"pointer copy (right)", fillTypes $ contractRule False)   
+--   ,(eval',"pointer copy (left)", contractRule False)
+--   ,("client spawn", cutBang' True)
+   ]
+--   ,("output",    Deriv ["Θ"] [gamma,delta,("z",neg (tA :⊗: tB))] $ Cut "w" "_w" (tA :⊗: tB) 2 (Exchange [1,0,2] $ Par dum "x" "y" 1 whatA whatB) (Channel dum))
+--   ,("input",    Deriv ["Θ"]  [("x",tA), ("y",tB),delta] $ Cut "w" "_w" (tA :⊗: tB) 2 (ChanPar dum dum) (Cross dum "x" "y" 0 whatA) )
+    
+               
