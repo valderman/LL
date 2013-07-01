@@ -33,7 +33,14 @@ node extraAttrs  = do
   let ref = "nd" ++ show r 
   tell [ref ++ mkAttrs attrs ++ ";"]
   return ref
-  
+
+
+fermion s = node [("shape","circle"),getNodeLab s]
+boson s = node [("shape","none"),getNodeLab s]
+hypothesis = node [("shape","circle"),("color","white"),emptyLab] 
+             -- for some reason this is more compact than "shape=none"
+specialEdge = edge
+
 edge, edge' :: NodeRef -> NodeRef -> Type -> GGen ()
 
 edge sn tn ty@(Meta True "Ξ" []) = edge' tn sn (neg ty)
@@ -62,93 +69,93 @@ comment x = tell $ ["// " ++ x]
 emptyLab :: Attr
 emptyLab = ("label",dotQuote " ")
 
-toGraphPart' :: [Name] -> [(Name,Type)] -> Seq -> GGen [NodeRef]
-toGraphPart' te e (Cut v v' ty γ s t) = do
+toGraphPart :: [Name] -> [(Name,Type)] -> Seq -> GGen [NodeRef]
+toGraphPart te e (Cut v v' ty γ s t) = do
   let (e0,e1) = splitAt γ e
-  (s':sn) <- toGraphPart' te ((v,neg ty):e0) s
-  (t':tn) <- toGraphPart' te ((v', ty)  :e1) t
+  (s':sn) <- toGraphPart te ((v,neg ty):e0) s
+  (t':tn) <- toGraphPart te ((v', ty)  :e1) t
   edge s' t' ty
   return $ sn ++ tn
-toGraphPart' te e (Exchange π s) = do
+toGraphPart te e (Exchange π s) = do
   comment $ "  exchange"
-  applyPerm π <$> toGraphPart' te (applyPerm π e) s  
-toGraphPart' te e this@(Par True _ v v' x s t) = do
+  applyPerm π <$> toGraphPart te (applyPerm π e) s  
+toGraphPart te e this@(With True _ v b x s) = do  
+  let (v0,(_,~(vt :&: vt')):v1) = splitAt x e
+      wt = if b then vt else vt'
+  (n0,n:n1) <- splitAt x <$> toGraphPart te (v0++(v,wt):v1) s
+  thisNode <- boson this
+  specialEdge thisNode n wt
+  return (n0++thisNode:n1)
+toGraphPart te e this@(SOne True x s) = do  
+  let (v0,(_,~One):v1) = splitAt x e
+  (n0,n1) <- splitAt x <$> toGraphPart te (v0++v1) s
+  thisNode <- boson this
+  return (n0++thisNode:n1)
+toGraphPart _te e this@(SBot True) = do    
+  let [(_,Bot)] = e
+  thisNode <- boson this
+  return [thisNode]
+toGraphPart te e this@(TApp True _ w x tyB s) = do  
+  let (v0,(_,~(Forall _ tyA)):v1) = splitAt x e
+      ty = subst0 tyB ∙ tyA     
+  (n0,n:n1) <- splitAt x <$> toGraphPart te (v0++(w,ty):v1) s
+  thisNode <- boson this
+  specialEdge thisNode n ty
+  return (n0++thisNode:n1)
+toGraphPart te e this@(Offer True v x s) = do  
+  let (v0,(_,~(Quest tyA)):v1) = splitAt x e
+  (n0,n:n1) <- splitAt x <$> toGraphPart te (v0++(v,tyA):v1) s
+  thisNode <- boson this
+  specialEdge thisNode n tyA
+  return (n0++thisNode:n1)
+toGraphPart te e this@(Alias True x w' s) = do  
+  let (v0,(w,~(Bang tyA)):v1) = splitAt x e 
+  (n:n1,n':n2) <- splitAt (x+1) <$> toGraphPart te ((w,Bang tyA):v0++(w',Bang tyA):v1) s
+  thisNode <- boson this
+  specialEdge thisNode n (Bang tyA)
+  specialEdge thisNode n' (Bang tyA)
+  return (n1++thisNode:n2)
+toGraphPart te e this@(Par True _ v v' x s t) = do
   let (v0,(_w,(vt :|: vt')):v1) = splitAt x e
-  tn0 <- toGraphPart' te (v0++[(v,vt)]) s
+  tn0 <- toGraphPart te (v0++[(v,vt)]) s
   let tn = init tn0
       t' = last tn
-  (s':sn) <- toGraphPart' te ((v',vt'):v1) t
-  thisNode <- node $ getNodeLab this
-  edge thisNode s' vt
-  edge thisNode t' vt'
+  (s':sn) <- toGraphPart te ((v',vt'):v1) t
+  thisNode <- boson this
+  specialEdge thisNode s' vt
+  specialEdge thisNode t' vt'
   return (sn++thisNode:tn)
-toGraphPart' te e s@(Cross True _ v v' x t) = do
+toGraphPart te e s@(Cross True _ v v' x t) = do
   let (v0,(_w,(vt :⊗: vt')):v1) = splitAt x e
-  tn <- toGraphPart' te (v0++(v,vt):(v',vt'):v1) t 
+  tn <- toGraphPart te (v0++(v,vt):(v',vt'):v1) t 
   let (ts0,(t1:t2:ts3)) = splitAt x tn
-  thisNode <- node $ getNodeLab s
-  edge thisNode t1 vt
-  edge thisNode t2 vt'
+  thisNode <- boson s
+  specialEdge thisNode t1 vt
+  specialEdge thisNode t2 vt'
   return (ts0++thisNode:ts3)
-toGraphPart' _te e s = do 
-  comment $ "  leaf"
-  thisNode <- node $ getNodeLab s
+toGraphPart _te e s = do 
+  comment $ "  fermion"
+  thisNode <- fermion s
   return $ replicate (length e) thisNode
   
   
 toGraphMain :: Deriv -> GGen ()
 toGraphMain (Deriv te e s) = do
-  hs <- toGraphPart'  te e s
+  hs <- toGraphPart  te e s
   forM_ (zip hs e) $ \(n,(_,ty)) -> do
-    hypNode <- node [("color","white"),emptyLab] -- $ "shape = " ++ show "none"
+    hypNode <- hypothesis
     edge hypNode n ty
     
-  {-
-type Port = Int
-data HInfo = External Type | Internal NodeRef Type | Done
-
-
-toGraphPart :: Maybe Port -> [Name] -> [(Name,HInfo)] -> Seq -> GGen NodeRef
-toGraphPart parent te e (Cut v v' ty γ s t) = do
-    comment $ "  cut"
-    sn <- toGraphPart (Just 0) te ((v,Done):e0) s
-    tn <- toGraphPart (Just 0) te ((v',Internal sn ty)   :e1) t
-    return $ if maybe True (< γ) parent then sn else tn
-  where (e0,e1) = splitAt γ e
--- toGraphPart parent te e (Cross True _ _ _ x         
-toGraphPart parent te e (Exchange π s) = do
-  comment $ "  exchange"
-  toGraphPart ((`indexOf` π) `fmap` parent) te [e !! i | i <- π] s
-toGraphPart _parent _te e s = do
-  comment $ "  leaf"
-  thisNode <- node $ getNodeLab s
-  forM_ e $ \ (_name,h) -> do
-    case h of
-      Done -> return ()
-      External ty -> do 
-        -- hypNode <- node $ "shape = " ++ show "none"
-        hypNode <- node ["color=white",emptyLab] -- $ "shape = " ++ show "none"
-        edge hypNode thisNode ty
-      Internal n ty -> edge n thisNode ty
-  return thisNode    
-  
-toGraphMain :: Deriv -> GGen ()
-toGraphMain (Deriv te e s) = do
-  toGraphPart Nothing te [(nm,External ty) | (nm,ty) <- e] s
-  return ()
--}
-
-getNodeLab :: Seq -> [Attr]
-getNodeLab (What x _) = [("label", dotQuote x)]
-getNodeLab s = [("label", dotQuote (seqLab s))]
-getNodeLab _ = [emptyLab]
+getNodeLab :: Seq -> Attr
+getNodeLab (What x _) = ("label", dotQuote x)
+getNodeLab s = ("label", dotQuote (seqLab s))
+getNodeLab _ = emptyLab
     
 toGraph :: Deriv -> [String]    
 toGraph d = w 
   where (_,_,w) = runRWS tg () 1
         tg = do
           tell ["digraph G {"
-               ,"node[shape=circle]"
                 --       ,"node[fixedsize=True,width=0.5]"
                 --        ,"graph[start=2];" -- Seed
                ,"rankdir=LR;"

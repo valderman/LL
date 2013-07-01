@@ -264,22 +264,22 @@ We have the following cases:
    edge in that system must be ready; and it remains ready in the combined system.
 }}
 
-The proof depends crucially on the graph structure being a tree. That is, if a @cut_ could
-create two edges between subsystems, then the proof would fail. On the other hand, and 
-perhaps surprisingly, this property does not depend on the specifics of the evaluation, 
-only on the structure of the rules. 
+Perhaps surprisingly, this property does not depend on the specifics of evaluation rules,
+only on the structure of the logical rules: namely that each rule is ready to interact on at least
+one port, and, crucially that the coupling structure is a tree. 
+
 
 
 @theorem("Liveness"){
 There is no infinite chain of outermost evaluations. This means that, eventually, 
-outermost evaluation will yield a program waiting on one of its channels. 
-In other words: every process must eventually communicate with its environment.
+outermost evaluation will yield a program waiting on one of the variables of its environment.
+In other words: every process eventually communicates with its environment.
 }{
 Because there is no infinite chain of evaluations (TODO cite), 
 there cannot be in particular an infinite chain of outermost ones.
 }
 
-In sum, the above theorem means that linear logic programs can be run in a way similar
+In sum, the above theorems means that linear logic programs can be run in a way similar
 to usual ways of running the lambda calculus. In both cases, the elimination of a top-level
 cut involves in-depth rewriting of the term, which is costly and moreover does not correspond
 to the notion that programs are static entities. In both cases, it is possible to delay the 
@@ -319,6 +319,7 @@ In the next section we proceed to attack this shortcoming.
 
 @subsection{Detour: Mix and Bi-cut}
 
+That is, if a @cut_ could create two edges between subsystems, then the proof would fail. 
 
 @section{Mediating Rules}
 
@@ -337,12 +338,9 @@ ready to run regardless of a @plus_ rule being ready to read.
 Asynchronously, the @plus_ rule will read the bit of info as soon as 
 it becomes available.
 
-@dm(couplingDiag(cutWithPlus True))
-@dm(couplingDiag $ eval' $ cutWithPlus True)
-@comment{
-Switches the cut structure.
-@dm(couplingDiag $ eval $ eval' $ cutWithPlus True)}
-@dm(couplingDiag $ eval' $ eval' $ eval' $ cutWithPlus True)
+@dm(couplingDiag $(cutWithPlus True))
+@dm(couplingDiag $ ( eval' $ cutWithPlus True))
+@dm(couplingDiag $ eval $ eval' $ cutWithPlus True)
 
 One can metaphorically talk about the intermediate rule being created
 as a particle travelling from left to right. 
@@ -378,7 +376,7 @@ encountered their children are ready to run.
 
 @dm(couplingDiag(cutParCross))
 @dm(couplingDiag(eval' $ cutParCross))
-@dm(couplingDiag(eval' $ eval' $ cutParCross))
+@dm(couplingDiag(eval $ eval' $ cutParCross))
 
 Exponentials borrow concepts from both additive and multiplicative fragment. 
 In a fashion similar to additives, a 'ready to run' boson propagates from @offer_ to
@@ -408,13 +406,15 @@ It is similar in spirit to classical abstract machines for the lambda calculus, 
 SECD machine.
 
 The machine state is composed of a list of closures and a heap.
-A closure is a sequent of LL (no mediating rule is found there), 
+The processes from the above section will be represented by closures, and the bosons by the heap.
+A closure is a sequent of LL, 
 together with an environment associating each variable
 to a pointer in the heap, and an environment associating each type variable to a
 a type representation. Each closure corresponds to a proccess, and each variable
 in its environment corresponds to a port into a channel.
-The execution of a closure corresponds to sending or receiving a boson. This 
-is implemented by interacting with the heap. 
+One step of execution of a closure corresponds to sending or receiving a boson, except for the @cut_ rule which 
+spawns a process. Every execution step is
+ implemented by interacting with the heap: no synchronisation primitive is assumed. 
 
 The heap is an indexable sequence of cells. Each cell can evetually be used to 
 transmit some piece of information between closure. Each cell starts its lifetime
@@ -464,6 +464,8 @@ TODO: explain axiom.
 }
 
 @section{Discussion}
+
+Quantifiers
 
 Optimising axiom
 

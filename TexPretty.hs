@@ -31,24 +31,27 @@ index ix = tex "_" <> braces ix
 
 indicator b = if b then "1" else "0"
 
+isBoson False x = x
+isBoson True  x = ruleName "B" <> x
+
 seqName = seqName' unknownTypeEnv
 seqName' ctx s = case s of
    (Exchange _ _)      -> ruleName "Ex."
    (Ax _ )             -> ruleName "Ax"
    (Cut _ _ _ _ _ _)   -> ruleName "Cut"
-   (Cross b _ _ _ _ _)   -> if b then "<" else "⊗"
-   (Par b _ _ _ _ _ _)   -> if b then ">" else "⅋"
+   (Cross  β _ _ _ _ _)   -> isBoson β "⊗"
+   (Par  β _ _ _ _ _ _)   -> isBoson β "⅋"
    (Plus  _ _ _ _ _)   -> "⊕"
-   (With _ _ b _ _)      -> math $ (amp <> index (indicator b))
-   (SOne _ _)          -> "1"
+   (With β _ _ b _ _)  -> isBoson β $ math $ (amp <> index (indicator b))
+   (SOne  β _ _)          -> isBoson β $ "1"
    (SZero _)           -> "0"
-   SBot                -> "⊥"
-   (TApp _ _ _ _ _)    -> "∀"
+   (SBot β)                -> isBoson β $ "⊥"
+   (TApp  β _ _ _ _ _)    -> isBoson β "∀"
    (TUnpack _ _ _)     -> "∃"
-   (Offer _ _ _)       -> "?"
+   (Offer  β _ _ _)       -> isBoson β "?"
    (Demand _ _ _ _)    -> "!"
    (Ignore _ _)        -> ruleName "Weaken"
-   (Alias _ _ _)       -> ruleName "Contract"
+   (Alias  β _ _ _)       -> isBoson β $ ruleName "Contract"
 --   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
    (ChanPlus b)  -> ruleName "B" <>  (indicator b)
    -- (ChanCross ta tb)   -> ruleName "Ch(<)"
@@ -62,19 +65,19 @@ seqLab s = case s of
    (Exchange _ s)      -> "X"
    (Ax _ )             -> "Ax"
    (Cut _ _ _ _ _ _)   -> "Cut"
-   (Cross b _ _ _ _ _) -> if b then "<" else "⊗"
-   (Par b _ _ _ _ _ _) -> if b then ">" else "⅋"
+   (Cross β _ _ _ _ _) -> "⊗"
+   (Par β _ _ _ _ _ _) -> "⅋"
    (Plus  _ _ _ _ _)   -> "⊕"
-   (With _ _ b _ _)      -> "\\&"
-   (SOne _ _)          -> "1"
+   (With β _ _ b _ _)      -> "\\&"
+   (SOne β _ _)          -> "1"
    (SZero _)           -> "0"
-   SBot                -> "⊥"
-   (TApp _ _ _ _ _)    -> "∀"
+   (SBot  β)               -> "⊥"
+   (TApp β _ _ _ _ _)    -> "∀"
    (TUnpack _ _ _)     -> "∃"
-   (Offer _ _ _)       -> "?"
+   (Offer β _ _ _)       -> "?"
    (Demand _ _ _ _)    -> "!"
    (Ignore _ _)        -> "Wk"
-   (Alias _ _ _)       -> "Ct"
+   (Alias β _ _ _)       -> "Ct"
 --   (Channel ty)        -> "Ch"
    (ChanPlus b)  -> indicator b
    (ChanCross ta tb)   -> "<"
@@ -101,18 +104,18 @@ texSeq showProg = foldSeq sf where
   scross _ w v vt v' vt' t = rul [t]
   spar _ w _ vt _ vt' s t = rul [s,t]
   splus w _ vt _ vt' s t = rul [s,t]
-  swith _ b w _ _ s = rul [s]
-  sbot v = rul []
+  swith _ _ b w _ _ s = rul [s]
+  sbot _ v = rul []
   szero w vs = rul []
-  sone w t = rul [t]
+  sone _ w t = rul [t]
   -- sxchg _ s = rul [s] -- to display the exchange rules
   sxchg _ s = s -- to hide them
-  stapp w _ _ tyB s = rul [s]
+  stapp _ w _ _ tyB s = rul [s]
   stunpack tw w _ s = rul [s]
-  soffer w _ ty s = rul [s] 
+  soffer _ w _ ty s = rul [s] 
   sdemand w _ ty s = rul [s]
   signore w ty s = rul [s]
-  salias w w' ty s = rul [s]
+  salias _ w w' ty s = rul [s]
   swhat a _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> 
                                                   -- if showProg then texVar a else mempty
                                                   texVar a -- always show the program so we know how to refer to this proof continuation.
@@ -207,18 +210,18 @@ texProg'' what showTypes = foldSeq sf where
       splus w v vt v' vt' s t = Split (case_ <> texVar w <> keyword " of")
                       [(keyword "inl " <> texVar v,s),
                        (keyword "inr " <> texVar v',t)]
-      swith _ b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
+      swith _ _ b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
-      sbot v = Final $ texVar v
+      sbot _ v = Final $ texVar v
       szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
-      sone w t = let'' (cmd0 "diamond") (texVar w) t
+      sone _ w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t
-      stapp v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s
+      stapp _ v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s
       stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar w) (texVar v)  s
-      soffer v w ty s = let'' (texVarT' w ty) (keyword "offer " <> texVar v)  s
+      soffer _ v w ty s = let'' (texVarT' w ty) (keyword "offer " <> texVar v)  s
       sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
       signore w ty s = Instr (keyword "ignore " <> texVar w)  s
-      salias w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
+      salias _ w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
       swhat a ws fs = Final $ what a ws fs
       let'' w    v t = Instr (let_ <> w <> "=" <> v) t
    texVarT' x y | showTypes = texVarT x y

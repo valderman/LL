@@ -11,31 +11,31 @@ import MarXup.Latex (math)
 cutAx = Deriv ["Θ"] [gamma,("w",neg $ meta "A")] $
               Cut "x" "y" (meta "A") 1 (What "a" [0]) (Ax dum)
 
-cutWithPlus b = fillTypes $ 
+cutWithPlus' β b = fillTypes $ 
                 Deriv ["Θ"] [gamma,xi]
                 (Cut "z" "_z" (meta "A" :⊕: meta "B") 1 
-                (With dum "x" b 0 (whatA)) 
+                (With β dum "x" b 0 (whatA)) 
                 (Plus "_x" "_y" 0 (whatB) (whatC)))
-              
-cutParCross' b = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
+cutWithPlus = cutWithPlus' False
+cutParCross' β = Deriv ["Θ"] [gamma,delta,(mempty,meta "Ξ")]
               (Cut "z" "_z" (meta "A" :⊗: meta "B") 2 
-               (Exchange [1,0,2] $ Par b dum "_x" "_y" 1 whatA whatB)
-               (Cross b dum "x" "y" 0 whatC))
+               (Exchange [1,0,2] $ Par β dum "_x" "_y" 1 whatA whatB)
+               (Cross β dum "x" "y" 0 whatC))
 cutParCross = cutParCross' False
-cutBang = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
-          Cut "z" "_z" (Bang $ meta "A") 1 (Offer "x" 0 whatA) (Demand "_x" dum 0 whatB)
-
-cutContract = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
-          Cut "z" "_z" (Bang $ meta "A") 1 (Offer "x" 0 whatA) (Alias 0 "y" whatB)
-
-cutIgnore = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
-            Cut "z" "_z" (Bang $ meta "A") 1 (Offer "x" 0 whatA) (Ignore 0 whatB)
-
-cutUnit = Deriv ["Θ"] [gamma] $ Cut "z" "_z" One 0 SBot (SOne 0 whatA)
-
-cutQuant = Deriv ["Θ"] [gamma,xi] $
-           Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
-
+cutBang' β = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+          Cut "z" "_z" (Bang $ meta "A") 1 (Offer β "x" 0 whatA) (Demand "_x" dum 0 whatB)
+cutBang = cutBang' False
+cutContract' β = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+          Cut "z" "_z" (Bang $ meta "A") 1 (Offer β "x" 0 whatA) (Alias β 0 "y" whatB)
+cutContract = cutContract' False
+cutIgnore' β = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+            Cut "z" "_z" (Bang $ meta "A") 1 (Offer β "x" 0 whatA) (Ignore 0 whatB)
+cutIgnore = cutIgnore' False
+cutUnit' β = Deriv ["Θ"] [gamma] $ Cut "z" "_z" One 0 (SBot β) (SOne β 0 whatA)
+cutUnit = cutUnit' False
+cutQuant' β = Deriv ["Θ"] [gamma,xi] $
+           Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp β dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
+cutQuant = cutQuant' False
 syncRules,pushRules,chanRedRules :: [(TeX,Deriv)]
 syncRules = [
     ("AxCut",cutAx),
@@ -59,16 +59,16 @@ pushRules = (textual "κ⅋0", altParPush) :
    | d <- map fillTypes [
        parRule,
        crossRule,
-       oneRule,
+       oneRule False,
        plusRule,
-       withRule True,
+       withRule False True,
        zeroRule,
-       forallRule,
+       forallRule False,
        existsRule,
-       questRule,
+       questRule False,
        bangRule,
        weakenRule,
-       contractRule
+       contractRule False
        ],
      let l = length $ derivContext d
          s = derivSequent d

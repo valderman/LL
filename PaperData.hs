@@ -144,19 +144,19 @@ structuralRules = cutRules ++ [[(axRule, "Copy the data between the closures; wh
 operationalRules = 
   [[(parRule, "It splits the environment in two parts. Each becomes a closure, whose environment is either of the parts."),
     (crossRule, @"It adds an entry in the context for @tB, pointing to the location @math{z + @mkLayout(tA)}.@")]
-  ,[(withRule True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
+  ,[(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
                      not to be used (in this case @math{|@tB|-|@tA|}.@"),
     (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
                 A branch is then chosen according to the tag. The cell holding the tag is freed.@")]
-  ,[(botRule,"The closure is deleted."),
-    (oneRule,"An entry of the environment is deleted.")]  
+  ,[(botRule False,"The closure is deleted."),
+    (oneRule False,"An entry of the environment is deleted.")]  
   ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system.")]
-  ,[(forallRule,@"An area in the heap of size @math{|@tAofB|} is allocated.
+  ,[(forallRule False,@"An area in the heap of size @math{|@tAofB|} is allocated.
                   The representation of the concrete type @tB is written in the cell,
                   together with a pointer to the newly allocated area.
                 @")
    ,(existsRule,existComment)]
-  ,[(questRule,@"The pointer to the closure @math{a} is written to the cell pointed by @math{x}. In the environment of that closure, 
+  ,[(questRule False,@"The pointer to the closure @math{a} is written to the cell pointed by @math{x}. In the environment of that closure, 
                  replace the pointer to TODO by a null pointer.
                  The closure is then removed from 
                  the list of ready closures.@"),
@@ -166,7 +166,7 @@ operationalRules =
                  The reference count of the cell is decremented.@")]
   ,[(weakenRule,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
                   The closure is deallocated if the count reached zero.@")]
-  ,[(contractRule,"The the pointer is copied to a new environment entry, and the reference count incremented.")]
+  ,[(contractRule False,"The the pointer is copied to a new environment entry, and the reference count incremented.")]
   ] 
 
 existComment = @"(In particular the closure waits if the cell pointed by @math{z} is empty.) 
@@ -232,13 +232,20 @@ doubleCut' = Deriv [] [gamma,delta] $ Cut "_x" "x" (neg tA) 0 whatA $ Cut "_y" "
 
 chanRules :: [(Deriv,TeX)]
 chanRules =   
-  [(chanPlusRule True,  "A channel containing a bit")
-  ,(chanPlusRule False, "A channel containing a bit")
-  ,(chanCrossRule,     "A half-split channel (par side)")
-  ,(chanParRule,       "A half-split channel (par side)")
-  ,(chanTypRule,       "A channel containing a type")
+  [
+    -- (chanPlusRule True,  "A channel containing a bit")
+    --  ,(chanPlusRule False, "A channel containing a bit")
+--  ,(chanTypRule,       "A channel containing a type")
 --  ,(chanEmptyRule 3,   "A memory cell (empty)")
 --  ,(chanFullRule 3,    "A memory cell (full)")
+   (chanCrossRule,     "A half-split channel (conjuction)")
+  ,(chanParRule,       "A half-split channel (disjunction)")
+  ,(oneRule True, "severing channel (conjunction)")
+  ,(botRule True, "severing channel (disjunction)")
+  ,(withRule True True, "A channel containing a bit")
+  ,(forallRule True, "A channel containing a type")
+  ,(questRule True, "A reference to a server")
+  ,(contractRule True, "A pointer copy")
   ]
 
 texBosons :: Tex SortedLabel

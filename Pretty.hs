@@ -60,18 +60,18 @@ pSeq showTypes = foldSeq sf where
         splus w v vt v' vt' s t = "case " <> text w <> " of {" <> 
                                 vcat ["inl " <> text v <> " ↦ " <> s<> ";", 
                                       "inr " <> text v' <> " ↦ " <> t]<> "}"
-        swith _ b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
+        swith _ _ b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
            where c = if b then "fst" else "snd"
-        sbot v = text v 
+        sbot _ v = text v 
         szero w vs = "dump " <> whenShowTypes (pCtx' vs) <> " in " <> text w
-        sone w t = "let ◇ = " <> text w <> " in " $$ t
+        sone _ w t = "let ◇ = " <> text w <> " in " $$ t
         sxchg _ t = t
-        stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
+        stapp _ v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
         stunpack tw w v s = "let ⟨" <> whenShowTypes (text tw) <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
-        soffer v w ty s = "offer " <> varT v ty $$ s
+        soffer _ v w ty s = "offer " <> varT v ty $$ s
         sdemand v w ty s = "let" <+> text w <+> "=" <+> text "demand" <+> varT v ty <+> "in" $$ s
         signore w ty s = "ignore " <> text w $$ s
-        salias w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
+        salias _ w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
         swhat a _ _ = braces $ pCtx ts vs
    varT x y | showTypes = text x <> " : " <> y
             | otherwise = text x                            
