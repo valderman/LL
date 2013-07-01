@@ -74,22 +74,5 @@ pushRules = (textual "κ⅋0", altParPush) :
          s = derivSequent d
    ]
 
-chanRedRules = map (second fillTypes)
-   [("bit write", withRule False True)
-   ,("bit read" , cutWithPlus' True True)
-   ,("type write", forallRule False) 
-   ,("type read" , cutQuant' True)
-   ,("left split", parRule' False)
-   ,("right split", crossRule' False)
-   ,("split meet",cutParCross' True)
-   ,("left sever", botRule False)
-   ,("right sever", oneRule False)
-   ,("sever meet", cutUnit' True)
-   ,("server wait", questRule False)
-   ,("pointer copy", contractRule False)
---   ,("client spawn", cutBang' True)
-   ]
---   ,("output",    Deriv ["Θ"] [gamma,delta,("z",neg (tA :⊗: tB))] $ Cut "w" "_w" (tA :⊗: tB) 2 (Exchange [1,0,2] $ Par dum "x" "y" 1 whatA whatB) (Channel dum))
---   ,("input",    Deriv ["Θ"]  [("x",tA), ("y",tB),delta] $ Cut "w" "_w" (tA :⊗: tB) 2 (ChanPar dum dum) (Cross dum "x" "y" 0 whatA) )
-    
-               
+
+
