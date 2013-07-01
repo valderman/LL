@@ -117,11 +117,12 @@ layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
   [[norm t,norm (neg t),sz] | (t,sz) <- allPosTypes]
 
 multicolumn n fmt c = cmdn "multicolumn" [(tex (show n)),(textual fmt),c]
+                      >> return ()
 
 typeTable = figure "Types " $
     env "center" $ math $ do
       array [] (textual "cccc") $
-        [ [ @" @multicolumn(2)("c")("Positive") @", @" @multicolumn(2)("c")("Negative") @"]
+        [ [ multicolumn 2 "c" "Positive", multicolumn 2 "c" "Negative" ]
         , [  @" @id(tA ⊗ tB) @", @" @One @" , @" @id(tA ⅋ tB) @" , @" @Bot @"]
         , [  @" @id(tA ⊕ tB) @", @" @Zero @", @"  @id(tA & tB) @" , @" @Top @"]
         , [  @" @id(Forall "α" tAofAlpha) @" , @" @" , @" @id(Exists "α" tAofAlpha) @" , @"@"]
