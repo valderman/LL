@@ -108,7 +108,7 @@ the tensor product has neutral element @One, which means that
 @tA @tensor_ @One = @tA. 
 
 There is no type representing negation. Instead, negation is a defined notion 
-along the rules below. We only show half of the translations, the other half
+along the rules below. We only show half of the rule, the other half
 are demorgan duals.
 
 @array([])("ccc")(
@@ -134,27 +134,68 @@ means that there is only hypotheses in our judgement, no conclusion. The program
 terms are the only thing occurring to the right of the turnstile. The judgement
 may look peculiar at first, in particular since the terms don't have any
 return types. However, it can be helpful to think of the programs as "returning"
-@Bot.
+@Bot. (TODO CPS explanation)
 
 @rules<-typeRules
 
 Similar to other languages based on linear logic, ours is also a concurrent
-language. Computation corresponds to communication over channels.
+language. Computation corresponds to communication over channels. Each variable 
+in the context corresponds to one end of a channel.
 
 We will now explain the different language constructs as found in figure 
-@xref(rules).
+@xref(rules). The name of the rules reflect their logical meaning
+whereas the name of the language constructs are meant to suggest their 
+operational behaviour.
 
 The axiom rule connects two channels and exchange information. The types of the 
 channels must be duals such that one channel is a producer and the other a
-consumer.
+consumer. It also ends the current thread; there is nothing happening after
+the exchange.
 
 The cut rule creates a new channel with two ends, @math{x} and @math{y}, which 
 are connected. The channels are used in two separate threads, @math{a} and 
-@math{b}, which run concurrently.
+@math{b}, which run concurrently and in different, disjoint contexts. It is 
+worth noting that the two ends of the channel have different types which are 
+duals.
 
 There is a similar construct to the cut rule which is the @par_ rule. The 
-difference is that the @par_ rule doesn't create a new channel, it splits a 
-channel which has type @tA @par_ @tB.
+difference is that the @par_ rule doesn't create a new channel, it splits the
+channel @math{z} of type @tA @par_ @tB and each of the parts are used in
+different processes. 
+Dual to the @par_ rule is the @tensor_ rule which also splits the channel but 
+uses the two parts, @math{x} and @math{y},  of the channel in the same process. 
+There is no order imposed on how @math{x} and @math{y} should be used. The
+order is dictated by how they are used inside the process @math{a}.
+
+There are two symmetric rules for the @with_ type, only one is shown in the 
+figure. Given a channel of type @tA @with_ @tB, the rule @with_ decides to
+send something of type @tA along the channel. That value is in turn produced in 
+the channel @math{x}. This rule realizes internal choice, the process decides 
+which choice to make. Dually, external choice is realized by the @plus_ rule 
+which examines the contents of the channel @math{z} and branches depending on
+the value.
+
+There are three rules for the neutral types @Bot, @One and @Zero. The types
+@Bot and @One corresponds to a singleton data type. The rule for
+@Bot effectively just ends evaluation of the current process and sends a single 
+value along the channel. The rule for @One 
+is essentially a noop, since it can only ever receive one value,
+denoted @diamond_ in the rules.
+
+The types @Zero and @Top corresponds to the empty data type. The @Zero rule 
+corresponds to eliminating the empty type, something which should never happen.
+Operationally it will crashes the entire machine, including all other 
+concurrently running processes. The @gamma_ in the dump construct is there for 
+formal reasons: every variable need to be used once. There is no rule for @Top
+as that would mean being able to construct an element of the empty type.
+
+The @forall_ and @exists_ rules deal with channels of polymorphic and 
+existential types. The rule @forall_ instantiates a polymorphic channel with a 
+particular type @tB which means sending the type along the channel. The type is 
+received in the @exists_ rule where the type is given the name @alpha_.
+
+Finally, there are four rules for dealing with exponentials, allowing channels
+to be duplicated and ignored.
 
 @subsection{Note CPS relation}
 @subsection{Examples}
