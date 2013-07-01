@@ -18,3 +18,4 @@ cabal-dev
 *.log
 *.out
 *.vtc
+*.svg
