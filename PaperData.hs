@@ -228,10 +228,10 @@ doubleCut' :: Deriv
 doubleCut' = Deriv [] [gamma,delta] $ Cut "_x" "x" (neg tA) 0 whatA $ Cut "_y" "y" (neg tC) 1 (Cut "_z" "z" (neg tB) 0 whatB whatD) whatC 
 
 exponentialSimple = fillTypes $
-  Deriv [] [gamma,xi] $ 
+  Deriv [] [gammaBang,xi] $ 
   Cut "_x" "x" (Bang tA) 1 (Offer False "x" 0 whatA) $
   Alias False 0 "y" $ 
-  Demand "z" dum 1 $ 
+--  Demand "z" dum 1 $ 
   whatB
                     
   
@@ -297,18 +297,18 @@ chanRedRules =
    ,(eval',"pointer copy (left)",  fillTypes $ 
                                    Deriv ["θ"] [gammaBang,xi] $
                                    -- Cut "w" "_w" (Bang tA) $
-                                   Mem tA [1,0] whatA (Alias False 0 "x" whatB) )
+                                   Mem tA 1 1 whatA (Alias True 0 "x" whatB) )
    ,(eval',"pointer delete (right)",  fillTypes $ weakenRule) -- TODO? Probably we can't asynchronicize this.
    ,(eval',"pointer delete (left)",  
      fillTypes $ 
      Deriv ["θ"] [gammaBang,xi] $
      -- Cut "w" "_w" (Bang tA) $
-     Mem tA [1,0] whatA (Ignore 0 whatB) ) -- TODO
+     Mem tA 1 1 whatA (Ignore 0 whatB) ) -- TODO
     
    ,(eval',"mem dealloc",  fillTypes $ 
                                    Deriv ["θ"] [gammaBang,xi] $
                                    -- Cut "w" "_w" (Bang tA) $
-                                   Mem tA [] whatA whatB) -- TODO
+                                   Mem tA 1 0 whatA whatB) -- TODO
     
 --   ,("client spawn", cutBang' True)
    ]

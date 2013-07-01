@@ -108,6 +108,15 @@ toGraphPart te e this@(Offer True v x s) = do
   thisNode <- boson this
   specialEdge thisNode n tyA
   return (n0++thisNode:n1)
+toGraphPart te e this@(Mem ty x n t u) = do  
+   let (t',u') = splitAt x e
+   (tn:tns) <- toGraphPart te (("_x",neg ty):t') t
+   (un,uns) <- splitAt n <$> toGraphPart te (replicate n ("x",Bang ty) ++ u') u
+   thisNode <- boson this
+   specialEdge thisNode tn ty
+   forM un $ \un' -> 
+     specialEdge thisNode un' (Bang ty)
+   return (tns++uns)  
 toGraphPart te e this@(Alias True x w' s) = do  
   let (v0,(w,~(Bang tyA)):v1) = splitAt x e 
   (n:n1,n':n2) <- splitAt (x+1) <$> toGraphPart te ((w,Bang tyA):v0++(w',Bang tyA):v1) s

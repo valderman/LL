@@ -388,6 +388,7 @@ rule does send one. A possible execution is shown below.
 
 @dm(sequent $ eval' $ exponentialSimple)
 @dm(couplingDiag $ eval' $ exponentialSimple)
+@dm(couplingDiag $ eval' $ eval' $ exponentialSimple)
 
 TODO: ignore boson
 

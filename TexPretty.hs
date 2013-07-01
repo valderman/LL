@@ -59,7 +59,7 @@ seqName' ctx s = case s of
    (ChanTyp   tmono)   -> ruleName "B" <> math ( (index (texType 0 ctx tmono)))
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
-   (Mem ty n _ _)      -> ruleName "Mem" <> math ( index (textual (show $ length n)) <> texType 0 ctx ty) 
+   (Mem ty x n _ _)      -> ruleName "Mem" <> math ( index (textual (show n)) <> texType 0 ctx ty) 
 
 seqLab :: Seq -> String 
 seqLab s = case s of
@@ -79,7 +79,7 @@ seqLab s = case s of
    (Demand _ _ _ _)    -> "!"
    (Ignore _ _)        -> "Wk"
    (Alias β _ _ _)       -> "Ct"
-   (Mem _ _ _ _)       -> "M"
+   (Mem _ _ _ _ _)       -> "M"
 --   (Channel ty)        -> "Ch"
    (ChanPlus b)  -> indicator b
    (ChanCross ta tb)   -> "<"

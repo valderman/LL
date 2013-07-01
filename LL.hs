@@ -113,13 +113,14 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | ChanTyp Type -- Monotype boson
          | MemEmpty Type Int -- Memory with n readers, but not written yet
          | MemFull Type Int  -- Memory with n readers, already written to
-         | Mem Type [Int] Seq Seq
+         | Mem Type Int Int Seq Seq
 
+{-
 memSplit :: [Int] -> [a] -> [[a]]
 memSplit [] x = [x]
 memSplit (i:is) x = l:memSplit is r
   where (l,r) = splitAt i x
-
+-}
 -- | A full derivation
 data Deriv = Deriv {derivTypeVars :: [Name], derivContext :: [(Name,Type)], derivSequent :: Seq}
 
@@ -138,6 +139,7 @@ varOf (Offer _ _ x _) = x
 varOf (Demand _ _ x _) = x
 varOf (Ignore x _) = x
 varOf (Alias _ x _ _) = x
+varOf (Mem _ x _ _ _) = x
 
 ---------------------------
 -- Substitution machinery
@@ -204,7 +206,7 @@ applyS f t = case t of
   TApp β tp w x ty a -> TApp β ((var 0:wk∙f)∙tp) w x (f ∙ ty) (s a)
   TUnpack w x a -> TUnpack w x (s' a)
   Offer β w x a -> Offer β w x (s a)
-  Mem ty xs u ts -> Mem (f ∙ ty) xs (s u) (s ts)
+  Mem ty x n u ts -> Mem (f ∙ ty) x n (s u) (s ts)
   Demand w ty x a -> Demand w ty x (s a)
   Ignore x a -> Ignore x (s a)
   Alias β x w a -> Alias β x w (s a)
@@ -235,10 +237,10 @@ cheval _ (SOne False x s) = SOne True x s
 cheval _ (SBot False) = SBot True
 cheval _ (Alias False x w s) = Alias True x w s
 -- cheval _ (Offer False w x s) = Offer True w x s
-cheval n (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty (γ:[]) s (cheval  (n-γ+1) t)
+cheval n (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty γ 1 s (cheval  (n-γ+1) t)
 
 -- Interactions
-cheval _ (Mem tA (x:xs) s (Alias False 0 "x" t)) = Mem tA (x:0:xs) s t
+cheval _ (Mem tA x n s (Alias True 0 "x" t)) = Mem tA x (1+n) s t
 
 {-
 cheval _ (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t
@@ -471,9 +473,9 @@ foldSeq sf ts0 vs0 s0 =
       (Alias β x w' s) -> salias β w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       What x ws -> swhat x [fst (vs !! w) | w <- ws] vs
-      Mem ty xs t u -> smem (fty ty) (recurse ts (("_x",neg ty):t') t)
-                                      (recurse ts (concatMap (("x",Bang ty):) us') u)
-        where (t':us') = memSplit xs vs
+      Mem ty x n t u -> smem (fty ty) (recurse ts (("_x",neg ty):t') t)
+                                      (recurse ts (replicate n ("x",Bang ty) ++ u') u)
+        where (t',u') = splitAt x vs
    where fty = sty ts
          fctx = map (second fty)
          SeqFinal{..} = sf (Deriv ts vs seq)
@@ -508,7 +510,7 @@ fillTypes' = foldSeq sf where
     schtyp tmono _ = ChanTyp tmono
     schempty ty n = MemEmpty ty n
     schfull ty n = MemFull ty n
-    smem ty t ts = Mem ty xs t ts where Mem _ xs _ _ = seq
+    smem ty t u = Mem ty x n t u where Mem _ _ n _ _ = seq
     swhat a _ _ = What a xs where What _ xs = seq
     x = varOf seq
 
