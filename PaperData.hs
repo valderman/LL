@@ -52,8 +52,8 @@ derivation = deriv True
 sequent = deriv False
 
 -- | Render a derivation as a program (term)
-program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = indentation (texProg tvs vs s)
+program :: Bool -> Deriv -> Tex ()
+program _ (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
 -- | Render a derivation tree, showing terms.
 deriv'' (x,_) = derivation x
@@ -196,6 +196,42 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
             [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
          newline  
          cmd0 "vspace{1em}"
+
+--------------
+-- Reductions
+
+syncFig = figure_ "Reduction rules" $
+          env "center" $
+          typesetReductions syncRules
+
+pushFig = figure_ "Reduction rules" $
+          env "center" $
+          typesetReductions pushRules
+
+typesetReductions reds = env "center" $
+    forM_ reds $ \(name,input) -> do
+          let red1 :: (Bool -> Deriv -> Tex a) -> Tex ()
+              red1 displayer = do
+                displayer True input
+                math $ cmd0 "Longrightarrow"
+                displayer True (eval input)
+                return ()
+          "name:" <> name
+          newline
+          cmd0 "vspace{3pt}"
+          red1 deriv
+          newline
+          cmd0 "vspace{1em}"
+          {-
+          newline
+          cmd "fbox" $ red1 (program)
+          cmd0 "vspace{1em}"
+          -- renderTree input
+          -- renderTree (eval input)
+          newline
+-}
+
+
 
 --------------------
 -- Abstract Machine         

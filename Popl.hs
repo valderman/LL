@@ -194,12 +194,24 @@ existential types. The rule @forall_ instantiates a polymorphic channel with a
 particular type @tB which means sending the type along the channel. The type is 
 received in the @exists_ rule where the type is given the name @alpha_.
 
-Finally, there are four rules for dealing with exponentials, allowing channels
-to be duplicated and ignored.
+Finally, there are four rules for dealing with exponentials, allowing values
+to be duplicated and ignored. The rule ? sends values which have no restriction
+on how many times they can be used.
+Since values are linear by default we must be careful how we construct such
+values. Notice that the context in the ? rule appears with a ! in front of them.
+This notation means that all the types in the context must themselves be
+exponentials. The ! rule extracts an unrestricted value so that it can used
+according to the linear rules.
+The rules Weaken and Contract allows for ignoring and duplicating values
+respectively.
 
 @subsection{Note CPS relation}
 @subsection{Examples}
 @subsection{Reduction rules}
+
+
+@syncFig
+@pushFig
 
 
 @section{Coupling Diagrams}
