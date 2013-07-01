@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module LL where
 
@@ -114,6 +115,7 @@ data Seq = Exchange Permutation Seq -- Permute variables
          | MemEmpty Type Int -- Memory with n readers, but not written yet
          | MemFull Type Int  -- Memory with n readers, already written to
          | Mem Type Int Int Seq Seq
+
 
 {-
 memSplit :: [Int] -> [a] -> [[a]]
@@ -240,7 +242,14 @@ cheval _ (Alias False x w s) = Alias True x w s
 cheval n (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty γ 1 s (cheval  (n-γ+1) t)
 
 -- Interactions
-cheval _ (Mem tA x n s (Alias True 0 "x" t)) = Mem tA x (1+n) s t
+cheval _ (Mem tA x n s (Alias True 0 _ t)) = Mem tA x (1+n) s t
+cheval m (Mem tA x n s (Demand _ _ 1 t)) = 
+  alias True [0..x-1] $ 
+  Mem tA x (n-1) s $
+  exchange [1,0,2] $ -- FIXME: do not hardcode!
+  Cut "_w" "w" tA x s $ 
+  exchange [1,0,2] $
+  t
 
 {-
 cheval _ (Cut _ _ _ 1 (ChanPlus c) (Plus _ _ 0 s t)) = if c then s else t

@@ -241,10 +241,10 @@ doubleCut' :: Deriv
 doubleCut' = Deriv [] [gamma,delta] $ Cut "_x" "x" (neg tA) 0 whatA $ Cut "_y" "y" (neg tC) 1 (Cut "_z" "z" (neg tB) 0 whatB whatD) whatC 
 
 exponentialSimple = fillTypes $
-  Deriv [] [gammaBang,xi] $ 
+  Deriv ["θ"] [gammaBang,xi] $ 
   Cut "_x" "x" (Bang tA) 1 (Offer False "x" 0 whatA) $
   Alias False 0 "y" $ 
---  Demand "z" dum 1 $ 
+  Demand "z" dum 1 $ 
   whatB
                     
   

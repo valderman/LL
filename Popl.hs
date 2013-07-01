@@ -427,9 +427,12 @@ rule does send one. A possible execution is shown below.
 @dm(sequent $ exponentialSimple)
 @dm(couplingDiag $ exponentialSimple)
 
-@dm(sequent $ eval' $ exponentialSimple)
+@dm(sequent      $ eval' $ exponentialSimple)
 @dm(couplingDiag $ eval' $ exponentialSimple)
+@dm(sequent      $ eval' $ eval' $ exponentialSimple)
 @dm(couplingDiag $ eval' $ eval' $ exponentialSimple)
+@dm(sequent      $ eval' $ eval' $ eval' $ exponentialSimple)
+@dm(couplingDiag $ eval' $ eval' $ eval' $ exponentialSimple)
 
 TODO: ignore boson
 

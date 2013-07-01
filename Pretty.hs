@@ -19,9 +19,19 @@ import Data.List (intercalate)
 
 
 
-instance Show (Deriv) where
-  show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq True ts vs s
+deriving instance Show Seq
+deriving instance Show Deriv
+deriving instance Show Type
 
+{-
+instance Show Type where
+  show x = render $ pType 0 ["v" <> show i | i <- [0..]] x
+
+instance Show Seq where
+   show = render . pSeq [] []
+
+instance Show (Deriv) where show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq True ts vs s
+-}
 prn p k = if p > k then parens else id
 
 pType :: Int -> [String] -> Type -> Doc
@@ -42,8 +52,6 @@ pType p vs (Quest t) = prn p 4 $ "?" <> pType 4 vs t
 pType p vs (Meta b s xs) = if_ b ("~" <>) $ text s <> args
   where args = if null xs then mempty else brackets (cat $ punctuate "," $ map (pType 0 vs) xs)
 
-instance Show Type where
-  show x = render $ pType 0 ["v" <> show i | i <- [0..]] x
 
 pSeq :: Bool -> [Name] -> [(Name,Type)] -> Seq -> Doc
 pSeq showTypes = foldSeq sf where
@@ -73,15 +81,15 @@ pSeq showTypes = foldSeq sf where
         signore w ty s = "ignore " <> text w $$ s
         salias _ w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
         swhat a _ _ = braces $ pCtx ts vs
+        smem ty t u = "serve " <> ty <> " " <> vcat ["server" <> u
+                                                    ,"clients" <> t
+                                                    ]
+                        
    varT x y | showTypes = text x <> " : " <> y
             | otherwise = text x                            
    whenShowTypes | showTypes = id                            
                  | otherwise = const "?"
        
-deriving instance Show Seq
--- instance Show Seq where
---   show = render . pSeq [] []
-
 pCtx ts vs = pCtx' (fmap (second (pType 0 ts)) vs)
 
 pCtx' :: [(Name,Doc)] ->  Doc
