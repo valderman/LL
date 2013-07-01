@@ -35,7 +35,7 @@ preamble inMetaPost = do
     
   title "Linear Logic: I see what it means!"
   authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                      ("Josef Svenningsson","",ch)]
+                      ("Josef Svenningsson","josefs@chalmers.se",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
   
@@ -95,6 +95,19 @@ demand_ = ruleName "Demand"
 
 lollipop_ :: TeX
 lollipop_ = "⊸"
+
+diamond_ :: TeX
+diamond_ = math "⋄"
+
+gamma_ :: TeX
+gamma_ = "Γ"
+
+forall_, exists_ :: TeX
+forall_ = math "∀"
+exists_ = math "∃"
+
+alpha_ :: TeX
+alpha_ = "α"
 
 ---------------------------------------
 -- Types
