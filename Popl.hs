@@ -433,24 +433,49 @@ encountered their children are ready to run.
 @dm(couplingDiag(eval' $ cutParCross))
 @dm(couplingDiag(eval $ eval' $ cutParCross))
 
-Exponentials borrow concepts from both additive and multiplicative fragment. 
+
+The buffer for exponentials is different from the others: it does not merely hold data
+which is to be consumed one time, but many times. Hence, it is more proper to see it as
+a memory rather than a buffer. Technically, the 
+behaviour of exponentials borrow concepts from both additive and multiplicative fragment. 
 In a fashion similar to additives, a 'ready to run' boson propagates from @offer_ to
-@demand_. That is, @demand_ does not send a boson, only receives one. However,  @contract_
-rule does send one. A possible execution is shown below.
+@demand_. That is, @demand_ does not send a boson, only receives one. This boson corresponds
+signals that the server obeying protocol @tA is ready to run, by storing its
+closure in the memory.
 
+The @contract_ rule behaves similarly to @tensor_: it sends a boson whose effect is to
+create a pointer to data. However, a difference in this case is that both new pointers
+point to the same thing. Consider the following sequent as an example, where a server
+is connected to a client, which we know actually connects to the server at least once.
 @dm(sequent $ exponentialSimple)
-@dm(couplingDiag $ exponentialSimple)
-
-@dm(sequent      $ eval' $ exponentialSimple)
+The server is immediately ready, and this is represented by sending the @math{M} boson. 
+Likewise, copying the pointer using the @contract_ rule 
+requires no synchronization (a @math{Ct} boson is emitted). This can be represented by the
+following diagram
 @dm(couplingDiag $ eval' $ exponentialSimple)
-@dm(sequent      $ eval' $ eval' $ exponentialSimple)
+As for multiplicatives, the bosons interact. In this case however, we do not immediately
+duplicate the @math{M} boson: this would mean that the code for the server is duplicated as well.
+Instead, we wish to capture the intuition that we endup with multiple pointers to the same
+server. This is supported by the @math{M} boson, which can connect to multiple clients.
+Hence, the interaction between bosons yields a system which is represented by the following
+diagram:
 @dm(couplingDiag $ eval' $ eval' $ exponentialSimple)
-@dm(sequent      $ eval' $ eval' $ eval' $ exponentialSimple)
+Eventually, the client will start interacting with an instance of the server. This is done by 
+duplicating its closure @math{a}, which we represent as follows. 
 @dm(couplingDiag $ eval' $ eval' $ eval' $ exponentialSimple)
+The new process needs to access the environment, which can be accessed by copying pointers
+to it, thanks to @math{Ct}. Because exponentials are less regular than the rest of the 
+system, they require a more @italic{ad hoc} implementation, and multiple implementations 
+are possible. Our choice of implementation is justified by our desire to represent the 
+exponential channel as a closure to a server which can be pointed at by many clients.
 
-TODO: ignore boson
-
-Axioms transmit the bosons from one side to the other.
+Finally we turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing.
+As we have seen in @fxref(syntaxSec), a @cut_ with an axiom is equivalent to just a @cut_ link.
+However, merely removing axioms and adapting links is not an option if we want processes to
+behave asynchronously: the adaptation of links requires synchronisation. Hence, what we 
+do is have the axiom perform the copy explicitly: for the additive fragment it copies bits of
+data from one side to the other, for the multiplicative fragment it divides the type and
+spawns two axioms in parallel, etc.
 
 @subsection{Boson-oblivious reduction}
 
@@ -458,11 +483,21 @@ The boson-aware reduction relation is a strict refinement of the reduction relat
 in @fxref(syntaxSec).
 
 @theorem(""){
-  if neither a nor b contain a boson, then
-  a reduces to b if and only if a boson-reduces to b
+  if neither a nor b contain a boson or an intermediate axiom rule, then
+  a == b if and only if a =(new)= b
 }{
-  This is a consequence of the local result,  and the fact that bosons travel linearly
-  in the coupling graph.
+  For additive, multiplicative and quantifiers, this is immediate because the structure of
+  bosons is the same as the original structure. 
+
+  For axioms the result stems from the following lemma.
+}
+
+@lemma("Axiom confluence"){
+  If a boson (or in case of multiplicative fragment, a pair of bosons) is sent
+  on an axiom link, it then reduces to a link (resp. a pair links) between the  
+  processes having sent the bosons.
+}{
+  A simple case analysis of all possible execution paths.
 }
 
 @section{Abstract Machine}
@@ -509,7 +544,8 @@ We emphasize this fact by assigning them an infinite number of cells.
 
 @subsection{Reduction rules}
 
-TODO: explain axiom.
+We do not detail the execution of the @ax_ rule: it stems directly 
+from the boson-reduction presented in the previous section.
 
 @texAmRulesExplanation
 
@@ -522,43 +558,102 @@ TODO: explain axiom.
 @definition("AM to Sequent"){
 }
 
+The boson-aware sequents are more fine-grained than the abstract machine:
+some distinct sequents will be represented by the same state of the abstract machine.
+For example, it is not possible to discover if multiplicative boson have 
+interacted or not.
+
+The relation between equivalent sequents is a subset of the boson-reduction.
+@definition("Unobservable reductions"){
+  
+}
+
 @theorem("AM Adequacy"){
 - Operational rules are in clear one-to-one correspondance.
-- Difficulty: it is not possible to discover if the >< rule has been executed or not.
-- Solution: we merely claim adequacy up to that rule (as we do up to cut reordering)
 }{
 
 }
 
+Combined with the above results, this shows that our abstract machine is sound and complete
+with respect to the outermost evaluation relation.
+
 @section{Discussion}
 
-Quantifiers
+@paragraph{Quantifiers}
+Our implementation of type-variables and quantifiers may be surprising. 
+It might seem natural to layour store a value of a type variable α as 
+a single cell, at it is usual in functional programming languages,
+instead of having to lookup it size in an environment.
 
-Optimising axiom
+Our choice is dictated by our not wanting to box every value. This is consistent
+with the view that a linear programming language is low level, and
+that pointers should be introduced by exponentials only. 
+
+
+@paragraph{Optimising @ax_}
+To simplify presentation, we have made our implementation of @ax_ less 
+efficient than it could be. It appears wasteful to have a process which
+copies data around, while this data is guaranteed to be produced and consumed
+exactly once. Indeed, it is possible to optimise axioms as follows. Consider
+first the exponentials and quantifiers. Because these are represented by pointers,
+instead of opening the pointer on one side and re-creating an indirectinon the 
+other, one can simply directly copy pointers. Consider second additives. Instead
+of transmitting a single bit, on could have to possibility to transmit a pointer
+to a memory area. In the @plus_ rule, if this pointer is read, then the
+process proceeds with reading the bit from the pointed area. The implementation
+of axiom can then, insead of copying a potentially large amount of data, send a 
+pointer to the source area and terminate immediately.
+
+@paragraph{Asynchronicity}
+Furthermore, we eventually wish to develop low-level,
+efficient linear programming languages
+based on framework laid out in the above. 
+In such languages, one will typically represent large arrays by commensurably
+large tensors. With the synchronous view of multiplicatives, this would mean
+that the layout of an array itself has to be transmitted by @par_, and that @tensor_
+cannot proceed until it has received the blueprint. This means that, 
+to avoid sacrificing parallelism opportunities, one must go with the asynchronous view.
+
 
 Bi-cut; mix.
 
 Deadlock freedom ~ tree structure ~ resource-management process.
 
-Complete asynchronicity of multiplicative essential for efficient handling of tuples.
 
 @subsection{Future Work}
-Efficiency?
+@paragraph{Non-concurrent fragment}
+The language we have presented here is fully concurrent. 
+That is, at no point we assume that communication is uni-directional.
+This means that communication occurs at the bit level, This is obviously
+wasteful in real applications, where data is transmitted in larger chunks.
+Optimising communication in such a way is compatible with the framework presented.
+
+Another consequence of full concurrency is that a process is spawned at every 
+occurence of @par_ and @cut_. However, in many cases, one should be able to discover
+that data flows in a particular direction (for example when the code comes from the
+translation of a functional program into LL). Again, this optimisation is compatible with
+the general framework. The only apparent issue is with polymorphism: an optimiser
+will not be able to discover one-sided data flow in the presence of quantification over
+arbitrary protocols. The obvious solution, which we plan to investigate, is to 
+add a construction for quantification over one-sided protocols.
 
 @subsection{Related Work}
 
-
-
 @paragraph{Systems based on intuitionistic variants}
-@citep{hyland_full_1993}
-@citep{barber_dual_1996}
-@citep{benton_term_1993}
 
-Many presentations of LL for programming needlessly polarize (dualize)
-the presentation. We remain faithful to the spirit of Girard's LL ---
+Many presentations of LL for functional programming dualize the logic
+@citep{hyland_full_1993,barber_dual_1996,benton_term_1993}. 
+That is, every rule introduces a type former either on the left-hand-side or
+on the right-hand-side of the turnstile. 
+
+An issue with this version of LL is that ⅋ does not have the same properties 
+as Girard's version of it @citep{hyland_full_1993}. Furthermore, 
+calling them intuitionistic variants is misleading: LL has good
+computational behaviour.
+
+We remain faithful to the spirit of Girard's LL ---
 LL is already intuitionistic: there is no need to restrict the system
 to give it computational content.
-
 
 @paragraph{Session Types}
 @citep{caires_concurrent_2012} (also ILL)
@@ -568,10 +663,10 @@ to give it computational content.
 @citet{wadler_propositions_2012}
 
 A correspondance has recently been identified between linear logic
-propositions and session types. A proof of a proposition A can be
-identified with process obeying protocol A. This correspondance
-departs from the usual linear logic in that the type @math{A ⊗ B} is
-interpreted as @math{A} then @math{B}, whereas the usual interpretation of the
+propositions and session types. A proof of a proposition @tA can be
+identified with process obeying protocol @tA. This correspondance
+departs from the usual linear logic in that the type @element(tA ⊗ tB) is
+interpreted as @tA then @tB, whereas the usual interpretation of the
 linear formula is symmetric with respect to time. Our interpretation
 keeps the symmetry intact. The associated calculus is close to the
 π-calculus, which we observe is unintuitive to functional programmers
@@ -579,21 +674,39 @@ in two respect. On a superficial level, they much prefer ISWIM-like
 syntaxes. On a semantic level, the ability to transmit channel names,
 departs fundamentally from the tradition of functional programming.
 
+@citet{wadler_propositions_2012} presents a translation from a 
+session-typed functional programming language into LL. However,
+this translation appears to be unnecessary, as LL combines all 
+the necessary properties. First, is expressive enough to
+directly program functionally: we have assigned functional syntax 
+to its proofs (however a large dose of syntactic sugar, the usual translation of intutionistic
+logics into LL, will be healthy
+to write non-trivial programs). Second, the types 
+of LL can express sessions directly. Indeed, 
+we have interpreted the type formers in these terms in @fxref(syntaxSec).
 
-No need for a session-typed functional programming language.
+Another small improvement of this presentation over that of @citet{wadler_propositions_2012}
+is that we have refined the notion of deadlock (shaving off liveness) in LL, 
+showing that it is a purely structural property.
 
-The ⊗ and ⅋ connectors, together with negation, suffice to express all sessions.
+@paragraph{Graphical representations}
 
-Complete symmetry between @id(tA :⊗: tB) and @id(tB :⊗: tA).
+Graphical representations of proofs in linear logic abund.
+Besides the proof nets of Girard, one find many categorically motivated 
+representations
+@citep{cockett_proof_1997,hirschowitz_topological_2008}.
 
-A functional fragment can be trivially embedded into LL. 
+Our representation is motivated by simplicity. First, it is a direct 
+representation of sequents. The reification of a proof from a diagram
+has only to choose where to cut first. Second, we hope that it is intuitive: 
+it is very close to the component diagrams routinely used by software engineers. 
+A difference is that in our diagrams the protocol between components is fully formalised by a type,
+intead of being an informal reference to some interface.
 
-We also refine the understanding of deadlock (a purely structural property) and liveness.
-
-@paragraph{Graphical representation}
-@citet{hirschowitz_topological_2008}
-
-Proof nets: we do not attempt to represent the whole proof graphically; only the top-level structure.
+The diagrams are also closely related to proof nets.
+Considers the multiplicative logic (MLL): then all possible bosons can be emited. If one writes 
+the coupling diagram with all bosons represented, it is topologically equivalent to the proof net for
+the same sequent. (In a proof-net all hypotheses are at the bottom, and bosons point in a particular direction.)
 
 @section{Conclusion}
 
