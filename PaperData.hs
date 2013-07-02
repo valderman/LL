@@ -213,6 +213,14 @@ pushFig = figure_ "Reduction rules" $
           env "center" $
           typesetReductions pushRules
 
+pushFig1 = figure_ "Auxiliary reduction rules I" $
+           env "center" $
+           typesetReductions (take 7 pushRules)
+
+pushFig2 = figure_ "Auxiliary reduction rules II" $
+           env "center" $
+           typesetReductions (drop 7 pushRules)
+
 typesetReductions reds = env "center" $
     forM_ reds $ \(name,input) -> do
           let red1 :: (Bool -> Deriv -> Tex a) -> Tex ()

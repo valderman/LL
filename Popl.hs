@@ -213,7 +213,6 @@ respectively.
 
 
 @syncFig
-@pushFig
 
 
 @section{Coupling Diagrams}
@@ -718,5 +717,12 @@ aspects of LL, such as the structural character of the multiplicative fragment.
 
 @bibliography
 
+@cmd0("appendix")
+
+@section{Auxiliary reduction rules}
+
+@syncFig
+@pushFig1
+@pushFig2
 
 @"
