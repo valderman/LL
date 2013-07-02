@@ -252,33 +252,45 @@ typesetReductions reds = env "center" $
 --------------------
 -- Abstract Machine         
          
-texAmRulesExplanation = itemize $ forM_ (cutRules ++ operationalRules) $ amRule
+
+texAmRules = figure_ "Abstract Machine Rules" $ 
+  mathpar [forAllAmRules $ \(sequ,explanation) s s' -> do
+    amRuleAsMath s s' 
+    seqName(derivSequent sequ)]
+
+texAmRulesExplanation = 
+  itemize $ 
+  sequence_ $ forAllAmRules $ \(sequ,explanation) sys0 sys1 -> do
+    item
+    @"Rule @seqName(derivSequent sequ). @"
+    @"The rule assumes an input heap of this form:@"
+    displayMath $ diagSystem sys0
+    explanation
+    @"The heap after execution is:@"
+    displayMath $ diagSystem sys1
+
+forAllAmRules :: ((Deriv, TeX) -> System SymHeap -> System SymHeap -> TeX) -> [TeX]
+forAllAmRules f = concatMap (amRule f) (cutRules ++ operationalRules)
 
 -- | Render abstract machine rules
-amRule = amRule' emptyHeap
+amRule f = amRule' f emptyHeap 
 
 toSystem' h =  toSystem h . fillTypes
                
-rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return () 
-               
-amRule' :: SymHeap -> [(Deriv,TeX)] -> TeX
-amRule' _ [] = ""
-amRule' h0 ((sequ,explanation):seqs) = do
-  item
-  @"@seqName(derivSequent sequ). @"
+amRuleAsMath s s' = do
+  cmdn "frac" [texSystem s, texSystem s']
+  return ()
+    
+amRule' _ _ [] = []
+amRule' f h0 ((sequ,explanation):seqs) = do
   case msys1 of
-     Nothing -> explanation
-     Just sys1 -> do
-       @"The rule assumes an input heap of this form:@"
-       displayMath $ diagSystem sys0
-       explanation
-       @"The heap after execution is:@"
-       displayMath $ diagSystem sys1
-
-       amRule' (snd sys1) seqs
-  
+     Nothing -> []
+     Just sys1 -> f (sequ,explanation) sys0 sys1 : 
+                   amRule' f (snd sys1) seqs
   where sys0 = toSystem' h0 sequ
         msys1 = stepSystem sys0       
+
+
 
 ----------
 -- Examples

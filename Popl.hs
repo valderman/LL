@@ -402,7 +402,6 @@ By analogy with the elementary particles mediating physical
 forces, we will call such mediating rules bosons.
 
 @texBosons
-@texBosonReds
 
 For the quantifiers fragment, a similar boson and set of reduction rule exists. The
 difference is that a type is being transmitted instead of a bit.
@@ -542,11 +541,6 @@ We emphasize this fact by assigning them an infinite number of cells.
 
 
 @subsection{Reduction rules}
-
-We do not detail the execution of the @ax_ rule: it stems directly 
-from the boson-reduction presented in the previous section.
-
-@texAmRulesExplanation
 
 
 @subsection{Adequacy}
@@ -721,8 +715,19 @@ aspects of LL, such as the structural character of the multiplicative fragment.
 
 @section{Auxiliary reduction rules}
 
+
+
 @syncFig
 @pushFig1
 @pushFig2
+
+
+@texBosonReds
+
+@section{Abstract Machine Reduction}
+We do not detail the execution of the @ax_ rule: it stems directly 
+from the boson-reduction presented in the previous section.
+@texAmRulesExplanation
+@texAmRules
 
 @"
