@@ -116,8 +116,8 @@ norm :: Type -> TeX
 norm ty = math $ "|" <> texClosedType ty <> "|" <> index rho
 
 
-allPosTypes :: [(Type,TeX)]
-allPosTypes = [(One,"0")
+allPosTypesTable :: [(Type,TeX)]
+allPosTypesTable = [(One,"0")
               ,(Zero,"∞")
               ,(tA:⊕:tB,@"1 + @norm(tA) ⊔ @norm(tB) @")
               ,(tA:⊗:tB,@"@norm(tA) + @norm(tB) @")
@@ -126,12 +126,15 @@ allPosTypes = [(One,"0")
               ,(meta "α", "|ρ(α)|" <> index rho)
               ]
 
+allPosTypes = map fst allPosTypesTable
+
+
 texNegationTable = array [] (tex "c@{~=~}c")
-  [ map element [MetaNeg t, neg t] | (t,_) <- init allPosTypes]
+  [ map element [MetaNeg t, neg t] | t <- init allPosTypes]
   -- Note the last row (variable case) is dropped.
 
 layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
-  [[norm t,norm (neg t),sz] | (t,sz) <- allPosTypes]
+  [[norm t,norm (neg t),sz] | (t,sz) <- allPosTypesTable]
 
 multicolumn n fmt c = cmdn "multicolumn" [(tex (show n)),(textual fmt),c]
                       >> return ()
@@ -289,6 +292,7 @@ exponentialSimple = fillTypes $
 -------------------------------
 -- Mediating interaction
 
+
 chanRules :: [(Deriv,TeX)]
 chanRules =   
   [
@@ -299,8 +303,8 @@ chanRules =
 --  ,(chanFullRule 3,    "A memory cell (full)")
    (chanCrossRule,     "A half-split channel (conjuction)")
   ,(chanParRule,       "A half-split channel (disjunction)")
-  ,(oneRule True, "severing channel (conjunction)")
-  ,(botRule True, "severing channel (disjunction)")
+  ,(oneRule True, "severing channel")
+--  ,(botRule True, "severing channel (disjunction)")
   ,(withRule True True, "A channel containing a bit")
   ,(forallRule True, "A channel containing a type")
   ,(questRule True, "A reference to a server")
@@ -327,9 +331,10 @@ texBosonReds =  figure_ @"Asynchronous reduction rules. (Rules involving @ax_ ar
                   [ sequent input <>
                     cmd0 "Longrightarrow" <>
                     sequent (evaluator input)
-                   | (evaluator,_name,input) <- chanRedRules ] 
+                   | (evaluator,_name,input) <- chanRedRules ++ chanAxRedRules ] 
                         ]
 
+chanRedRules,chanAxRedRules :: [(Deriv -> Deriv, String, Deriv)]
 chanRedRules =
    [(eval' ,"bit write"  ,         fillTypes $ withRule False True)
    ,(eval,"bit read"   ,           fillTypes $ cutWithPlus' True True)
@@ -338,7 +343,7 @@ chanRedRules =
    ,(eval',"left split" ,          fillTypes $ parRule' False)
    ,(eval',"right split",          fillTypes $ crossRule' False)
    ,(eval ,"split meet" ,          fillTypes $ cutParCross' True)
-   ,(eval',"left sever" ,          fillTypes $ botRule False)
+--   ,(eval',"left sever" ,          fillTypes $ botRule False) -- USELESS!
    ,(eval',"right sever",          fillTypes $ oneRule False)
    ,(eval ,"sever meet" ,          fillTypes $ cutUnit' True)
    ,(eval',"server wait",          fillTypes $ 
@@ -367,3 +372,7 @@ chanRedRules =
 --   ,("input",    Deriv ["Θ"]  [("x",tA), ("y",tB),delta] $ Cut "w" "_w" (tA :⊗: tB) 2 (ChanPar dum dum) (Cross dum "x" "y" 0 whatA) )
     
                
+chanAxRedRules =   
+  [
+    (eval', "axiom eval", Deriv ["Θ"] [("_w",neg t),("_w",t)] $ Ax t) | t <- init allPosTypes
+  ]
