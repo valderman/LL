@@ -39,8 +39,8 @@ header = do
   acmCategories
   acmKeywords
 
-outputTexMp :: String -> IO ()
-outputTexMp name = renderToDisk' name $ latexDocument "sigplanconf" ["authoryear","preprint"] preamble $ @"
+outputTexMp :: MPOutFormat -> String -> IO ()
+outputTexMp fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
 @header
 
 @intro<-section{Intro}

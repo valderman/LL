@@ -24,6 +24,9 @@ import Data.List
 -- Preamble 
 preamble :: Bool -> Tex ()
 preamble inMetaPost = do
+  if inMetaPost 
+      then documentClass "article" ["9pt"]
+      else documentClass "sigplanconf" ["authoryear","preprint"] 
   stdPreamble
   usepackage "cmll" [] -- for the operator "par"
   mathpreamble
@@ -32,10 +35,10 @@ preamble inMetaPost = do
     -- usepackage "dot2texi" []
     usepackage "tikz" []
     cmd "usetikzlibrary" $ tex "shapes,arrows"
-    
-  title "Linear Logic: I see what it means!"
-  authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                      ("Josef Svenningsson","josefs@chalmers.se",ch)]
+        
+    title "Linear Logic: I see what it means!"
+    authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
+                        ("Josef Svenningsson","josefs@chalmers.se",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
   
@@ -334,7 +337,7 @@ typesetBosonReds reds = env "center" $
 -}
 
 texBosonReds :: Tex SortedLabel
-texBosonReds =  figure_ @"Asynchronous reduction rules. (Rules involving @ax_ are omitted) @" $ 
+texBosonReds =  figure_ @"Asynchronous reduction rules.@" $ 
                 mathpar [
                   [ sequent input <>
                     cmd0 "Longrightarrow" <>
