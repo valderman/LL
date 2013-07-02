@@ -126,6 +126,10 @@ allPosTypes = [(One,"0")
               ,(meta "α", "|ρ(α)|" <> index rho)
               ]
 
+texNegationTable = array [] (tex "c@{~=~}c")
+  [ map element [MetaNeg t, neg t] | (t,_) <- init allPosTypes]
+  -- Note the last row (variable case) is dropped.
+
 layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
   [[norm t,norm (neg t),sz] | (t,sz) <- allPosTypes]
 
@@ -142,8 +146,6 @@ typeTable = figure "Types " $
         , [  @" @id(Bang tA) @", @"@", @" @id(Quest tA) @" , @"@"]
           ]
 
- -- [ multicolumn 2 "c" "Positive", multicolumn 2 "c" "Negative"]
-          
 ------------------------              
 -- Typing rules
 

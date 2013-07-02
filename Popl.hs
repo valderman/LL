@@ -109,7 +109,9 @@ the tensor product has neutral element @One, which means that
 
 There is no type representing negation. Instead, negation is a defined notion 
 along the rules below. We only show half of the rule, the other half
-are demorgan duals.
+are demorgan duals. (Negation is an involution.)
+
+@texNegationTable 
 
 @array([])("ccc")(
   [ [ @" (@tA @tensor_ @tB)^@Bot@" , @" = @", @" @tA^@Bot @par_ @tB^@Bot @"]

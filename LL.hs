@@ -28,6 +28,7 @@ data Type = Type :⊕: Type
              | Quest Type
              | Meta Bool String [Type] -- 'meta' type (just for the paper, not found in actual code)
                                        --  2nd arg are the types occuring in it.
+             | MetaNeg Type -- (irreducible negation, not found anywhere but in typesetting code) 
   deriving Eq
 
 
