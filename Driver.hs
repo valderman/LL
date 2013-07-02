@@ -12,7 +12,7 @@ import Control.Monad.Trans (liftIO)
 importExternalFile :: FilePath -> Act ()
 importExternalFile what = do
   e <- liftIO $ doesFileExist what
-  when e $ do liftIO $ hPutStrLn stderr "refreshing bib"
+  when e $ do liftIO $ hPutStrLn stderr $ "refreshing " ++ what
               system ["cp",what,"."]
               return ()
 
