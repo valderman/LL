@@ -50,13 +50,12 @@ deriv :: Bool -- ^ Show terms?
          -> Deriv -> TeX
 deriv showProg (Deriv tvs vs s) = derivationTree $ texSeq showProg tvs vs s
 
-derivation, sequent :: Deriv -> TeX
+derivation, sequent, program :: Deriv -> TeX
 derivation = deriv True 
 sequent = deriv False
 
 -- | Render a derivation as a program (term)
-program :: Bool -> Deriv -> Tex ()
-program _ (Deriv tvs vs s) = indentation (texProg tvs vs s)
+program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
 -- | Render a derivation tree, showing terms.
 deriv'' (x,_) = derivation x
@@ -210,44 +209,30 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
 
 syncFig = figure_ "Reduction rules" $
           env "center" $
-          typesetReductions syncRules
+          typesetReductions program syncRules
 
 pushFig = figure_ "Reduction rules" $
           env "center" $
-          typesetReductions pushRules
+          typesetReductions program pushRules
 
 pushFig1 = figure_ "Auxiliary reduction rules I" $
            env "center" $
-           typesetReductions (take 7 pushRules)
+           typesetReductions program (take 7 pushRules)
 
 pushFig2 = figure_ "Auxiliary reduction rules II" $
            env "center" $
-           typesetReductions (drop 7 pushRules)
+           typesetReductions program (drop 7 pushRules)
 
-typesetReductions reds = env "center" $
+typesetReductions displayer reds = env "center" $
     forM_ reds $ \(name,input) -> do
-          let red1 :: (Bool -> Deriv -> Tex a) -> Tex ()
-              red1 displayer = do
-                displayer True input
-                math $ cmd0 "Longrightarrow"
-                displayer True (eval input)
-                return ()
-          "name:" <> name
-          newline
-          cmd0 "vspace{3pt}"
-          red1 deriv
-          newline
-          cmd0 "vspace{1em}"
-          {-
-          newline
-          cmd "fbox" $ red1 (program)
-          cmd0 "vspace{1em}"
-          -- renderTree input
-          -- renderTree (eval input)
-          newline
--}
-
-
+      "name:" <> name
+      newline
+      cmd0 "vspace{3pt}"
+      displayer input
+      math $ cmd0 "Longrightarrow"
+      displayer (eval input)
+      newline
+      cmd0 "vspace{1em}"
 
 --------------------
 -- Abstract Machine         
