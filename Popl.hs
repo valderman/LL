@@ -207,7 +207,7 @@ respectively.
 
 @section{Outermost Coupling Structure}
 
-The fact that the program @math{a} is working in a environment @math{Γ = x:A,y:B,z:C} is
+The fact that the program @math{a} is working in a environment @math{Γ = x:A,y:B,z:C⟂} is
 usually represented by a judgement @derivation(simpleEnv). In the
 rest of the paper we also use the following graphical representation:
 we label a node with the program that it represents, and 
@@ -390,51 +390,55 @@ each subsystem waits for the other to be ready.
 
 There is a standard trick to transform a synchronous communication into an asynchronous one:
 insert buffers between the communicating parties.  
-We will apply this trick here.
+We apply this trick here.
 Notably, we perform this insertion of buffers within the framework of linear logic,
 merely adding new rules, and replacing the standard (synchronous) reduction rules by another 
 set of reductions which all involve an intermediate buffer.
 
-The idea is that buffers will mediate the interaction between
+The idea is that buffers mediate the interaction between
 the non-structural rules. For example, when a @with_ rule is connected
-to a @plus_ rule via a channel, the @with_ rule will write a bit of information
-to the channel indicating which side of the sum to take. The children of @with_ will be 
+to a @plus_ rule via a channel, the @with_ rule writes a bit of information
+to the channel indicating which side of the sum to take. The children of @with_ is 
 ready to run regardless of a @plus_ rule being ready to read. 
-Asynchronously, the @plus_ rule will read the bit of info as soon as 
-it becomes available.
-
+The @plus_ rule reads the bit of info asynchronously as soon as 
+it becomes available. This execution process can be depicted using coupling diagrams as 
+follows:
 @dm(couplingDiag $(cutWithPlus True))
-@dm(couplingDiag $ ( eval' $ cutWithPlus True))
+@dm(couplingDiag $ (eval' $ cutWithPlus True))
 @dm(couplingDiag $ eval $ eval' $ cutWithPlus True)
-
-One can metaphorically talk about the intermediate rule being created
+The intermediate rule being created can be metaphorically seen
 as a particle travelling from left to right. 
 By analogy with the elementary particles mediating physical 
 forces, we will call such mediating rules bosons.
-
-@texBosons
+In diagrams, we write them without a circle around them.
+The diagrammatic representation of the & boson suggests to
+implements it as the rules
+@mathpar[map (sequent . chanPlusRuleBad) [True, False]]
+However, we make another choice: to represent it as a rule with the
+same premiss and conclusion as @with_, and merely consider the premiss
+to be ready to run in our execution model. 
+@mathpar[map (sequent . withRule True) [True, False]]
+In this sense, it is as if
+the new rule had a structural aspect to it (it embeds a virtual cut).
+This feature is made explicit in the diagram by drawing the virtual cut
+with a dotted edge.
 
 For the quantifiers fragment, a similar boson and set of reduction rule exists. The
-difference is that a type is being transmitted instead of a bit.
+only difference is that a type is being transmitted instead of a bit.
 
 For the multiplicative fragment, we examine two possible ways to encode asynchronicity,
 to eventually settle on the second one.
-
-The first option is similar to what happens in the additive fragment: a boson (called >) travels
+The first option is similar to what happens in the additive fragment: a ⅋ boson travels
 from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
 boson must connect two processes. The downside of this approach is that, until the
 @par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
 does not actually need to wait for any information: the behaviour of the continuation does
 not depend on anything that the @par_ rule @emph{itself} will provide. In fact, one might
-just as well imagine that a boson (called <) should travel in the other direction, from @tensor_ to @par_.
-(On the face of it, such a particle would break the invariant we have so far, it would create a cycle
-in the coupling graph. Fortunately, this boson has exactly the same structure as the @tensor_ rule
-itself, so no possible deadlock can occur.)
+just as well imagine that a ⊗ boson should travel in the other direction, 
+from @tensor_ to @par_.
 
 This observation leads us to a second and, in our opinion, preferable option to
 model asynchronicity. The solution is to send both bosons, and add a reduction rule between them.
-(The bosons < and > are in fact mere renamings of the rules themselves. Sending the bosons is equivalent to
-bring the cuts under @par_ and @tensor_ to the outermost level.)
 This means @par_ and @tensor_ behave completely asynchronously: as soon as they are
 encountered their children are ready to run.
 
@@ -442,19 +446,26 @@ encountered their children are ready to run.
 @dm(couplingDiag(eval' $ cutParCross))
 @dm(couplingDiag(eval $ eval' $ cutParCross))
 
+If we had chosen to represent bosons as rules a without structural component
+(eg. separated the @cut_ from the & boson as considered above), then the 
+emission of the ⊗ boson would have required the use of @bicut_. This requirement  
+mainly explains our preferrence for the alternative, where the ⊗ boson has the
+same structure as the @tensor_ rule.
 
 The buffer for exponentials is different from the others: it does not merely hold data
 which is to be consumed one time, but many times. Hence, it is more proper to see it as
 a memory rather than a buffer. Technically, the 
 behaviour of exponentials borrow concepts from both additive and multiplicative fragment. 
-In a fashion similar to additives, a 'ready to run' boson propagates from @offer_ to
-@demand_. That is, @demand_ does not send a boson, only receives one. This boson corresponds
-signals that the server obeying protocol @tA is ready to run, by storing its
-closure in the memory.
+In a fashion similar to additives, a 'ready to run' boson (called @math{M} for memory) 
+propagates from @offer_ to @demand_. That is, @demand_ does not send a boson, 
+only receives one. This boson signals that the server obeying protocol @tA is ready 
+to run, by storing its closure in the memory. Its absorption corresponds to spawning
+an instance of the server process.
 
-The @contract_ rule behaves similarly to @tensor_: it sends a boson whose effect is to
+The @contract_ rule behaves similarly to @tensor_: it sends a boson (@math{Ct}) whose effect is to
 create a pointer to data. However, a difference in this case is that both new pointers
-point to the same thing. Consider the following sequent as an example, where a server
+point to the same thing, the pointer is duplicated. 
+Consider the following sequent as an example, where a server
 is connected to a client, which we know actually connects to the server at least once.
 @dm(sequent $ exponentialSimple)
 The server is immediately ready, and this is represented by sending the @math{M} boson. 
@@ -462,9 +473,11 @@ Likewise, copying the pointer using the @contract_ rule
 requires no synchronization (a @math{Ct} boson is emitted). This can be represented by the
 following diagram
 @dm(couplingDiag $ eval' $ exponentialSimple)
-As for multiplicatives, the bosons interact. In this case however, we do not immediately
-duplicate the @math{M} boson: this would mean that the code for the server is duplicated as well.
-Instead, we wish to capture the intuition that we endup with multiple pointers to the same
+As for multiplicatives, the bosons interact. In this case however, the behaviour of bosons does
+not mimic the behaviour of regular rules. That is, we do not immediately
+duplicate the @math{M} boson. Indeed this would mean that a server instance is spawned, 
+however we wish to do this only when the @demand_ rule is executed.
+Instead, we wish to capture the intuition that we end up with multiple pointers to the same
 server. This is supported by the @math{M} boson, which can connect to multiple clients.
 Hence, the interaction between bosons yields a system which is represented by the following
 diagram:
@@ -477,11 +490,13 @@ to it, thanks to @math{Ct}. Because exponentials are less regular than the rest 
 system, they require a more @italic{ad hoc} implementation, and multiple implementations 
 are possible. Our choice of implementation is justified by our desire to represent the 
 exponential channel as a closure to a server which can be pointed at by many clients.
+This concludes our description of bosons, whose complete list is shown is @bosonsFig.
+@bosonsFig<-texBosons
 
-Finally we turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing.
-As we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
+We finally  turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing:
+as we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
 However, merely removing axioms and adapting links is not an option if we want processes to
-behave asynchronously: the adaptation of links requires synchronisation. Hence, what we 
+behave asynchronously: the adaptation of links requires two-way synchronisation. Hence, what we 
 do is have the axiom perform the copy explicitly: for the additive fragment it copies bits of
 data from one side to the other, for the multiplicative fragment it divides the type and
 spawns two axioms in parallel, etc.

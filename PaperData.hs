@@ -98,7 +98,7 @@ contract_ = ruleName "Contract"
 weaken_ = ruleName "Weaken"
 offer_ = ruleName "Offer"
 demand_ = ruleName "Demand"
-mem_ = ruleName "Mem"
+mem_ = ruleName "BM"
 
 lollipop_ :: TeX
 lollipop_ = "⊸"
@@ -288,7 +288,7 @@ amRule' f h0 ((sequ,explanation):seqs) = do
 -- Examples
 
 simpleEnv :: Deriv
-simpleEnv = Deriv [] [("x",tA),("y",tB),("z",tC)] whatA
+simpleEnv = Deriv [] [("x",tA),("y",tB),("z",neg tC)] whatA
 
 simpleCut :: Deriv
 simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
@@ -317,6 +317,7 @@ chanRules =
    (chanCrossRule,     "A half-split channel (conjuction)")
   ,(chanParRule,       "A half-split channel (disjunction)")
   ,(oneRule True, "severing channel")
+  ,(withRule True False, "A channel containing a bit")
   ,(withRule True True, "A channel containing a bit")
   ,(forallRule True, "A channel containing a type")
   ,(questRule True, "A reference to a server")
