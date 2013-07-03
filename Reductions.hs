@@ -32,7 +32,7 @@ cutContract' β = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
           Cut "z" "_z" (Bang $ meta "A") 1 (Offer β "x" 0 whatA) (Alias β 0 "y" whatB)
 cutContract = cutContract' False
 cutIgnore' β = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
-            Cut "z" "_z" (Bang $ meta "A") 1 (Offer β "x" 0 whatA) (Ignore 0 whatB)
+            Cut "z" "_z" (Bang $ meta "A") 1 (Offer β "x" 0 whatA) (Ignore β 0 whatB)
 cutIgnore = cutIgnore' False
 cutUnit' β = Deriv ["Θ"] [gamma] $ Cut "z" "_z" One 0 (SBot) (SOne β 0 whatA)
 cutUnit = cutUnit' False
@@ -73,7 +73,7 @@ pushRules = (textual "κ⅋0", altParPush) :
        existsRule,
        questRule False,
        bangRule,
-       weakenRule,
+       weakenRule False,
        contractRule False
        ],
      let l = length $ derivContext d

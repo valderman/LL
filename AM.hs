@@ -148,7 +148,7 @@ runClosure h (Demand x ty v a,e,te)
          ,[(a,el++[(x,q)]++er,te),(u,setNull e' q,te')])
     where (el,(_,p):er) = splitAt v e
           (h',q) = alloc (te ∙ ty) h
-runClosure h (Ignore v a,e,te)
+runClosure h (Ignore β v a,e,te)
   = Just (modifyRefCount (subtract 1) m h,[(a,el++er,te)])
   where (el,(_,m):er) = splitAt v e
 runClosure h (Alias β v x a,e,te)

@@ -105,7 +105,7 @@ data Seq = Exchange Permutation Seq -- Permute variables
 
          | Offer Boson Name Int (Seq) -- FIXME: no boson
          | Demand Name (Forced Type) Int (Seq)
-         | Ignore Int Seq
+         | Ignore Boson Int Seq
          | Alias Boson Int Name (Seq)
            
          -- | Channel (Forced Type) -- Exactly 2 vars
@@ -140,9 +140,12 @@ varOf (TApp _ _ _ x _ _) = x
 varOf (TUnpack _ x _) = x
 varOf (Offer _ _ x _) = x
 varOf (Demand _ _ x _) = x
-varOf (Ignore x _) = x
+varOf (Ignore _ x _) = x
 varOf (Alias _ x _ _) = x
 varOf (Mem _ x _ _ _) = x
+
+isBoson (Ignore β _ _) =  β
+isBoson _ = False -- FIXME
 
 ---------------------------
 -- Substitution machinery
@@ -211,7 +214,7 @@ applyS f t = case t of
   Offer β w x a -> Offer β w x (s a)
   Mem ty x n u ts -> Mem (f ∙ ty) x n (s u) (s ts)
   Demand w ty x a -> Demand w ty x (s a)
-  Ignore x a -> Ignore x (s a)
+  Ignore β x a -> Ignore β x (s a)
   Alias β x w a -> Alias β x w (s a)
   a -> a -- FIXME: other channel types
  where s = applyS f
@@ -253,7 +256,10 @@ cheval _ (Ax t@(Forall tw a)) = TUnpack "x" 0 $
                               TApp True t "_x" 1 (TVar True 0) (Ax a)
 cheval _ (Ax (Bang a)) = Offer True "_x" 0 $ Demand "x" a 1 $ Ax a
 -- Interactions
-cheval _ (Mem tA x n s (Alias True 0 _ t)) = Mem tA x (1+n) s t
+cheval _ (Mem tA x n s (Alias True 0 _ t)) = Mem tA x (n+1) s t
+cheval _ (Mem tA x n s (Ignore True 0 t)) = Mem tA x (n-1) s t
+cheval _ (Mem tA x 0 s t) = 
+  ignore True x s
 cheval m (Mem tA x n s (Demand _ _ 1 t)) = 
   alias True [0..x-1] $ 
   Mem tA x (n-1) s $
@@ -329,7 +335,7 @@ cut n w w' ty γ (TApp β tp v x ty' s) t | x > 0 = TApp β tp v (x-1) ty' (Cut 
 cut n w w' ty γ (TUnpack v x s) t | x > 0 = TUnpack v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Offer β v x s) t | x > 0 = Offer β v (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Demand v ty' x s) t | x > 0 = Demand v ty' (x-1) (Cut w w' ty γ s t)
-cut n w w' ty γ (Ignore x s) t | x > 0 = Ignore (x-1) (Cut w w' ty (γ-1) s t)
+cut n w w' ty γ (Ignore β x s) t | x > 0 = Ignore β (x-1) (Cut w w' ty (γ-1) s t)
 cut n w w' ty γ (Alias β x v s) t | x > 0 = Alias β (x-1) v (Cut w w' ty (γ+1) s t)
 
 
@@ -346,7 +352,7 @@ cut n _ _ (Exists v ty)
            γ (TApp β _ z 0 t a) (TUnpack w 0 b) = cut' n z w (subst0 t ∙ ty) γ a (subst0 t ∙ b)
 cut n _ _ (Bang ty)
            γ (Offer β z 0 a) (Demand w _ 0 b) = cut' n z w ty γ a b
-cut n _ _ ty γ (Offer β _ 0 a) (Ignore 0 b) = ignore γ b
+cut n _ _ ty γ (Offer β _ 0 a) (Ignore β' 0 b) = ignore β' γ b
 cut n _ _ ty γ (Offer β w 0 b) (Alias β' 0 w' a) = alias β' (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer β w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer β w 0 b) a)))
 cut n _ _ ty γ (SBot) (SOne β 0 a) = a
 
@@ -354,8 +360,8 @@ cut n _ _ ty γ (SBot) (SOne β 0 a) = a
 cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w w' (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
 
-ignore 0 a = a
-ignore n a = Ignore 0 (ignore (n-1) a)
+ignore β 0 a = a
+ignore β n a = Ignore β 0 (ignore β (n-1) a)
 
 alias β [] a = a
 alias β (x:xs) a = Alias β x mempty $ alias β xs a
@@ -396,7 +402,7 @@ subst π t = case t of
   (Offer β w x a) -> Offer β w (f x) (s a)
   (Demand w ty x a) -> Demand w ty (f x) (s a)
   (Alias β x w a) -> Alias β (f x) w (s' 0 a)
-  (Ignore x a) -> Ignore (f x) (del x a)
+  (Ignore β x a) -> Ignore β (f x) (del x a)
   (SOne β x a) -> SOne β (f x) (del x a)
   (SZero x) -> SZero (f x)
   (SBot) -> SBot 
@@ -488,7 +494,7 @@ foldSeq sf ts0 vs0 s0 =
         where (v0,(w,~(Quest tyA)):v1) = splitAt x vs
       (Demand v _ x s) -> sdemand w v (fty tyA) $ recurse ts (v0++(v,tyA):v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
-      (Ignore x s) -> signore w (fty tyA) $ recurse ts (v0++v1) s
+      (Ignore β x s) -> signore w (fty tyA) $ recurse ts (v0++v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
       (Alias β x w' s) -> salias β w w' (fty tyA) $ recurse ts ((w,Bang tyA):v0++(w',Bang tyA):v1) s
         where (v0,(w,~(Bang tyA)):v1) = splitAt x vs
@@ -521,7 +527,7 @@ fillTypes' = foldSeq sf where
     stunpack _ _ v s = TUnpack v x s
     soffer β _ v _ s = Offer β v x s
     sdemand _ v ty s = Demand v ty x s
-    signore _ _ s = Ignore x s
+    signore _ _ s = Ignore (isBoson seq) x s
     salias β _ w' _ s = Alias β x w' s
 --    schannel t = Channel t
     schplus b _ta _tb = ChanPlus b

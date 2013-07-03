@@ -25,33 +25,33 @@ par, amp :: TeX
 par = math $ cmd0 "parr"
 amp = math $ cmd "hspace" "1pt" <> cmd0 "&"  <> cmd "hspace" "1pt" 
 
-ruleName = math . cmd "text" . smallcaps 
+ruleName = math . cmd "text" . smallcaps
 
 index ix = tex "_" <> braces ix
 
 indicator b = if b then "1" else "0"
 
-isBoson False x = x
-isBoson True  x = ruleName "B" <> x
+isBoson' False x = x
+isBoson' True  x = ruleName "B" <> x
 
 seqName = seqName' unknownTypeEnv
 seqName' ctx s = case s of
    (Exchange _ _)      -> ruleName "Ex."
    (Ax _ )             -> ruleName "Ax"
    (Cut _ _ _ _ _ _)   -> ruleName "Cut"
-   (Cross  β _ _ _ _ _)   -> isBoson β "⊗"
-   (Par  β _ _ _ _ _ _)   -> isBoson β "⅋"
+   (Cross  β _ _ _ _ _)   -> isBoson' β "⊗"
+   (Par  β _ _ _ _ _ _)   -> isBoson' β "⅋"
    (Plus  _ _ _ _ _)   -> "⊕"
-   (With β _ _ b _ _)  -> isBoson β $ math $ (amp <> index (indicator b))
-   (SOne  β _ _)          -> isBoson β $ "1"
+   (With β _ _ b _ _)  -> isBoson' β $ math $ (amp <> index (indicator b))
+   (SOne  β _ _)          -> isBoson' β $ "1"
    (SZero _)           -> "0"
    SBot                -> "⊥"
-   (TApp  β _ _ _ _ _)    -> isBoson β "∀"
+   (TApp  β _ _ _ _ _)    -> isBoson' β "∀"
    (TUnpack _ _ _)     -> "∃"
-   (Offer  β _ _ _)       -> isBoson β "?"
+   (Offer  β _ _ _)       -> isBoson' β "?"
    (Demand _ _ _ _)    -> "!"
-   (Ignore _ _)        -> ruleName "Wk"
-   (Alias  β _ _ _)       -> isBoson β $ ruleName "Con"
+   (Ignore β _ _)        -> isBoson' β $ ruleName "Wk"
+   (Alias β _ _ _)       -> isBoson' β $ ruleName "Con"
 --   (Channel ty)        -> ruleName "Ch" <> index (texType 0 ctx ty)
    (ChanPlus b)  -> ruleName "B" <>  (indicator b)
    -- (ChanCross ta tb)   -> ruleName "Ch(<)"
@@ -79,7 +79,7 @@ seqLab s = case s of
    (TUnpack _ _ _)     -> "∃"
    (Offer β _ _ _)       -> "?"
    (Demand _ _ _ _)    -> "!"
-   (Ignore _ _)        -> "Wk"
+   (Ignore _ _ _)        -> "Wk"
    (Alias β _ _ _)       -> "Ct"
    (Mem _ _ _ _ _)       -> "M"
 --   (Channel ty)        -> "Ch"

@@ -53,7 +53,7 @@ forallRule  β = Deriv ["Θ"] [gamma,("z",Forall "α" tAofAlpha)] $ TApp β dum 
 existsRule  = Deriv ["Θ"] [gamma,("z",Exists "α" tAofAlpha)] $ TUnpack "x" 1 whatA
 questRule β  = Deriv ["Θ"] [("?γ",Bang (meta "Δ")),("z",Quest (meta "A"))] $ Offer β "_x" 1 whatA
 bangRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Demand "x" dum 1 whatB
-weakenRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore 1 whatA
+weakenRule β = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore β 1 whatA
 contractRule β  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias β 1 "z'" whatA
 
 

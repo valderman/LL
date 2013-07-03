@@ -202,7 +202,7 @@ operationalRules =
                 cells, and spawn a new closure, which is obtained from copying that pointed by 
                  by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
                  The reference count of the cell is decremented.@")]
-  ,[(weakenRule,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
+  ,[(weakenRule False,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
                   The closure is deallocated if the count reached zero.@")]
   ,[(contractRule False,"The the pointer is copied to a new environment entry, and the reference count incremented.")]
   ] 
@@ -340,6 +340,7 @@ chanRules =
   ,(forallRule True, "A channel containing a type")
   ,(questRule True, "A reference to a server")
   ,(contractRule True, "A pointer copy")
+  ,(weakenRule True, "A pointer deletion")
   ,(memRule 4, "A memory cell")
   ]
 
@@ -364,6 +365,7 @@ texBosonReds =  figure_
                 @"Asynchronous reduction rules.
                   The @mem_/@contract_ rule is shown for arity @math{n=1} of @mem_,
                   but it exists for any @math{n≥1}.
+                  Similarly the @mem_/@weaken_ rule is shown for arity 3.
                 @" $ 
                 mathpar [
                   [ sequent input <>
@@ -393,12 +395,12 @@ chanRedRules =
                                    Deriv ["θ"] [gammaBang,xi] $
                                    -- Cut "w" "_w" (Bang tA) $
                                    Mem tA 1 1 whatA (Alias True 0 "x" whatB) )
-   ,(eval',"pointer delete (right)",  fillTypes $ weakenRule) -- TODO? Probably we can't asynchronicize this.
+   ,(eval',"pointer delete (right)",  fillTypes $ weakenRule True)
    ,(eval',"pointer delete (left)",  
      fillTypes $ 
      Deriv ["θ"] [gammaBang,xi] $
      -- Cut "w" "_w" (Bang tA) $
-     Mem tA 1 1 whatA (Ignore 0 whatB) ) -- TODO
+     Mem tA 1 3 whatA (Ignore True 0 whatB) ) 
     
    ,(eval',"mem dealloc",  fillTypes $ 
                                    Deriv ["θ"] [gammaBang,xi] $
