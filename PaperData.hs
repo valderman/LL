@@ -67,6 +67,10 @@ instance Element Layout where
   type Target Layout = TeX
   element = math . texLayout
 
+instance Element Deriv where
+  type Target Deriv = TeX
+  element = displayMath . couplingDiag 
+
 --------------------------------
 -- "Identifiers"
 
@@ -280,6 +284,9 @@ amRule' f h0 ((sequ,explanation):seqs) = do
 
 ----------
 -- Examples
+
+simpleEnv :: Deriv
+simpleEnv = Deriv [] [("x",tA),("y",tB),("z",tC)] whatA
 
 simpleCut :: Deriv
 simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
