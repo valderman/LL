@@ -116,6 +116,21 @@ exists_ = math "∃"
 alpha_ :: TeX
 alpha_ = "α"
 
+redLL :: TeX
+redLL = cmd0 "Longrightarrow"
+
+redOM :: TeX
+redOM = cmdn_ "stackrel" [redLL,cmd0 "cdot"]
+
+redBO :: TeX
+redBO = cmd0 "longrightarrow"
+
+redBOAM :: TeX
+redBOAM = cmdn_ "stackrel" [redBO,cmd0 "cdot"]
+
+redAM :: TeX
+redAM = cmd0 "Rrightarrow"
+
 ---------------------------------------
 -- Types
 
