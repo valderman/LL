@@ -45,7 +45,7 @@ seqName' ctx s = case s of
    (With β _ _ b _ _)  -> isBoson β $ math $ (amp <> index (indicator b))
    (SOne  β _ _)          -> isBoson β $ "1"
    (SZero _)           -> "0"
-   (SBot β)                -> isBoson β $ "⊥"
+   SBot                -> "⊥"
    (TApp  β _ _ _ _ _)    -> isBoson β "∀"
    (TUnpack _ _ _)     -> "∃"
    (Offer  β _ _ _)       -> isBoson β "?"
@@ -59,7 +59,9 @@ seqName' ctx s = case s of
    (ChanTyp   tmono)   -> ruleName "B" <> math ( (index (texType 0 ctx tmono)))
    (MemEmpty  _ n)     -> ruleName "Empty" <> math ( (textual (show n)))
    (MemFull   _ n)     -> ruleName "Full" <> math ( (textual (show n)))
-   (Mem ty x n _ _)      -> ruleName "Mem" <> math ( index (textual (show n)) <> texType 0 ctx ty) 
+   (Mem ty x n _ _)      -> ruleName "BM" <> math ( index (textual (show n)) 
+                                                    -- <> texType 0 ctx ty 
+                                                  ) 
 
 seqLab :: Seq -> String 
 seqLab s = case s of
@@ -72,7 +74,7 @@ seqLab s = case s of
    (With β _ _ b _ _)      -> "\\&"
    (SOne β _ _)          -> "1"
    (SZero _)           -> "0"
-   (SBot  β)               -> "⊥"
+   (SBot)               -> "⊥"
    (TApp β _ _ _ _ _)    -> "∀"
    (TUnpack _ _ _)     -> "∃"
    (Offer β _ _ _)       -> "?"
@@ -107,7 +109,7 @@ texSeq showProg = foldSeq sf where
   spar _ w _ vt _ vt' s t = rul [s,t]
   splus w _ vt _ vt' s t = rul [s,t]
   swith _ _ b w _ _ s = rul [s]
-  sbot _ v = rul []
+  sbot v = rul []
   szero w vs = rul []
   sone _ w t = rul [t]
   -- sxchg _ s = rul [s] -- to display the exchange rules
@@ -211,7 +213,7 @@ texProg'' what showTypes = foldSeq sf where
                        (keyword "inr " <> texVar v',t)]
       swith _ _ b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
-      sbot _ v = Final $ texVar v
+      sbot v = Final $ texVar v
       szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
       sone _ w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t

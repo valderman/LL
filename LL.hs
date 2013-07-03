@@ -97,7 +97,7 @@ data Seq = Exchange Permutation Seq -- Permute variables
 
          | SOne Boson Int Seq      -- Rename to ...
          | SZero Int         -- Rename to Crash/Loop
-         | SBot Boson        -- Rename to Terminate
+         | SBot         -- Rename to Terminate
          | What Name [Int]   -- 'meta' program (just for the paper, not found in actual code)
 
          | TApp Boson (Forced Type) Name Int Type (Seq)
@@ -237,14 +237,13 @@ cheval _ (TApp False tp w x ty a) = TApp True tp w x ty a -- Cut "w" "_w" (subst
 cheval _ (Cross False ty w w' x c) = Cross True ty w w' x c
 cheval _ (Par False ty w w' γ a b) = Par True ty w w' γ a b
 cheval _ (SOne False x s) = SOne True x s
-cheval _ (SBot False) = SBot True
 cheval _ (Alias False x w s) = Alias True x w s
 -- cheval _ (Offer False w x s) = Offer True w x s
 cheval n (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty γ 1 s (cheval  (n-γ+1) t)
 
 -- Axioms
 cheval _ (Ax Zero) = SZero 1
-cheval _ (Ax One)  = SOne True 1 $ SBot False
+cheval _ (Ax One)  = SOne True 1 SBot
 cheval _ (Ax (a :⊕: b)) = Plus "x" "y" 1 (With True a "w" True  0 $ Ax a) 
                                          (With True b "w" False 0 $ Ax a)
 cheval _ (Ax (a :⊗: b)) = Cross True a "x" "y" 1 $ 
@@ -349,7 +348,7 @@ cut n _ _ (Bang ty)
            γ (Offer β z 0 a) (Demand w _ 0 b) = cut' n z w ty γ a b
 cut n _ _ ty γ (Offer β _ 0 a) (Ignore 0 b) = ignore γ b
 cut n _ _ ty γ (Offer β w 0 b) (Alias β' 0 w' a) = alias β' (reverse [0..γ-1]) (cut' (n+γ) w w' ty γ (Offer β w 0 b) ((exchange ([1..γ] ++ [0] ++ [γ+1..n] ) $ cut' (n+1) w w' ty γ (Offer β w 0 b) a)))
-cut n _ _ ty γ (SBot β') (SOne β 0 a) = a
+cut n _ _ ty γ (SBot) (SOne β 0 a) = a
 
   -- Cut w w' ta 1 (What "arst" []) (What "qwft" [])
 cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w w' (neg ty) (n-γ) b a)
@@ -366,7 +365,7 @@ isPos (Exchange _ (Par _ _ _ _ _ _ _)) = True
 isPos (With _ _ _ _  _ _) = True
 isPos (Offer _ _ _ _) = True
 isPos (TApp _ _ _ _ _ _) = True
-isPos (SBot _) = True
+isPos (SBot) = True
 isPos _ = False
 
 indexOf :: Eq a => a -> [a] -> Int
@@ -400,7 +399,7 @@ subst π t = case t of
   (Ignore x a) -> Ignore (f x) (del x a)
   (SOne β x a) -> SOne β (f x) (del x a)
   (SZero x) -> SZero (f x)
-  (SBot β) -> SBot β
+  (SBot) -> SBot 
   -- What nm xs -> What nm (map f xs)
   a -> Exchange π a
  where f = (π!!)
@@ -427,7 +426,7 @@ data SeqFinal t a = SeqFinal
      , sxchg :: (Permutation -> a -> a)
      , stapp :: (Boson -> Name -> t -> Name -> t -> a -> a)
      , stunpack :: (Name -> Name -> Name -> a -> a)
-     , sbot :: (Boson -> Name -> a)
+     , sbot :: Name -> a
      , szero :: (Name -> [(Name, t)] -> a)
      , sone :: (Boson -> Name -> a -> a)
      , soffer :: (Boson -> Name -> Name -> t -> a -> a)
@@ -472,7 +471,7 @@ foldSeq sf ts0 vs0 s0 =
       (With β _ v b x t) -> swith β (fty $ if b then vt else vt') b w v (fty wt) $ recurse ts (v0++(v,wt):v1) t
          where wt = if b then vt else vt'
                (v0,(w,~(vt :&: vt')):v1) = splitAt x vs
-      (SBot β) -> sbot β v
+      (SBot) -> sbot v
          where [(v,~Bot)] = vs
       (SZero x) -> szero w (fctx (v0 ++ v1))
          where (v0,(w,~Zero):v1) = splitAt x vs
@@ -514,7 +513,7 @@ fillTypes' = foldSeq sf where
     spar β _ v ty v' _ty' s t = Par β ty v v' x s t
     splus _ v _vt v' _vt' s t = Plus v v' x s t
     swith β ty b _ v _ t = With β ty v b x t
-    sbot β _ = SBot β
+    sbot _ = SBot
     szero _ _ = SZero x
     sone β _ t = SOne β x t
     sxchg p t = Exchange p t

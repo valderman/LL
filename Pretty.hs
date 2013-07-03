@@ -70,7 +70,7 @@ pSeq showTypes = foldSeq sf where
                                       "inr " <> text v' <> " ↦ " <> t]<> "}"
         swith _ _ b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
            where c = if b then "fst" else "snd"
-        sbot _ v = text v 
+        sbot v = text v 
         szero w vs = "dump " <> whenShowTypes (pCtx' vs) <> " in " <> text w
         sone _ w t = "let ◇ = " <> text w <> " in " $$ t
         sxchg _ t = t

@@ -112,7 +112,7 @@ runClosure h (With β ty x t v a,e,te)
 runClosure h (SOne β v a,e,te)
   = Just(h,[(a,el++er,te)])
     where (el,_:er) = splitAt v e
-runClosure h (SBot β,e,te)
+runClosure h (SBot,e,te)
   = Just (h,[])
 
 runClosure h (TApp β tp x v ty a,e,te)
@@ -174,7 +174,7 @@ copy'' (t1 :⊗: t2) = Cross False t1 "z" "w" 0 $
                      Exchange [0,2,1] $
                      Par False t1 "r" "s" 1 (copy'' t1) (copy'' t2)
 copy'' Zero = error "Impossible"
-copy'' One = SOne False 0 (SBot False)
+copy'' One = SOne False 0 SBot
 copy'' t@(TVar True _) = Ax t
 copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t

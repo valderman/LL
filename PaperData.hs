@@ -174,7 +174,7 @@ operationalRules =
                      not to be used (in this case @math{|@tB|-|@tA|}.@"),
     (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
                 A branch is then chosen according to the tag. The cell holding the tag is freed.@")]
-  ,[(botRule False,"The closure is deleted."),
+  ,[(botRule,"The closure is deleted."),
     (oneRule False,"An entry of the environment is deleted.")]  
   ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system.")]
   ,[(forallRule False,@"An area in the heap of size @math{|@tAofB|} is allocated.
@@ -342,7 +342,11 @@ typesetBosonReds reds = env "center" $
 -}
 
 texBosonReds :: Tex SortedLabel
-texBosonReds =  figure_ @"Asynchronous reduction rules.@" $ 
+texBosonReds =  figure_ 
+                @"Asynchronous reduction rules.
+                  The @mem_/@contract_ rule is shown for arity @math{n=1} of @mem_,
+                  but it exists for any @math{n≥1}.
+                @" $ 
                 mathpar [
                   [ sequent input <>
                     cmd0 "Longrightarrow" <>

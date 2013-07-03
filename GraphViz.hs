@@ -91,10 +91,6 @@ toGraphPart te e this@(SOne True x s) = do
   (n0,n1) <- splitAt x <$> toGraphPart te (v0++v1) s
   thisNode <- boson this
   return (n0++thisNode:n1)
-toGraphPart _te e this@(SBot True) = do    
-  let [(_,Bot)] = e
-  thisNode <- boson this
-  return [thisNode]
 toGraphPart te e this@(TApp True _ w x tyB s) = do  
   let (v0,(_,~(Forall _ tyA)):v1) = splitAt x e
       ty = subst0 tyB ∙ tyA     

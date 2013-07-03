@@ -31,7 +31,7 @@ cutContract = cutContract' False
 cutIgnore' β = Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
             Cut "z" "_z" (Bang $ meta "A") 1 (Offer β "x" 0 whatA) (Ignore 0 whatB)
 cutIgnore = cutIgnore' False
-cutUnit' β = Deriv ["Θ"] [gamma] $ Cut "z" "_z" One 0 (SBot β) (SOne β 0 whatA)
+cutUnit' β = Deriv ["Θ"] [gamma] $ Cut "z" "_z" One 0 (SBot) (SOne β 0 whatA)
 cutUnit = cutUnit' False
 cutQuant' β = Deriv ["Θ"] [gamma,xi] $
            Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp β dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)

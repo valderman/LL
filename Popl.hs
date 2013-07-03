@@ -490,7 +490,8 @@ to it, thanks to @math{Ct}. Because exponentials are less regular than the rest 
 system, they require a more @italic{ad hoc} implementation, and multiple implementations 
 are possible. Our choice of implementation is justified by our desire to represent the 
 exponential channel as a closure to a server which can be pointed at by many clients.
-This concludes our description of bosons, whose complete list is shown is @bosonsFig.
+The @weaken_ rule behaves in a manner similar to @contract_.
+This concludes our description of bosons, whose complete list is shown in @bosonsFig
 @bosonsFig<-texBosons
 
 We finally  turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing:
@@ -500,6 +501,9 @@ behave asynchronously: the adaptation of links requires two-way synchronisation.
 do is have the axiom perform the copy explicitly: for the additive fragment it copies bits of
 data from one side to the other, for the multiplicative fragment it divides the type and
 spawns two axioms in parallel, etc.
+
+@definition("Reduction"){
+}
 
 @subsection{Boson-oblivious reduction}
 
