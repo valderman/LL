@@ -19,6 +19,7 @@ import GraphViz
 import Framework
 import Data.List
 import PaperData
+import Examples
 
 acmCategories,acmKeywords :: TeX
 acmCategories = do
@@ -198,9 +199,39 @@ The rules Weaken and Contract allows for ignoring and duplicating values
 respectively.
 
 @subsection{Note CPS relation}
+
 @subsection{Examples}
+
+To illustrate our language we give some example programs. Since the language is rather austere and 
+doesn't have much in the way of data types the examples are by necessity rather simple.
+
+The first example is a program to swap the values in a tensor product.
+
+@id(program swap)
+
+A natural way to think about this program is that it has type 
+@id(swapType).
+However, since programs in our language don't have types as such, and the 
+control flow is inverted, this type doesn't make sense.
+Instead, the program assumes that there is a consumer, the swapee,  which needs 
+to have a tensor product swapped. The swap program invokes the swapee to
+retrieve the channels to swap and reorders them accordingly. In order to type
+our swap program the swapee occurs in the context and have a type which is dual
+to the type above @math{(@id(swapType))^⊥}. The type judgement for the
+swap program becomes as follows:
+
+@math(sequent swap)
+
+The swap program illustrates a general principle for writing programs in our 
+language. If one has a type in mind for the program, such as @swapType in the
+case of the swap program, then negate that type and put it in the context. That
+will be typing judgement which can guide the derivation of the program.
+
 @subsection{Reduction rules}
 
+
+
+@math(linearize $ texProg unknownTypeEnv [("x",Bot)] (SZero 0))
 
 @syncFig
 

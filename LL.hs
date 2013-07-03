@@ -29,6 +29,7 @@ data Type = Type :⊕: Type
              | Meta Bool String [Type] -- 'meta' type (just for the paper, not found in actual code)
                                        --  2nd arg are the types occuring in it.
              | MetaNeg Type -- (irreducible negation, not found anywhere but in typesetting code) 
+             | Lollipop Type Type -- Used for printing
   deriving Eq
 
 
@@ -65,6 +66,7 @@ neg (TVar b x) = TVar (not b) x
 neg (Bang t) = Quest (neg t)
 neg (Quest t) = Bang (neg t)
 neg (Meta b x xs) = Meta (not b) x xs
+neg (Lollipop x y) = x :⊗: (neg x)
 
 -- | Classification of types as positive and negative
 positiveType t = case t of
