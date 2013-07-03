@@ -2,7 +2,6 @@
 
 module PaperData where
 
-import Pretty
 import MarXup
 import MarXup.Latex
 import MarXup.Tex
@@ -18,7 +17,6 @@ import DiagPretty
 import Control.Monad
 import GraphViz
 import Framework
-import Data.List
 
 -----------------
 -- Preamble 
@@ -158,8 +156,7 @@ texNegationTable = array [] (tex "c@{~=~}c")
 layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
   [[norm t,norm (neg t),sz] | (t,sz) <- allPosTypesTable]
 
-multicolumn n fmt c = cmdn "multicolumn" [(tex (show n)),(textual fmt),c]
-                      >> return ()
+multicolumn n fmt c = cmdn_ "multicolumn" [tex (show n),tex fmt,c]
 
 typeTable = figure "Types " $
     env "center" $ math $ do
@@ -210,7 +207,7 @@ operationalRules =
   ,[(contractRule False,"The the pointer is copied to a new environment entry, and the reference count incremented.")]
   ] 
 
-existComment = @"(In particular the closure waits if the cell pointed by @math{z} is empty.) 
+ where existComment = @"(In particular the closure waits if the cell pointed by @math{z} is empty.) 
                  One copies the type representation found in the cell to the type environment. 
                  The cell is then freed, and one proceeds with the execution of the child.@"
 
@@ -229,9 +226,10 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
 --------------
 -- Reductions
 
+
 syncFig = figure_ "Reduction rules" $
           env "center" $
-          typesetReductions program syncRules
+          typesetReductions program (assocRules ++ syncRules)
 
 pushFig = figure_ "Reduction rules" $
           env "center" $
@@ -260,10 +258,11 @@ typesetReductions displayer reds = env "center" $
 -- Abstract Machine         
          
 
-texAmRules = figure_ "Abstract Machine Rules" $ 
+texAmRules = figure_ "Abstract Machine Rules" $ do
+  cmd0 "small"
   mathpar [forAllAmRules $ \(sequ,explanation) s s' -> do
-    amRuleAsMath s s' 
-    seqName(derivSequent sequ)]
+              amRuleAsMath sequ s s' 
+   ]  
 
 texAmRulesExplanation = 
   itemize $ 
@@ -284,8 +283,8 @@ amRule f = amRule' f emptyHeap
 
 toSystem' h =  toSystem h . fillTypes
                
-amRuleAsMath s s' = do
-  cmdn "frac" [texSystem s, texSystem s']
+amRuleAsMath sequ s s' = do
+  cmdn "frac" [texSystem s, redAM <> texSystem s']  >> seqName(derivSequent sequ)
   return ()
     
 amRule' _ _ [] = []
@@ -307,6 +306,10 @@ simpleEnv = Deriv [] [("x",tA),("y",tB),("z",neg tC)] whatA
 
 simpleCut :: Deriv
 simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
+
+simpleCut' :: String -> String -> Deriv
+simpleCut' a b = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 (What a []) (What b [])
+
 
 doubleCut :: Deriv
 doubleCut = Deriv [] [gamma,xi] $ Cut "_x" "x" tB 1 (Cut "_y" "y" (neg tA) 1 whatA whatB) (Cut "_z" "z" tC 1 whatC whatD)
@@ -369,6 +372,7 @@ texBosonReds =  figure_
                    | (evaluator,_name,input) <- chanRedRules ++ chanAxRedRules ] 
                         ]
 
+
 chanRedRules,chanAxRedRules :: [(Deriv -> Deriv, String, Deriv)]
 chanRedRules =
    [(eval' ,"bit write"  ,         fillTypes $ withRule False True)
@@ -400,7 +404,6 @@ chanRedRules =
                                    Deriv ["θ"] [gammaBang,xi] $
                                    -- Cut "w" "_w" (Bang tA) $
                                    Mem tA 1 0 whatA whatB) -- TODO
-    
 --   ,("client spawn", cutBang' True)
    ]
 --   ,("output",    Deriv ["Θ"] [gamma,delta,("z",neg (tA :⊗: tB))] $ Cut "w" "_w" (tA :⊗: tB) 2 (Exchange [1,0,2] $ Par dum "x" "y" 1 whatA whatB) (Channel dum))

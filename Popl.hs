@@ -267,10 +267,15 @@ first step towards execution of linear logic proofs as
 concurrent processes.
 
 @definition("Outermost Evaluation"){
-  Outermost evaluation is evaluation restricted to the reduction of outermost cuts.
-  That is, the transitive closure of the relation formed by reduction rules so far,
-  at the exclusion of commutation rules.
-  TODO: formal name.
+  Outermost evaluation is evaluation, written @redOM, is 
+  the reduction relation, restricted to outermost instances of @cut_.
+
+  That is, it is the transitive closure of the relation
+  formed by reductions rules so far,
+  at the exclusion of commuting reductions and assoc, plus @cut_ congruence:
+  if @math{a @redOM a'} and @math{b @redOM b'} then 
+  @dm(sequent(simpleCut' "a" "a'") <> redOM <> sequent (simpleCut' "b" "b'"))
+
 }
 
 Before the end the section, we show that the strategy of evaluation which
@@ -502,23 +507,26 @@ do is have the axiom perform the copy explicitly: for the additive fragment it c
 data from one side to the other, for the multiplicative fragment it divides the type and
 spawns two axioms in parallel, etc.
 
-@definition("Asynchronous reduction"){
+@definition("Outermost asynchronous reduction"){
   The boson-aware reduction, described above, is denoted @redBO. 
-  Its complete definition is found in @bosonRedsFig.
+  The complete list of direct reductions is found in @bosonRedsFig, to which one
+  adds @cut_ congruence: if @math{a @redBO a'} and @math{b @redBO b'} then 
+  @dm(sequent(simpleCut' "a" "a'") <> redBO <> sequent (simpleCut' "b" "b'"))
 }
 
-The boson-aware reduction relation is a strict refinement of the reduction relation presented 
-in @syntaxSec.
+
+The boson-aware reduction relation is a refinement of the reduction relation presented 
+in @syntaxSec. This is consequence of checking implication relation in both directions.
 
 @theorem(""){
-  if neither a nor b contain a boson or an intermediate axiom rule, then
-  a == b if and only if a =(new)= b
+If @math{a @redOM a'} then @math{a @redBO a'}
 }{
   For additive, multiplicative and quantifiers, this is immediate because the structure of
   bosons is the same as the original structure. 
 
   For axioms the result stems from the following lemma.
 }
+
 
 @lemma("Axiom confluence"){
   If a boson (or in case of multiplicative fragment, a pair of bosons) is sent
@@ -527,6 +535,13 @@ in @syntaxSec.
 }{
   A simple case analysis of all possible execution paths.
 }
+
+@theorem(""){
+if @math{a @redBO a'} and neither of them contain a boson or an intermediate axiom rule, then
+@math{a @redOM a'}
+}{
+}
+
 
 @section{Abstract Machine}
 
@@ -572,8 +587,14 @@ We emphasize this fact by assigning them an infinite number of cells.
 
 @subsection{Reduction rules}
 
+@definition("Abstract Machine Evaluation"){
+The evaluation relation for the abstract machine is written @redAM, and
+the rules for it are shown in @amRulesFig
+}
 
 @subsection{Adequacy}
+
+We show the adequacy of the abstract machine with respect to the @redAM
 
 @definition("Sequent to AM "){
   Straightforward.
@@ -768,6 +789,6 @@ aspects of LL, such as the structural character of the multiplicative fragment.
 We do not detail the execution of the @ax_ rule: it stems directly 
 from the boson-reduction presented in the previous section.
 @texAmRulesExplanation
-@texAmRules
+@amRulesFig<-texAmRules
 
 @"

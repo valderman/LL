@@ -8,6 +8,9 @@ import TexPretty
 import MarXup.Tex
 import MarXup.Latex (math)
 
+cutAssoc1 = Deriv [] [gamma,delta,xi] $ Cut "y" "_y" tB 2 (Cut "x" "_x" tA 1 whatA whatB) whatC
+-- cutAssoc2 = Deriv [] [gamma,delta,xi] $ Cut "x" "_x" tA 1 whatA (Cut "y" "_y" tB 1 whatB whatC)
+
 cutAx = Deriv ["Θ"] [gamma,("w",neg $ meta "A")] $
               Cut "x" "y" (meta "A") 1 (What "a" [0]) (Ax dum)
 
@@ -36,7 +39,9 @@ cutUnit = cutUnit' False
 cutQuant' β = Deriv ["Θ"] [gamma,xi] $
            Cut "z" "_z" (Exists "α" (Meta True "A" [var 0])) 1 (TApp β dum "x" 0 (meta "B") whatA) (TUnpack "_x" 0 whatB)
 cutQuant = cutQuant' False
-syncRules,pushRules :: [(TeX,Deriv)]
+
+
+assocRules,syncRules,pushRules :: [(TeX,Deriv)]
 syncRules = [
     ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),
@@ -46,7 +51,8 @@ syncRules = [
     ("∃∀",cutQuant),
     ("?Contract",cutContract),
     ("?Weaken",cutIgnore)
-    ] 
+    ]
+assocRules = [("CutCut",cutAssoc1)]
 
 altParPush = Deriv ["Θ"] (derivContext parRule ++ [xi]) (Cut "z" "_z" (meta "C") 3 (Par False dum "_x" "_y" 2 whatA whatB) whatB)
 
