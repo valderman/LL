@@ -291,6 +291,7 @@ So in particular,
 an hypothesis edge is ready if the single node  connected to it is  waiting on it,
 and a @cut_   edge is ready if both       nodes connected to it are waiting on it.
 }
+Remark that a ready @cut_ is reductible.
 
 @noDeadlockThm<-theorem("No deadlock"){In a coupling diagram where all outermost cuts are represented,
            there is always at least an edge ready.
