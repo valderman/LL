@@ -57,9 +57,7 @@ weakenRule = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Ignore 1 whatA
 contractRule β  = Deriv ["Θ"] [gamma,("z",Bang (meta "A"))] $ Alias β 1 "z'" whatA
 
 
-bosonRules = [crossRule' True, parRule' True, withRule True True, oneRule True, botRule True, questRule True, contractRule True]
--- channelRule = fillTypes $ Deriv ["θ"] [("x",meta "A"),("y",neg (meta "A"))] (Channel dum)
-chanPlusRule b = Deriv ["θ"] [("z",neg (tA :⊕: tB)),("x",if b then tA else tB)] (ChanPlus b)
+chanPlusRuleBad b = Deriv ["θ"] [("z",neg (tA :⊕: tB)),("x",if b then tA else tB)] (ChanPlus b)
 
 chanCrossRule = crossRule' True
 chanParRule = parRule' True
@@ -67,3 +65,6 @@ chanParRule = parRule' True
 chanTypRule = Deriv ["θ"] [("z",neg (Exists "α" tAofAlpha)),("x",tAofB)] (ChanTyp tB)
 chanEmptyRule n = Deriv ["θ"] (("z",Bang tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemEmpty tA n)
 chanFullRule n = Deriv ["θ"] (("z",tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemFull tA n)
+
+memRule n = Deriv ["θ"] [gammaBang,xi] $ Mem tA 1 n whatA whatB
+

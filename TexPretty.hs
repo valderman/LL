@@ -140,10 +140,6 @@ connect_ = keyword "connect "
 separator :: TeX
 separator = cmd "hline" mempty
 
-mem_ = keyword "mem"
-mem ty x y = mem_ <> tex "_" <> braces (texType 0 [] ty) <> tex "\\;" <>
-             texVar x <> tex "\\;" <> texVar y
-
 block' = xblock "l" . map (:[])
 xblock :: TeX -> [[TeX]] -> TeX
 xblock format bod@(firstRow:_) = do
@@ -260,7 +256,7 @@ texLayout (Union a b) = texLayout a <> "⊔" <> texLayout b
 texLayout Empty = "0"
 
 texType :: Int -> [String] -> Type -> TeX
-texType p vs (MetaNeg t) = prn p 5 $ texType 5 vs t <> tex "^{⊥}"
+texType p vs (MetaNeg t) = prn p 5 $ texType 5 vs t <> texNeg False
 texType p vs (Forall v t) = prn p 0 $ "∀" <> texVar v <> ". "  <> texType 0 (v:vs) t
 texType p vs (Exists v t) = prn p 0 $ "∃" <> texVar v <> ". "  <> texType 0 (v:vs) t
 texType p vs (x :|: y) = prn p 0 $ texType 1 vs x <> "⅋" <> texType 0 vs y
@@ -269,8 +265,8 @@ texType p vs (x :⊗: y) = prn p 2 $ texType 2 vs x <> "⊗" <> texType 2 vs y
 texType p vs (x :&: y) = prn p 3 $ texType 3 vs x <> amp <> texType 3 vs y
 texType _  _ Zero = "0"
 texType _  _ One = "1"
-texType _  _ Top = cmd0 "top"
-texType _  _ Bot = cmd0 "bot"
+texType _  _ Top = "⊤"
+texType _  _ Bot = "⊥"
 texType _ vs (TVar b x) = texVar (vs!!x) <> texNeg b
 texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t

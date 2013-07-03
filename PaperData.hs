@@ -57,8 +57,6 @@ sequent = deriv False
 -- | Render a derivation as a program (term)
 program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
--- | Render a derivation tree, showing terms.
-deriv'' (x,_) = derivation x
 -- Element instances
 
 instance Element Type where
@@ -68,6 +66,10 @@ instance Element Type where
 instance Element Layout where
   type Target Layout = TeX
   element = math . texLayout
+
+instance Element Deriv where
+  type Target Deriv = TeX
+  element = displayMath . couplingDiag 
 
 --------------------------------
 -- "Identifiers"
@@ -83,7 +85,9 @@ graph2 = math "σ'"
 rho = "ρ"         
   
 -- To be used as rule names within the text. (some should probably be expanded).
-ax_,cut_,with_,plus_,par_,tensor_,contract_,weaken_,offer_,demand_::TeX
+mix_,bicut_,ax_,cut_,with_,plus_,par_,tensor_,contract_,weaken_,offer_,demand_,mem_::TeX
+mix_ = ruleName "Mix"
+bicut_ = ruleName "BiCut"
 cut_ = ruleName "Cut"
 ax_ = ruleName "Ax"
 with_ = "&"
@@ -94,6 +98,7 @@ contract_ = ruleName "Contract"
 weaken_ = ruleName "Weaken"
 offer_ = ruleName "Offer"
 demand_ = ruleName "Demand"
+mem_ = ruleName "BM"
 
 lollipop_ :: TeX
 lollipop_ = "⊸"
@@ -218,6 +223,8 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
             [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
          newline  
          cmd0 "vspace{1em}"
+  where deriv'' (x,_) = derivation x
+
 
 --------------
 -- Reductions
@@ -295,6 +302,9 @@ amRule' f h0 ((sequ,explanation):seqs) = do
 ----------
 -- Examples
 
+simpleEnv :: Deriv
+simpleEnv = Deriv [] [("x",tA),("y",tB),("z",neg tC)] whatA
+
 simpleCut :: Deriv
 simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
 
@@ -319,24 +329,22 @@ exponentialSimple = fillTypes $
 chanRules :: [(Deriv,TeX)]
 chanRules =   
   [
-    -- (chanPlusRule True,  "A channel containing a bit")
-    --  ,(chanPlusRule False, "A channel containing a bit")
---  ,(chanTypRule,       "A channel containing a type")
---  ,(chanEmptyRule 3,   "A memory cell (empty)")
---  ,(chanFullRule 3,    "A memory cell (full)")
    (chanCrossRule,     "A half-split channel (conjuction)")
   ,(chanParRule,       "A half-split channel (disjunction)")
   ,(oneRule True, "severing channel")
---  ,(botRule True, "severing channel (disjunction)")
+  ,(withRule True False, "A channel containing a bit")
   ,(withRule True True, "A channel containing a bit")
   ,(forallRule True, "A channel containing a type")
   ,(questRule True, "A reference to a server")
   ,(contractRule True, "A pointer copy")
+  ,(memRule 4, "A memory cell")
   ]
 
 texBosons :: Tex SortedLabel
-texBosons = figure "Rules mediating interaction" $ mathpar 
-            [ [ deriv False r | (r,_comment) <- chanRules ] ]
+texBosons = figure 
+  @"Rules mediating interaction. The @mem_ rule can provide any number of copies of @Bang(tA).
+    Here just the one instance is shown. @" $ 
+  mathpar [ [ deriv False r | (r,_comment) <- chanRules ] ]
 
 {-
 typesetBosonReds reds = env "center" $ 

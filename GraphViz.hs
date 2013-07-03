@@ -39,19 +39,19 @@ fermion s = node [("shape","circle"),getNodeLab s]
 boson s = node [("shape","none"),getNodeLab s]
 hypothesis = node [("shape","circle"),("color","white"),emptyLab] 
              -- for some reason this is more compact than "shape=none"
-specialEdge = edge
 
-edge, edge' :: NodeRef -> NodeRef -> Type -> GGen ()
+specialEdge = edgeAutoDir [("style","dotted")]
+edge = edgeAutoDir []
 
-edge sn tn ty@(Meta True "Ξ" []) = edge' tn sn (neg ty)
-edge sn tn ty@(Meta False _  _ ) = edge' tn sn (neg ty)
-edge sn tn ty = edge' sn tn ty
+edgeAutoDir, edgeFixedDirection :: [Attr] -> NodeRef -> NodeRef -> Type -> GGen ()
 
-edge' sn tn ty = do
+edgeAutoDir attrs sn tn ty@(Meta True "Ξ" []) = edgeFixedDirection attrs tn sn (neg ty)
+edgeAutoDir attrs sn tn ty@(Meta False _  _ ) = edgeFixedDirection attrs tn sn (neg ty)
+edgeAutoDir attrs sn tn ty = edgeFixedDirection attrs sn tn ty
+
+edgeFixedDirection attrs sn tn ty = do
   comment $ "  edge of type " ++ P.render (pClosedType ty)
-  tell [sn ++ " -> " ++ tn ++ mkAttrs [("label",typ)
-                                      -- ,("len","0.1") -- Does not seem to work; the edge label is placed as if len=1
-                                      ] ++ ";"]
+  tell [sn ++ " -> " ++ tn ++ mkAttrs (("label",typ):attrs) ++ ";"]
   where typ = dotQuote $ concat $ render $ texClosedTypeNoMath ty
   
 dotQuote x = '"': concatMap esc x ++ "\""
@@ -195,7 +195,7 @@ dot2tex gv = unsafePerformIO $ do
 couplingDiag :: Deriv -> TeX
 couplingDiag d = do
   forM_ gv $ \l -> texLn $ "%" ++ l
-  env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.65"] $ do
+  env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.6"] $ do
     forM_ o $ texLn 
   forM_ e $ \l -> texLn $ "%" ++ l
   where (o,e) = dot2tex gv

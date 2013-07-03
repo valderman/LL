@@ -113,16 +113,6 @@ are demorgan duals. (Negation is an involution.)
 
 @texNegationTable 
 
-@array([])("ccc")(
-  [ [ @" (@tA @tensor_ @tB)^@Bot@" , @" = @", @" @tA^@Bot @par_ @tB^@Bot @"]
-  , [ @" (@tA @par_ @tB)^@Bot@"    , @" = @", @" @tA^@Bot @tensor_ @tB^@Bot@"]
-  , [ @" (@id(Forall "α" tAofAlpha))^@Bot@" , @" = @", @" @id(Exists "α" tAofAlpha) @"]
-  , [ @" (!@tA)^@Bot @", @" = @", @" ?@tA^@Bot @"]
-  , [ @" @One^@Bot @" , @" = @", @" @Bot @" ]
-  , [ @" @Zero^@Bot @" , @" = @" , @" @Top @" ]
-  ]
-)
-
 Furthermore , there is no type for linear functions.
 Functions can be defined using as 
 follows:
@@ -215,70 +205,78 @@ respectively.
 @syncFig
 
 
-@section{Coupling Diagrams}
+@section{Outermost Coupling Structure}
 
-In this section we introduce a graphical representation for programs.
-
-We represent a program by a node, labeled with the program that it represents (typically we
-omit this label because it is obvious from the context).
-Edges connected to a node represent its environment. 
-The fact that @tA is in the environment of the program can be  
-represented either by an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
+The fact that the program @math{a} is working in a environment @math{Γ = x:A,y:B,z:C⟂} is
+usually represented by a judgement @derivation(simpleEnv). In the
+rest of the paper we also use the following graphical representation:
+we label a node with the program that it represents, and 
+connect edges to it to represent the environment.
+@simpleEnv
+Two remarks are worth making. First, the edges should be labeled with variable names, but in all
+the examples we use, the types alone are enough to lift any ambiguity.
+Second, the representation of @tA being in the environment of the program can be  
+either an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
 with @neg(tA). 
 
-Using this convention, we can then represent cuts by edges between nodes. For example the sequent
-@dm(sequent(simpleCut))
-can be represented by the graph
+Using this convention, we can then represent @cut_ by an edge between nodes. For example the derivation
+@dm(derivation(simpleCut))
+can be represented by
 @dm(couplingDiag(simpleCut))
 and
 @dm(sequent(doubleCut'))
-can be represented by the graph
+can be represented by
 @dm(couplingDiag(doubleCut'))
-
-It can be useful to think of a node in such diagrams as a process, 
-and an edge as a communication channel; and the label defines which 
+It can be useful to think of a node as a process, 
+and an edge as a communication channel, whose label defines which 
 communication protocol which is employed on the channel.
-
-However we emphasize that the direction of edges do not represent the
+We emphasize that the direction of edges do not represent the
 direction of flow of data; they are a mere convention which allows to
 know on which side of the arrow should be interpreted as @tA and which side should be interpreted 
 as @neg(tA).
+We call such a picture a @emph{coupling diagram}.
 
-We can so represent all outermost cuts in a sequent.
-Because each cut connects two subgraphs by at least one edge, it follows that every graph 
-representing a sequent is a tree.
-
-We can represent graphically all outermost cuts in a sequent.
 @outermostCut<-definition("Outermost Cut"){
-A instance of a cut rule in a derivation tree is called an outermost cut if
+An instance of a @cut_ rule in a derivation tree is called an outermost cut if
 it is either the first rule in a derivation or if it is an outermost cut in a subderivation of
 an outermost cut.
 }
+As we have seen on the above examples, all outermost occurences of
+@cut_ can be represented graphically. We remark right away that, 
+because each @cut_ connects two subgraphs by exactly one edge, the coupling structure 
+of outermost cuts is necessarily a tree.
 
-Equivalent sequents (by rule TODO) are represented by the same graph.
+Representing a @cut_ structure by a coupling diagram has two immediate advantages.
+First, it is a concise notation that relieves much notational burden compared to
+full derivations. Second, equivalent sequents (TODO: ref rule) are represented by 
+topologically equivalent diagrams, making the equivalence intuitive.
 
-This notation relieves much burden from the cut notation, and it may be enlightening 
-to review some cut-reduction rules with this view. Here is the reduction of a cut in the 
-multiplicative fragment:
-
+It may be enlightening to review cut reduction of the multiplicative fragment with this view.
+A multiplicative cut is represented by
 @dm(couplingDiag(cutParCross))
-
+and it reduces to
 @dm(couplingDiag(eval cutParCross))
-
-The graph notation make plain that this reduction 
-splits the process on the par side into two separate, 
-non-communicating processes.
+which makes plain that the reduction 
+splits the process on the @par_ side into two separate, 
+processes, which may communicate only via the process
+coming from the @tensor_ side.
 
 @subsection{Outermost Evaluation Strategy}
-In this section we show that the strategy of evaluation which
-considers only outermost cuts is sufficient to evaluate closed 
-programs to normal form.
+Equipped with coupling diagrams, we can describe the
+first step towards execution of linear logic proofs as
+concurrent processes.
 
 @definition("Outermost Evaluation"){
   Outermost evaluation is evaluation restricted to the reduction of outermost cuts.
+  That is, the transitive closure of the relation formed by reduction rules so far,
+  at the exclusion of commutation rules.
+  TODO: formal name.
 }
 
-@env("definition"){
+Before the end the section, we show that the strategy of evaluation which
+considers only outermost cuts is well-behaved.
+
+@definition("Waiting on a variable"){
 We say that a program is @emph{waiting} on a variable @vX in its context if:
 @itemize{
  @item it is an axiom, or
@@ -286,28 +284,26 @@ We say that a program is @emph{waiting} on a variable @vX in its context if:
  @item if is a non-structural rule acting on @id(vX).
 }}
 
-None of the commutation rules can ever fire in this evaluation strategy.
-
-We call an edge ready if all programs connected to it are waiting on the variables connected 
-to it. In general, an edge either represents a cut or an open hypothesis. 
+@definition("Ready edge"){
+We call an edge @emph{ready} if all programs connected to it are waiting on the variables connected 
+to it. Recall that an edge either represents a @cut_ or a reference to the environment (an hypothesis). 
 So in particular, 
 an hypothesis edge is ready if the single node  connected to it is  waiting on it,
-and a cut     edge is ready if both       nodes connected to it are waiting on it.
+and a @cut_   edge is ready if both       nodes connected to it are waiting on it.
+}
+Remark that a ready @cut_ is reductible.
 
-
-@theorem("No deadlock"){In a graph where all outermost cuts are represented by an edge,
+@noDeadlockThm<-theorem("No deadlock"){In a coupling diagram where all outermost cuts are represented,
            there is always at least an edge ready.
 }{
-If all outermost cuts are represented, then every node begins either with a rule non-strucutral rule
-or Contract or Weakening. Therefore, every node is waiting on at least one variable, except if it
-is just the Bot program, which cannot be connected to any node. 
+Remark first that if all outermost cuts are represented, then every node begins either with an operational rule
+or @contract_ or @weaken_. Therefore, every node is waiting on at least one variable.
 
-
-We then proceed by induction on the size of the tree. If the tree has a single node, then
+We proceed by induction on the size of the tree. If the tree has a single node, then
 all the edges are hypotheses. It must either be waiting on one of them, which is then ready.
 
 For the inductive case, we assume two graphs @graph1 and @graph2 satisfying the induction hypothesis, 
-with and hypothesis @vX in @graph1 and an hypothesis @vX' in @graph2.
+with an hypothesis @vX in @graph1 and an hypothesis @vX' in @graph2.
 We show that the system obtained by connecting @vX and @vX' satisfies the theorem.
 
 We have the following cases:
@@ -315,16 +311,16 @@ We have the following cases:
 @enumerate{
 @item @graph1 is waiting on @vX and @graph2 is waiting on @vX'. Then the new edge is ready.
 @item Either system is not waiting on the designated hypothesis. In this case, some other
-   edge in that system must be ready; and it remains ready in the combined system.
+   edge in that system must be ready, and it remains ready in the combined system.
 }}
 
-Perhaps surprisingly, this property does not depend on the specifics of evaluation rules,
-only on the structure of the logical rules: namely that each rule is ready to interact on at least
-one port, and, crucially that the coupling structure is a tree. 
+Perhaps surprisingly, the freedom from deadlock not depend on the specifics of evaluation rules.
+It depends only on the structure of the logical rules: namely that each rule is ready to interact on at least
+one variable, and crucially that the coupling structure is a tree. 
 
 
 
-@theorem("Liveness"){
+@livenessThm<-theorem("Liveness"){
 There is no infinite chain of outermost evaluations. This means that, eventually, 
 outermost evaluation will yield a program waiting on one of the variables of its environment.
 In other words: every process eventually communicates with its environment.
@@ -334,31 +330,35 @@ there cannot be in particular an infinite chain of outermost ones.
 }
 
 In sum, the above theorems means that linear logic programs can be run in a way similar
-to usual ways of running the lambda calculus. In both cases, the elimination of a top-level
-cut involves in-depth rewriting of the term, which is costly and moreover does not correspond
+to usual ways of running the lambda calculus. A @cut_ in linear logic corresponds to a redex.
+In both cases, the elimination of a top-level
+@cut_ (or redex) involves in-depth rewriting of the term, which is costly and does not correspond
 to the notion that programs are static entities. In both cases, it is possible to delay the 
-elimination of a cut up to the point where direct interaction occurs.
+elimination of a @cut_ up to the point where direct interaction occurs.
 
 The analogy between the above execution scheme and execution of lambda terms as programs is deep. 
 A ready edge corresponds to a lambda-calculus redex in head position. 
 Inner cuts correspond to redexes under lambdas. Non-structural rules correspond to constructors.
-A lambda term in head normal form corresponds to a linear program in with a ready hypothesis.
+A lambda term in head normal form corresponds to a linear program in with an hypothesis edge ready.
 
 The behaviour of Krivine's (TODO SECD) abstract machine is to traverse
-a term  inwards and leftwards until it finds a redex, then reduce it.
+the spine of applications inwards and leftwards until it finds a redex, then reduce it.
 The reduction yields then another redex in the same position, or one must continue the traversal inwards and leftwards.
-An abstract machine for linear logic must traverse the term, potentially considering all outermost
+An abstract machine for linear logic must traverse the coupling structure, potentially considering all outermost
 cuts, to eventually find a one which is ready, and reduce it. The difficulty in the
-linear case is that one cannot @italic{a priori} know where the ready cut is located. Furthermore,
+linear-concurrent case is that one cannot @italic{a priori} know where the ready cut is located. Furthermore,
 the next ready cut may not be in the neighborhood, so a working list of potentially ready cuts must 
 be maintained.
 
-We have exposed a reduction strategy which may satisfy 
-those familiar with the lambda calculus. However this evaluation
+The execution strategy outline above is a direct generalisation of
+classical execution strategies for lambda calculi.
+ However this evaluation
 mechanism has an important shortcoming for the interpretation of
 LL as concurrent processes. Namely, if one thinks of a node as a process, 
 then every communication is synchronous. Indeed, when a cut-reduction rule
 fires, the processes at both ends change state simultaneously.
+
+TODO: see also Danvy
 
 This goes against at least two commonly admitted principles:
 @itemize{
@@ -369,61 +369,76 @@ This goes against at least two commonly admitted principles:
       represents connection between processes where no communication occurs.
 }
 
-In the next section we proceed to attack this shortcoming.
+We attack this shortcoming before taking a brief detour.
 
-@subsection{Detour: Mix and Bi-cut}
+@subsection{@mix_ and @bicut_}
 
-That is, if a @cut_ could create two edges between subsystems, then the proof would fail. 
+The @cut_ rule allows two processes to communicate via exactly one channel. 
+Variants of the rule allowing zero (@mix_) two (@bicut_)
+channels have been proposed.
+@figure{@mix_ and @bicut_ TODO}{
+@mathpar[[mix_,bicut_]]
+}
+
+The @mix_ rule has been proposed by 
+@citet{girard_linear_1987}, and is a safe extension. Indeed, the proof of @noDeadlockThm remains
+valid: if a cut creates no edge then it is clear that ready edges are preserved. However, @bicut_
+is not safe: if two edges are created, then it is possible to create a symmetric situation where
+each subsystem waits for the other to be ready.
 
 @section{Mediating Rules}
 
 There is a standard trick to transform a synchronous communication into an asynchronous one:
 insert buffers between the communicating parties.  
-We will apply this trick here.
+We apply this trick here.
 Notably, we perform this insertion of buffers within the framework of linear logic,
 merely adding new rules, and replacing the standard (synchronous) reduction rules by another 
 set of reductions which all involve an intermediate buffer.
 
-The idea is that buffers will mediate the interaction between
+The idea is that buffers mediate the interaction between
 the non-structural rules. For example, when a @with_ rule is connected
-to a @plus_ rule via a channel, the @with_ rule will write a bit of information
-to the channel indicating which side of the sum to take. The children of @with_ will be 
+to a @plus_ rule via a channel, the @with_ rule writes a bit of information
+to the channel indicating which side of the sum to take. The children of @with_ is 
 ready to run regardless of a @plus_ rule being ready to read. 
-Asynchronously, the @plus_ rule will read the bit of info as soon as 
-it becomes available.
-
+The @plus_ rule reads the bit of info asynchronously as soon as 
+it becomes available. This execution process can be depicted using coupling diagrams as 
+follows:
 @dm(couplingDiag $(cutWithPlus True))
-@dm(couplingDiag $ ( eval' $ cutWithPlus True))
+@dm(couplingDiag $ (eval' $ cutWithPlus True))
 @dm(couplingDiag $ eval $ eval' $ cutWithPlus True)
-
-One can metaphorically talk about the intermediate rule being created
+The intermediate rule being created can be metaphorically seen
 as a particle travelling from left to right. 
 By analogy with the elementary particles mediating physical 
 forces, we will call such mediating rules bosons.
-
-@texBosons
+In diagrams, we write them without a circle around them.
+The diagrammatic representation of the & boson suggests to
+implements it as the rules
+@mathpar[map (sequent . chanPlusRuleBad) [True, False]]
+However, we make another choice: to represent it as a rule with the
+same premiss and conclusion as @with_, and merely consider the premiss
+to be ready to run in our execution model. 
+@mathpar[map (sequent . withRule True) [True, False]]
+In this sense, it is as if
+the new rule had a structural aspect to it (it embeds a virtual cut).
+This feature is made explicit in the diagram by drawing the virtual cut
+with a dotted edge.
 
 For the quantifiers fragment, a similar boson and set of reduction rule exists. The
-difference is that a type is being transmitted instead of a bit.
+only difference is that a type is being transmitted instead of a bit.
 
 For the multiplicative fragment, we examine two possible ways to encode asynchronicity,
 to eventually settle on the second one.
-
-The first option is similar to what happens in the additive fragment: a boson (called >) travels
+The first option is similar to what happens in the additive fragment: a ⅋ boson travels
 from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
 boson must connect two processes. The downside of this approach is that, until the
 @par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
 does not actually need to wait for any information: the behaviour of the continuation does
 not depend on anything that the @par_ rule @emph{itself} will provide. In fact, one might
-just as well imagine that a boson (called <) should travel in the other direction, from @tensor_ to @par_.
-(On the face of it, such a particle would break the invariant we have so far, it would create a cycle
-in the coupling graph. Fortunately, this boson has exactly the same structure as the @tensor_ rule
-itself, so no possible deadlock can occur.)
+just as well imagine that a ⊗ boson should travel in the other direction, 
+from @tensor_ to @par_.
 
 This observation leads us to a second and, in our opinion, preferable option to
 model asynchronicity. The solution is to send both bosons, and add a reduction rule between them.
-(The bosons < and > are in fact mere renamings of the rules themselves. Sending the bosons is equivalent to
-bring the cuts under @par_ and @tensor_ to the outermost level.)
 This means @par_ and @tensor_ behave completely asynchronously: as soon as they are
 encountered their children are ready to run.
 
@@ -431,19 +446,26 @@ encountered their children are ready to run.
 @dm(couplingDiag(eval' $ cutParCross))
 @dm(couplingDiag(eval $ eval' $ cutParCross))
 
+If we had chosen to represent bosons as rules a without structural component
+(eg. separated the @cut_ from the & boson as considered above), then the 
+emission of the ⊗ boson would have required the use of @bicut_. This requirement  
+mainly explains our preferrence for the alternative, where the ⊗ boson has the
+same structure as the @tensor_ rule.
 
 The buffer for exponentials is different from the others: it does not merely hold data
 which is to be consumed one time, but many times. Hence, it is more proper to see it as
 a memory rather than a buffer. Technically, the 
 behaviour of exponentials borrow concepts from both additive and multiplicative fragment. 
-In a fashion similar to additives, a 'ready to run' boson propagates from @offer_ to
-@demand_. That is, @demand_ does not send a boson, only receives one. This boson corresponds
-signals that the server obeying protocol @tA is ready to run, by storing its
-closure in the memory.
+In a fashion similar to additives, a 'ready to run' boson (called @math{M} for memory) 
+propagates from @offer_ to @demand_. That is, @demand_ does not send a boson, 
+only receives one. This boson signals that the server obeying protocol @tA is ready 
+to run, by storing its closure in the memory. Its absorption corresponds to spawning
+an instance of the server process.
 
-The @contract_ rule behaves similarly to @tensor_: it sends a boson whose effect is to
+The @contract_ rule behaves similarly to @tensor_: it sends a boson (@math{Ct}) whose effect is to
 create a pointer to data. However, a difference in this case is that both new pointers
-point to the same thing. Consider the following sequent as an example, where a server
+point to the same thing, the pointer is duplicated. 
+Consider the following sequent as an example, where a server
 is connected to a client, which we know actually connects to the server at least once.
 @dm(sequent $ exponentialSimple)
 The server is immediately ready, and this is represented by sending the @math{M} boson. 
@@ -451,9 +473,11 @@ Likewise, copying the pointer using the @contract_ rule
 requires no synchronization (a @math{Ct} boson is emitted). This can be represented by the
 following diagram
 @dm(couplingDiag $ eval' $ exponentialSimple)
-As for multiplicatives, the bosons interact. In this case however, we do not immediately
-duplicate the @math{M} boson: this would mean that the code for the server is duplicated as well.
-Instead, we wish to capture the intuition that we endup with multiple pointers to the same
+As for multiplicatives, the bosons interact. In this case however, the behaviour of bosons does
+not mimic the behaviour of regular rules. That is, we do not immediately
+duplicate the @math{M} boson. Indeed this would mean that a server instance is spawned, 
+however we wish to do this only when the @demand_ rule is executed.
+Instead, we wish to capture the intuition that we end up with multiple pointers to the same
 server. This is supported by the @math{M} boson, which can connect to multiple clients.
 Hence, the interaction between bosons yields a system which is represented by the following
 diagram:
@@ -466,11 +490,13 @@ to it, thanks to @math{Ct}. Because exponentials are less regular than the rest 
 system, they require a more @italic{ad hoc} implementation, and multiple implementations 
 are possible. Our choice of implementation is justified by our desire to represent the 
 exponential channel as a closure to a server which can be pointed at by many clients.
+This concludes our description of bosons, whose complete list is shown is @bosonsFig.
+@bosonsFig<-texBosons
 
-Finally we turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing.
-As we have seen in @fxref(syntaxSec), a @cut_ with an axiom is equivalent to just a @cut_ link.
+We finally  turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing:
+as we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
 However, merely removing axioms and adapting links is not an option if we want processes to
-behave asynchronously: the adaptation of links requires synchronisation. Hence, what we 
+behave asynchronously: the adaptation of links requires two-way synchronisation. Hence, what we 
 do is have the axiom perform the copy explicitly: for the additive fragment it copies bits of
 data from one side to the other, for the multiplicative fragment it divides the type and
 spawns two axioms in parallel, etc.
@@ -478,7 +504,7 @@ spawns two axioms in parallel, etc.
 @subsection{Boson-oblivious reduction}
 
 The boson-aware reduction relation is a strict refinement of the reduction relation presented 
-in @fxref(syntaxSec).
+in @syntaxSec.
 
 @theorem(""){
   if neither a nor b contain a boson or an intermediate axiom rule, then
@@ -608,12 +634,22 @@ cannot proceed until it has received the blueprint. This means that,
 to avoid sacrificing parallelism opportunities, one must go with the asynchronous view.
 
 
-Bi-cut; mix.
+@paragraph{Truely concurrent language}
 
-Deadlock freedom ~ tree structure ~ resource-management process.
+As we have seen, the coupling structure provided by linear logic is
+is limited to tree topologies (even though we have seen that more
+complex strucutres can be dynamically created, the language itself mandates
+tree structures). 
+This means for example that multiway communication between @math{n} processes
+must be mediated by a central server routing the messages.
+
+However, the proof of @noDeadlockThm suggests ways to construct logics allowing
+graph structures while remaining deadlock free. For example: the connection by two edges
+is possible if connection points are guaranteed to be ready at the same time.
 
 
 @subsection{Future Work}
+
 @paragraph{Non-concurrent fragment}
 The language we have presented here is fully concurrent. 
 That is, at no point we assume that communication is uni-directional.
@@ -676,7 +712,7 @@ to its proofs (however a large dose of syntactic sugar, the usual translation of
 logics into LL, will be healthy
 to write non-trivial programs). Second, the types 
 of LL can express sessions directly. Indeed, 
-we have interpreted the type formers in these terms in @fxref(syntaxSec).
+we have interpreted the type formers in these terms in @syntaxSec.
 
 Another small improvement of this presentation over that of @citet{wadler_propositions_2012}
 is that we have refined the notion of deadlock (shaving off liveness) in LL, 
