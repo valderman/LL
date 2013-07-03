@@ -67,3 +67,6 @@ chanParRule = parRule' True
 chanTypRule = Deriv ["θ"] [("z",neg (Exists "α" tAofAlpha)),("x",tAofB)] (ChanTyp tB)
 chanEmptyRule n = Deriv ["θ"] (("z",Bang tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemEmpty tA n)
 chanFullRule n = Deriv ["θ"] (("z",tA):[("x"++show k,neg (Bang tA))|k<-[1..n]]) (MemFull tA n)
+
+memRule n = Deriv ["θ"] [gammaBang,xi] $ Mem tA 1 n whatA whatB
+

@@ -140,10 +140,6 @@ connect_ = keyword "connect "
 separator :: TeX
 separator = cmd "hline" mempty
 
-mem_ = keyword "mem"
-mem ty x y = mem_ <> tex "_" <> braces (texType 0 [] ty) <> tex "\\;" <>
-             texVar x <> tex "\\;" <> texVar y
-
 block' = xblock "l" . map (:[])
 xblock :: TeX -> [[TeX]] -> TeX
 xblock format bod@(firstRow:_) = do
