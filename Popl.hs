@@ -86,7 +86,7 @@ This section will present our language based on  classical linear logic.
 @subsection{Types}
 
 The types of our language are directly taken from classical linear logic.
-They are shown in the figure @xref(tytab).
+They are shown in @tytab.
 
 @tytab<-typeTable
 
@@ -102,7 +102,7 @@ We provide some intuition for how to understand these types.
 @item @id(Quest tA): Must produce as many @tA as the context wants.
 }
 
-Four of the types come with neutral elements. In figure @xref(tytab) the 
+Four of the types come with neutral elements. In @tytab the 
 neutral element are written to the right of their respective type. For example, 
 the tensor product has neutral element @One, which means that 
 @tA @tensor_ @One = @tA. 
@@ -120,7 +120,7 @@ follows:
 
 @subsection{Typing rules (with term assignment)}
 
-Figure @xref(rules) shows the typing rules for our language. The judgement form 
+@rules shows the typing rules for our language. The judgement form 
 we use is a one-sided, Tait-style sequent calculus with only hypotheses. This 
 means that there is only hypotheses in our judgement, no conclusion. The program
 terms are the only thing occurring to the right of the turnstile. The judgement
@@ -134,8 +134,8 @@ Similar to other languages based on linear logic, ours is also a concurrent
 language. Computation corresponds to communication over channels. Each variable 
 in the context corresponds to one end of a channel.
 
-We will now explain the different language constructs as found in figure 
-@xref(rules). The name of the rules reflect their logical meaning
+We will now explain the different language constructs as found in
+@rules. The name of the rules reflect their logical meaning
 whereas the name of the language constructs are meant to suggest their 
 operational behaviour.
 
@@ -462,7 +462,7 @@ only receives one. This boson signals that the server obeying protocol @tA is re
 to run, by storing its closure in the memory. Its absorption corresponds to spawning
 an instance of the server process.
 
-The @contract_ rule behaves similarly to @tensor_: it sends a boson (@math{Ct}) whose effect is to
+The @contract_ rule behaves similarly to @tensor_: it sends a boson (@math{Con}) whose effect is to
 create a pointer to data. However, a difference in this case is that both new pointers
 point to the same thing, the pointer is duplicated. 
 Consider the following sequent as an example, where a server
@@ -470,7 +470,7 @@ is connected to a client, which we know actually connects to the server at least
 @dm(sequent $ exponentialSimple)
 The server is immediately ready, and this is represented by sending the @math{M} boson. 
 Likewise, copying the pointer using the @contract_ rule 
-requires no synchronization (a @math{Ct} boson is emitted). This can be represented by the
+requires no synchronization (a @math{Con} boson is emitted). This can be represented by the
 following diagram
 @dm(couplingDiag $ eval' $ exponentialSimple)
 As for multiplicatives, the bosons interact. In this case however, the behaviour of bosons does
@@ -486,7 +486,7 @@ Eventually, the client will start interacting with an instance of the server. Th
 duplicating its closure @math{a}, which we represent as follows. 
 @dm(couplingDiag $ eval' $ eval' $ eval' $ exponentialSimple)
 The new process needs to access the environment, which can be accessed by copying pointers
-to it, thanks to @math{Ct}. Because exponentials are less regular than the rest of the 
+to it, thanks to the @math{Con} boson. Because exponentials are less regular than the rest of the 
 system, they require a more @italic{ad hoc} implementation, and multiple implementations 
 are possible. Our choice of implementation is justified by our desire to represent the 
 exponential channel as a closure to a server which can be pointed at by many clients.
@@ -502,10 +502,10 @@ do is have the axiom perform the copy explicitly: for the additive fragment it c
 data from one side to the other, for the multiplicative fragment it divides the type and
 spawns two axioms in parallel, etc.
 
-@definition("Reduction"){
+@definition("Asynchronous reduction"){
+  The boson-aware reduction, described above, is denoted @redBO. 
+  Its complete definition is found in @bosonRedsFig.
 }
-
-@subsection{Boson-oblivious reduction}
 
 The boson-aware reduction relation is a strict refinement of the reduction relation presented 
 in @syntaxSec.
@@ -762,7 +762,7 @@ aspects of LL, such as the structural character of the multiplicative fragment.
 @pushFig2
 
 
-@texBosonReds
+@bosonRedsFig<-texBosonReds
 
 @section{Abstract Machine Reduction}
 We do not detail the execution of the @ax_ rule: it stems directly 

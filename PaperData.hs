@@ -117,19 +117,19 @@ alpha_ :: TeX
 alpha_ = "α"
 
 redLL :: TeX
-redLL = cmd0 "Longrightarrow"
+redLL = math $ cmd0 "Longrightarrow"
 
 redOM :: TeX
-redOM = cmdn_ "stackrel" [redLL,cmd0 "cdot"]
+redOM = math $ cmdn_ "stackrel" [redLL,cmd0 "cdot"]
 
 redBO :: TeX
-redBO = cmd0 "longrightarrow"
+redBO = math $ cmd0 "longrightarrow"
 
 redBOAM :: TeX
-redBOAM = cmdn_ "stackrel" [redBO,cmd0 "cdot"]
+redBOAM = math $ cmdn_ "stackrel" [redBO,cmd0 "cdot"]
 
 redAM :: TeX
-redAM = cmd0 "Rrightarrow"
+redAM = math $ cmd0 "Rrightarrow"
 
 ---------------------------------------
 -- Types
@@ -364,7 +364,7 @@ texBosonReds =  figure_
                 @" $ 
                 mathpar [
                   [ sequent input <>
-                    cmd0 "Longrightarrow" <>
+                    redBO <>
                     sequent (evaluator input)
                    | (evaluator,_name,input) <- chanRedRules ++ chanAxRedRules ] 
                         ]
