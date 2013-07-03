@@ -39,6 +39,9 @@ figure_ caption body = env "figure*" $ do
   cmd "caption" caption
   label "Fig."
 
+instance Element SortedLabel where
+  type Target SortedLabel = TeX
+  element x = fxref x >> return ()
 
 -------------
 -- Bib

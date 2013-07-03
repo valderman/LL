@@ -85,7 +85,9 @@ graph2 = math "σ'"
 rho = "ρ"         
   
 -- To be used as rule names within the text. (some should probably be expanded).
-ax_,cut_,with_,plus_,par_,tensor_,contract_,weaken_,offer_,demand_,mem_::TeX
+mix_,bicut_,ax_,cut_,with_,plus_,par_,tensor_,contract_,weaken_,offer_,demand_,mem_::TeX
+mix_ = ruleName "Mix"
+bicut_ = ruleName "BiCut"
 cut_ = ruleName "Cut"
 ax_ = ruleName "Ax"
 with_ = "&"

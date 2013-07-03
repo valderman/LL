@@ -292,7 +292,7 @@ an hypothesis edge is ready if the single node  connected to it is  waiting on i
 and a @cut_   edge is ready if both       nodes connected to it are waiting on it.
 }
 
-@theorem("No deadlock"){In a coupling diagram where all outermost cuts are represented,
+@noDeadlockThm<-theorem("No deadlock"){In a coupling diagram where all outermost cuts are represented,
            there is always at least an edge ready.
 }{
 Remark first that if all outermost cuts are represented, then every node begins either with an operational rule
@@ -319,7 +319,7 @@ one variable, and crucially that the coupling structure is a tree.
 
 
 
-@theorem("Liveness"){
+@livenessThm<-theorem("Liveness"){
 There is no infinite chain of outermost evaluations. This means that, eventually, 
 outermost evaluation will yield a program waiting on one of the variables of its environment.
 In other words: every process eventually communicates with its environment.
@@ -357,6 +357,8 @@ LL as concurrent processes. Namely, if one thinks of a node as a process,
 then every communication is synchronous. Indeed, when a cut-reduction rule
 fires, the processes at both ends change state simultaneously.
 
+TODO: see also Danvy
+
 This goes against at least two commonly admitted principles:
 @itemize{
 @item On the programming side, processes writing in a channel 
@@ -366,11 +368,22 @@ This goes against at least two commonly admitted principles:
       represents connection between processes where no communication occurs.
 }
 
-We attack this shortcoming before taking a briew detour.
+We attack this shortcoming before taking a brief detour.
 
-@subsection{Mix and Bi-cut}
+@subsection{@mix_ and @bicut_}
 
-That is, if a @cut_ could create two edges between subsystems, then the proof would fail. 
+The @cut_ rule allows two processes to communicate via exactly one channel. 
+Variants of the rule allowing zero (@mix_) two (@bicut_)
+channels have been proposed.
+@figure{@mix_ and @bicut_ TODO}{
+@mathpar[[mix_,bicut_]]
+}
+
+The @mix_ rule has been proposed by 
+@citet{girard_linear_1987}, and is a safe extension. Indeed, the proof of @noDeadlockThm remains
+valid: if a cut creates no edge then it is clear that ready edges are preserved. However, @bicut_
+is not safe: if two edges are created, then it is possible to create a symmetric situation where
+each subsystem waits for the other to be ready.
 
 @section{Mediating Rules}
 
@@ -465,7 +478,7 @@ are possible. Our choice of implementation is justified by our desire to represe
 exponential channel as a closure to a server which can be pointed at by many clients.
 
 Finally we turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing.
-As we have seen in @fxref(syntaxSec), a @cut_ with an axiom is equivalent to just a @cut_ link.
+As we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
 However, merely removing axioms and adapting links is not an option if we want processes to
 behave asynchronously: the adaptation of links requires synchronisation. Hence, what we 
 do is have the axiom perform the copy explicitly: for the additive fragment it copies bits of
@@ -475,7 +488,7 @@ spawns two axioms in parallel, etc.
 @subsection{Boson-oblivious reduction}
 
 The boson-aware reduction relation is a strict refinement of the reduction relation presented 
-in @fxref(syntaxSec).
+in @syntaxSec.
 
 @theorem(""){
   if neither a nor b contain a boson or an intermediate axiom rule, then
@@ -605,12 +618,22 @@ cannot proceed until it has received the blueprint. This means that,
 to avoid sacrificing parallelism opportunities, one must go with the asynchronous view.
 
 
-Bi-cut; mix.
+@paragraph{Truely concurrent language}
 
-Deadlock freedom ~ tree structure ~ resource-management process.
+As we have seen, the coupling structure provided by linear logic is
+is limited to tree topologies (even though we have seen that more
+complex strucutres can be dynamically created, the language itself mandates
+tree structures). 
+This means for example that multiway communication between @math{n} processes
+must be mediated by a central server routing the messages.
+
+However, the proof of @noDeadlockThm suggests ways to construct logics allowing
+graph structures while remaining deadlock free. For example: the connection by two edges
+is possible if connection points are guaranteed to be ready at the same time.
 
 
 @subsection{Future Work}
+
 @paragraph{Non-concurrent fragment}
 The language we have presented here is fully concurrent. 
 That is, at no point we assume that communication is uni-directional.
@@ -673,7 +696,7 @@ to its proofs (however a large dose of syntactic sugar, the usual translation of
 logics into LL, will be healthy
 to write non-trivial programs). Second, the types 
 of LL can express sessions directly. Indeed, 
-we have interpreted the type formers in these terms in @fxref(syntaxSec).
+we have interpreted the type formers in these terms in @syntaxSec.
 
 Another small improvement of this presentation over that of @citet{wadler_propositions_2012}
 is that we have refined the notion of deadlock (shaving off liveness) in LL, 
