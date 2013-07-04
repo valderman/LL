@@ -236,7 +236,7 @@ will be typing judgement which can guide the derivation of the program.
 @syncFig
 
 
-@section{Outermost Coupling Structure}
+@section{Outermost Reduction}
 
 The fact that the program @math{a} is working in a environment @math{Γ = x:A,y:B,z:C⟂} is
 usually represented by a judgement @derivation(simpleEnv). In the
@@ -422,7 +422,44 @@ valid: if a cut creates no edge then it is clear that ready edges are preserved.
 is not safe: if two edges are created, then it is possible to create a symmetric situation where
 each subsystem waits for the other to be ready.
 
-@section{Mediating Rules}
+@section{Asynchronous Outermost Reduction}
+
+@subsection{Explicit Axioms}
+
+Conceptually, an axiom does nothing:
+as we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
+However, merely removing axioms and adapting links is not an option if we want processes to
+behave asynchronously: the adaptation of links requires two-way synchronisation. 
+
+However, in the same way that one can implement polymorphic identity by explicit copy 
+of data, one can implement axioms by processes which explicitly interface between
+two dual protocols. That is, for the additive fragment, one can to case analysis on one 
+side, and send the information of which side is taken to the other side.
+For the multiplicative fragment, one can explicitly split the axiom into a pair of axioms,
+etc. The complete set of rules is show in @axiomRedsFig.
+
+@axiomRedsFig<-texAxiomReds
+
+Replacing the @cut_/@ax_ rule by the conversions rule does not change the meaning of programs.
+It means however that @ax_ rules rules disappear only when they apply to unit types. 
+This is problematic operationally (we discuss this issue in @axiomOptSec), but not 
+for formal purposes, because @cut_/@ax_ is an equivalence.
+
+@theorem(""){
+ @itemize{
+  @item 
+    @math{a @redAX b} then  there exist c such that @math{a @redOM c} and b =(cut/ax*)= b.
+  @item  
+    If neither a nor b contain an intermediate axiom state and @math{a @redOM c} then @math{a @redAX b}.
+    
+}
+}{
+ The proof proceeds by case analysis. For each axiom type, it can be shown that the evaluation via
+ the explicit copy is confluent with the elimination of cut, reduction, then recreation of the
+ axiom(s).
+}
+
+@subsection{Mediating Rules}
 
 There is a standard trick to transform a synchronous communication into an asynchronous one:
 insert buffers between the communicating parties.  
@@ -530,24 +567,14 @@ The @weaken_ rule behaves in a manner similar to @contract_.
 This concludes our description of bosons, whose complete list is shown in @bosonsFig
 @bosonsFig<-texBosons
 
-We finally  turn ourselves to the execution of @ax_. Conceptually, an axiom does nothing:
-as we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
-However, merely removing axioms and adapting links is not an option if we want processes to
-behave asynchronously: the adaptation of links requires two-way synchronisation. Hence, what we 
-do is have the axiom perform the copy explicitly: for the additive fragment it copies bits of
-data from one side to the other, for the multiplicative fragment it divides the type and
-spawns two axioms in parallel, etc.
-
 @definition("Outermost asynchronous reduction"){
-  The boson-aware reduction, described above, is denoted @redBO. 
+  The outermost asynchronous reduction, explained described above, is denoted @redBO. 
   The complete list of direct reductions is found in @bosonRedsFig, to which one
-  adds @cut_ congruence: if @math{a @redBO a'} and @math{b @redBO b'} then 
-  @dm(sequent(simpleCut' "a" "a'") <> redBO <> sequent (simpleCut' "b" "b'"))
+  adds @cut_ congruence.
 }
 
-
-The boson-aware reduction relation is a refinement of the reduction relation presented 
-in @syntaxSec. This is consequence of checking implication relation in both directions.
+The full asynchronous reduction is a refinement of the synchronous reduction with asynchronous
+axioms.
 
 @theorem(""){
 If @math{a @redOM a'} then @math{a @redBO a'}
@@ -559,16 +586,8 @@ If @math{a @redOM a'} then @math{a @redBO a'}
 }
 
 
-@lemma("Axiom confluence"){
-  If a boson (or in case of multiplicative fragment, a pair of bosons) is sent
-  on an axiom link, it then reduces to a link (resp. a pair links) between the  
-  processes having sent the bosons.
-}{
-  A simple case analysis of all possible execution paths.
-}
-
 @theorem(""){
-if @math{a @redBO a'} and neither of them contain a boson or an intermediate axiom rule, then
+if @math{a @redBO a'} and neither of them contain a boson,
 @math{a @redOM a'}
 }{
 }
@@ -618,10 +637,47 @@ We emphasize this fact by assigning them an infinite number of cells.
 
 @subsection{Reduction rules}
 
+From the point of view of the abstract machine, the asynchronous reduction
+rules are classified into two categories: 1. the rules emitting or receiving a boson
+2. the rules where two bosons interact between them.
+
+Each rule in the first category involves exactly one rule of the original logic. Hence
+each top rule in a proof can be interpreted as an instruction of the machine, whose
+meaning follows the asynchronous reduction. Rules in the second category, on the other
+hand, correspond to structural properties of the heap. That is, the interaction between
+the ⊗ and ⅋ boson correspond to the property that the components of a ⊗ or ⅋ types are
+laid out in sequence in the heap. Hence, there is no computation associated with them in
+the machine.
+
+The set of reduction rules in the machine (@amRulesFig) is particularly tedious 
+to read in mathematical
+notation, but not difficult to understand using the usual memory layout diagrams,
+which we present in the rest of the section.
+@amRulesFig<-texAmRules{
+  Abstract Machine Rules.
+  The execution of the @ax_ rule merely involves updating the code in its closure 
+  when the type where it operates becomes concrete (when it is not just a type variable). 
+  This is done using rules
+  shown in @axiomRedsFig, which we do not detail it here.
+  }
+
+In each diagram, the set of closures is presented first (only the closures relevant to
+the rule are shown, and it is always the case that any number of other closures can be
+present and remain untouched by the rule). For each closure, its code is shown, followed 
+by its environment. Each element of the environment is a pointer into the heap, represented
+as an arrow pointing to some area of the heap, which is shown in the second row. 
+
+We proceed to explain a few important ones (multiplicatives, additives, @offer_ and @demand_); 
+the complete list of diagrams with explanation
+can be found in appendix.
+
+@texAmRulesExplanation[additives,multiplicatives,offerDemand]
+
 @definition("Abstract Machine Evaluation"){
 The evaluation relation for the abstract machine is written @redAM, and
 the rules for it are shown in @amRulesFig
 }
+
 
 @subsection{Adequacy}
 
@@ -665,7 +721,7 @@ with the view that a linear programming language is low level, and
 that pointers should be introduced by exponentials only. 
 
 
-@paragraph{Optimising @ax_}
+@axiomOptSec<-paragraph{Optimising @ax_}
 To simplify presentation, we have made our implementation of @ax_ less 
 efficient than it could be. It appears wasteful to have a process which
 copies data around, while this data is guaranteed to be produced and consumed
@@ -816,10 +872,8 @@ aspects of LL, such as the structural character of the multiplicative fragment.
 
 @bosonRedsFig<-texBosonReds
 
-@section{Abstract Machine Reduction}
-We do not detail the execution of the @ax_ rule: it stems directly 
-from the boson-reduction presented in the previous section.
-@texAmRulesExplanation
-@amRulesFig<-texAmRules
+@section{Abstract Machine Reduction: all diagrams}
+
+@texAmRulesExplanation(amRules)
 
 @"

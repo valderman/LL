@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -XTypeFamilies -XTypeSynonymInstances -XOverloadedStrings -XRecursiveDo -pgmF marxup -F #-}
+{-# OPTIONS_GHC -XTypeFamilies -XTypeSynonymInstances -XOverloadedStrings #-}
 
 module Framework where
 
@@ -26,6 +26,8 @@ return' = return
 ----------
 -- Text
 
+kern :: String -> TeX
+kern x = braces $ tex $ "\\kern " ++ x
 
 comment :: Tex a -> TeX
 comment _ = ""

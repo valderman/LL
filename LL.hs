@@ -248,15 +248,15 @@ cheval n (Cut _ _ (Bang ty) γ (Offer False _ 0 s) t) = Mem ty γ 1 s (cheval  (
 
 -- Axioms
 cheval _ (Ax Zero) = SZero 1
-cheval _ (Ax One)  = SOne True 1 SBot
-cheval _ (Ax (a :⊕: b)) = Plus "x" "y" 1 (With True a "w" True  0 $ Ax a) 
-                                         (With True b "w" False 0 $ Ax a)
-cheval _ (Ax (a :⊗: b)) = Cross True a "x" "y" 1 $ 
+cheval _ (Ax One)  = SOne False 1 SBot
+cheval _ (Ax (a :⊕: b)) = Plus "x" "y" 1 (With False a "w" True  0 $ Ax a) 
+                                         (With False b "w" False 0 $ Ax a)
+cheval _ (Ax (a :⊗: b)) = Cross False a "x" "y" 1 $ 
                           Exchange [1,0,2] $ 
-                          Par True a "_x" "_y" 1 (Ax a) (Ax (neg b))
+                          Par False a "_x" "_y" 1 (Ax a) (Ax (neg b))
 cheval _ (Ax t@(Forall tw a)) = TUnpack "x" 0 $
-                              TApp True t "_x" 1 (TVar True 0) (Ax a)
-cheval _ (Ax (Bang a)) = Offer True "_x" 0 $ Demand "x" a 1 $ Ax a
+                              TApp False t "_x" 1 (TVar True 0) (Ax a)
+cheval _ (Ax (Bang a)) = Offer False "_x" 0 $ Demand "x" a 1 $ Ax a
 -- Interactions
 cheval _ (Mem tA x n s (Alias True 0 _ t)) = Mem tA x (n+1) s t
 cheval _ (Mem tA x n s (Ignore True 0 t)) = Mem tA x (n-1) s t
