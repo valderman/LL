@@ -243,16 +243,10 @@ pushFig2 = figure_ "Auxiliary reduction rules II" $
            env "center" $
            typesetReductions program (drop 7 pushRules)
 
-typesetReductions displayer reds = env "center" $
-    forM_ reds $ \(name,input) -> do
-      "name:" <> name
-      newline
-      cmd0 "vspace{3pt}"
-      displayer input
-      math $ cmd0 "Longrightarrow"
-      displayer (eval input)
-      newline
-      cmd0 "vspace{1em}"
+typesetReductions displayer reds = mathpar [[
+      -- "name:" <> name
+      displayer input <> kern "-1em" <> redLL <> displayer (eval input)
+    | (name,input) <- reds]]
 
 --------------------
 -- Abstract Machine         
