@@ -237,8 +237,11 @@ texVarT v t = texVar v <> ":" <> t
        
 texVar :: String -> TeX              
 texVar ('_':nm) = cmd "bar" $ texVar nm
-texVar nm = textual nm
-             
+texVar nm | length pre > 0 && length post > 1 = textual pre <> tex "_{" <> 
+                                                textual (tail post) <> tex "}"
+          | otherwise = textual nm
+  where (pre,post) = break (=='_') nm
+
 texCtx :: Bool -> [String] -> [(String,Type)] ->  TeX
 texCtx showVars ts vs = do
   -- uncomment to show the types context
@@ -274,7 +277,7 @@ texType p vs (Bang t) = prn p 4 $ "!" <> texType 4 vs t
 texType p vs (Quest t) = prn p 4 $ "?" <> texType 4 vs t
 texType _ vs (Meta b x as) = textual x <> as' <> texNeg b
   where as' = if null as then mempty else  brack (commas $ map (texType 0 vs) as)
-
+texType p vs (Lollipop x y) = prn p 0 $ texType 1 vs x <> "⊸" <> texType 0 vs y
 prn p k = if p > k then paren else id
        
 

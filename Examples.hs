@@ -1,3 +1,5 @@
+module Examples where
+
 import AM
 import LL
 import Pretty
@@ -19,8 +21,8 @@ s0 = Deriv ["a","b"] ctx $
 bool = One :⊕: One        
 
 s1 = Deriv [] [("x",bool), ("y",neg (bool :⊗: bool))] $
-       Plus "m" "n" 0 (SOne False 0 $ Par False dum "a" "b" 0 (With False dum "c" True  0 (SBot False)) (With False dum "d" True  0 (SBot False))) 
-              (SOne False 0 $ Par False dum "a" "b" 0 (With False dum "c" False 0 (SBot False)) (With False dum "d" False 0 (SBot False)))
+       Plus "m" "n" 0 (SOne False 0 $ Par False dum "a" "b" 0 (With False dum "c" True  0 SBot) (With False dum "d" True  0 SBot)) 
+              (SOne False 0 $ Par False dum "a" "b" 0 (With False dum "c" False 0 SBot) (With False dum "d" False 0 SBot))
 
 test = Deriv [] [("x",neg t0)]  $
        TUnpack "y" 0 $
@@ -48,7 +50,7 @@ exchTest = Deriv ["a","b","c"] [("x",var 0),("y",One),("z",neg (var 0))] $
 cutTest = Deriv [] [("x",Zero)] $
           Cut "a" "b" Bot 1
             (SOne False 0 (SZero 0))
-            (SBot False)
+            SBot
 
 mpTest = Deriv ["α"] [("p",var 0 :⊗: neg (var 0))] $
          Cross False (var 0) "a" "b" 0 $
@@ -69,32 +71,34 @@ semiAdder = Deriv [] [("x",two),("y",two),("z",neg (two :⊗: two))] $
                Plus "v" "w" 0
                (SOne False 0 $ 
                 Par False (neg two) "k" "l" 0
-                  (With False dum "m" True 0 (SBot False))
-                  (With False dum "n" True 0 (SBot False))
+                  (With False dum "m" True 0 SBot)
+                  (With False dum "n" True 0 SBot)
                )
                (SOne False 0 $
                 Par False (neg two) "k" "l" 0 
-                  (With False dum "m" True 0 (SBot False))
-                  (With False dum "n" False 0 (SBot False))
+                  (With False dum "m" True 0 SBot)
+                  (With False dum "n" False 0 SBot)
                ))
               (Par False (neg two) "k" "l" 2
                  (SOne False 0 $
                   Ax two)
-                 (With False dum "n" False 0 (SBot False))
+                 (With False dum "n" False 0 SBot)
               )
 --p = Deriv [] [("x",bType b),("y",bType b),("z",neg (bType b))] $
 --
 
-swap = Deriv [] [("swap",neg $ Forall "α" $ Forall "β" $ (a :⊗: b) ⊸ (b :⊗: a))]
-   $ TUnpack "swap'" 0
-   $ TUnpack "swap''" 0
+swapType = Forall "α" $ Forall "β" $ (a :⊗: b) `Lollipop` (b :⊗: a)
+  where
+    a = var 1
+    b = var 0
+
+swap = Deriv [] [("swapee",neg $ swapType)]
+   $ TUnpack "swapee'" 0
+   $ TUnpack "swapee''" 0
    $ Cross False dum "input" "output" 0
    $ Cross False dum "a_in" "b_in" 0
    $ Exchange [1,2,0]
    $ Par False dum "b_out" "a_out" 1 (Ax dum) (Ax dum)
-  where
-    a = var 1
-    b = var 0
 
 use_swap_once = Deriv ["a","b"] [("in",a⊗b),("out",neg (b⊗a))]
     $ Cut "mkswap" "swap" t0 0 (derivSequent swap)
