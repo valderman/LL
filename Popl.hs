@@ -2,26 +2,21 @@
 
 module Popl where
 
-import Pretty
 import MarXup
 import MarXup.Latex
 import MarXup.Tex
 import Reductions
 import Data.Monoid
-import Symheap
 import TexPretty
 import LL
-import AM
 import Rules
-import DiagPretty
-import Control.Monad
 import GraphViz
 import Framework
 import Data.List
 import PaperData
 import Examples
 
-acmCategories,acmKeywords :: TeX
+acmCategories,acmKeywords,abstract,header :: TeX
 acmCategories = do
   cmdn_ "category" ["F.4.1","Mathematical Logic","Lambda calculus and related system"]
   cmdn_ "category" ["D.3.3","Language Constructs and Features","Concurrent programming structures"]
@@ -31,7 +26,17 @@ acmKeywords = do
   mconcat $ intersperse ", " ["linear logic","lambda calculus"]
 
 abstract = env "abstract" $ @"
-Awesome Paper
+Girard's Linear Logic (LL) is a low-level logic: System F or classical logic can be 
+embedded into it. Thanks to the isomorphism between logics and programming
+languages, it corresponds to a low-level programming languages where management of ressources
+is explicit, and concurrent aspects of programs can be expressed.
+However, it does not appear to be used as such in the programming language research community.
+We make steps in this direction, 
+by giving computational presentation of linear logic. The style of presentation
+is in the tradition of execution models for functional programming languages,
+typically those following Landin's ISWIM. By using time-tested
+methods in the presentation, we hope to make Linear Logic accessible to a wide 
+portion of the PL community.
 @"
 
 header = do
@@ -46,6 +51,70 @@ outputTexMp fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
 
 @intro<-section{Intro}
 
+There is a strong relationship between evaluating programs and proofs.
+The correspondance is usually know as the Curry-Howard isomorphism, and goes
+as follows:
+@dm(array[]("cc")(map (map (cmd "text")) [
+  ["Propositions", "Types"],
+  ["Proofs", "Programs"],
+  ["Verification", "Type-Checking"],
+  ["Normalisation", "Evaluation"]
+ ]))
+This correspondance is quite natural for intuitionistic logics, but
+not so much for classical ones. Motivated by this apparent mismatch,
+@citet{girard_linear_1987} has developed Linear Logic. 
+Linear Logic acts as a low-level logic, where both intuitionistic and
+classical logics can be embedded. From its inception, Linear Logic
+has been recognised as corresponding to concurrent programming
+langaguages. Fleshing out this correspondance has given rise to 
+a long line of work @citep{}.
+
+Additionally, as Linear Logic is a ``low-level'' logic, it corresponds
+to a low-level programming language, where management of resources is
+explicit. As such, we believe that a language based on linear logic 
+would be ideal low-level functional programming language, with explicit
+management of resources, and where opportunities for concurrent execution
+can be expressed at a fine-grained level.
+
+Whereas linear types have made incursions into the world of programming
+languages, some fundamental ideas present in Girard's work have not percolated
+to the area of programming language research. Notably, duality is a central notion
+of linear logic: every type has a dual, which means that there is no @italic{a priori}
+distinction between input and outputs. However this distinction appears to be 
+solidly anchored in PL research, and hence most attempts to integrate linearity
+break the symmetry, and forcibly re-introduce the syntactic distinction
+between input and output.
+
+The versions linear logic featuring this distinction are labeled @emph{intuitionistic}.
+(When one wants to emphasize that inputs and outputs are unified one sometimes 
+use the @emph{clasical} label.) However, as Girard points out, the classical version
+is already grounded in computational intuitions, so the intuitionistic label
+appears unjustified. One of our aims is to explain the computational grounds
+of classical linear logic by using similar means as was used for explaining 
+intuitionistic logic.
+
+@citet{wadler_propositions_2012} has recently given an interpretation of 
+classical linear logic by direct reference to the π-calculus. However,
+coming from a functional programming perspective, this reference appears 
+superflous: we are able to understand the computational aspect of linear logic 
+as a variant of the λ-calculus instead, and we aim to share this 
+understanding in this paper.
+
+To do so, we present: 
+@itemize{
+ @item A term assignment for classical linear logic proofs @syntaxSec, with 
+       a functional syntax inspired from Landin's ISWIM @citep{landin_next_1966}. 
+ @item An adaptation of standard concepts of lambda-calculus evaluation (head normal form, etc.)
+       to linear logic. 
+ @item An abstract machine capable of running linear logic sequents in a concurrent manner.
+       This abstract machine is based on well-known concepts, such has closures and heap.
+ @item We show that the execution steps of the abstract machine corresponds
+       to proof normalisation steps. We do this by introducing a series of interconnected
+       reduction relations.
+}
+
+
+@comment{
 @paragraph{Line of work}
 
 Computational interpretation of proofs.
@@ -78,6 +147,7 @@ Technically:
        to linear logic. 
  @item An abstract machine capable of running linear logic sequents in a concurrent manner,
        based on a von neumann architecture.
+}
 }
 
 @syntaxSec<-section{Syntax}
@@ -852,6 +922,13 @@ The diagrams are also closely related to proof nets.
 Considers the multiplicative logic (MLL): then all possible bosons can be emited. If one writes 
 the coupling diagram with all bosons represented, it is topologically equivalent to the proof net for
 the same sequent. (In a proof-net all hypotheses are at the bottom, and bosons point in a particular direction.)
+
+@paragraph{Abstract Machine}
+
+Lafont categorical linear abstract machine.
+
++ some masters thesis
+
 
 @section{Conclusion}
 

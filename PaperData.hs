@@ -35,10 +35,12 @@ preamble inMetaPost = do
     cmd "usetikzlibrary" $ tex "shapes,arrows"
         
     title "Linear Logic: I see what it means!"
-    authorinfo SIGPlan [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                        ("Josef Svenningsson","josefs@chalmers.se",ch)]
- where ch = "Chalmers University of Technology and University of Gothenburg"
+    authorinfo SIGPlan [("Anonymous","email","institution")]
 
+
+authors = [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
+           ("Josef Svenningsson","josefs@chalmers.se",ch)]
+ where ch = "Chalmers University of Technology and University of Gothenburg"
   
 -------------------------
 -- Generic renderers.
