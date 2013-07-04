@@ -130,7 +130,7 @@ They are shown in @tytab.
 We provide some intuition for how to understand these types.
 @itemize{
 @item @id(tA ⊗ tB): the tensor product provide both @tA and @tB at the same time. The program decides in what order to use them.
-@item @id(tA ⅋ tB): both @tA and @tB. The context chooses in what order they become availabl
+@item @id(tA ⅋ tB): both @tA and @tB. The context chooses in what order they become available
 @item @id(tA ⊕ tB): either @tA and @tB. The context chooses which one.
 @item @id(tA & tB): either @tA and @tB. The program chooses which one.
 @item @id(Forall "α" tAofAlpha): Polymorphism
@@ -266,11 +266,44 @@ will be typing judgement which can guide the derivation of the program.
 @subsection{Reduction rules}
 
 
+@redFig<-syncFig
 
-@math(linearize $ texProg unknownTypeEnv [("x",Bot)] (SZero 0))
+The meaning of our language is defined in terms of the reduction rules given in 
+figure @redFig. As usual in logic, the reductions eliminates the use of the
+cut rule. From a programming language point of view we can understand reduction
+as communication. Channels in our language are one-shot, meaning that they are
+only ever used for a single exchange (although that exchange can be arbitrarily
+complicated and communicate in both directions). This means that once the
+communication has happened the channel can be eliminated and hence also the cut
+rule.
 
-@syncFig
+(TODO: Cut-cut and cut-ax)
 
+Reduction between tensor and par isn't so much communication as splitting the
+channel and forking off a new thread. No information as such is transmitted
+during reduction.
+
+There are two rules for plus and with, one for each choice in the with 
+construct. During communication one bit will be sent from the with process
+which will determine which branch to choose in the plus process. After
+reduction the processes will continue and communicate over the chosen channel.
+
+The rules for polymorphism and existentials means sending the type over the
+channel from the type application to the unpack construct.
+
+The reduction rules for exponentials all involve the offer construct on one 
+end of the communication. When the other end is a demand construct, 
+the exponential will simply be dropped and the processes will continue 
+and communicate the value.
+
+When paired with alias, the offer process is
+duplicated and the new process will communicate over the new channel indicated
+by the alias construct.
+
+Finally, when paired with an ignore, the offer process will simply be dropped
+as it is no longer needed. Evaluation proceeds only in the ignore process.
+
+Finally, reduction for @One and @Bot simply ends the @Bot process.
 
 @section{Outermost Reduction}
 
