@@ -26,13 +26,16 @@ acmKeywords = do
   mconcat $ intersperse ", " ["linear logic","lambda calculus"]
 
 abstract = env "abstract" $ @"
-Girard's Linear Logic (LL) is a low-level logic: System F or classical logic can be 
+Girard's Linear Logic (LL) is a low-level logic: System F or Classical Logic can be 
 embedded into it. Thanks to the isomorphism between logics and programming
-languages, it corresponds to a low-level programming languages where management of ressources
+languages, LL corresponds to a low-level programming languages where management of ressources
 is explicit, and concurrent aspects of programs can be expressed.
-However, it does not appear to be used as such in the programming language research community.
-We make steps in this direction, 
-by giving computational presentation of linear logic. The style of presentation
+
+However, LL does not appear to be very much used as such in the programming language
+research community. We make steps in this direction, 
+by giving computational presentation of LL. In particular, we describe an 
+abstract machine capable of one-sided sequent calculus proofs, interpreted as programs.
+The style of presentation
 is in the tradition of execution models for functional programming languages,
 typically those following Landin's ISWIM. By using time-tested
 methods in the presentation, we hope to make Linear Logic accessible to a wide 
@@ -111,43 +114,6 @@ To do so, we present:
  @item We show that the execution steps of the abstract machine corresponds
        to proof normalisation steps. We do this by introducing a series of interconnected
        reduction relations.
-}
-
-
-@comment{
-@paragraph{Line of work}
-
-Computational interpretation of proofs.
-
-Linear Logic as Concurrent Programming Language.
-
-Propositions as Sessions.
-
-
-@paragraph{Gap/Identify a niche}
-
-Lack of presence of CLL in programming language research.
-
-Current work is mostly based on ILL (DILL). 
-
-CLL treated as a pi-calculus.
-
-
-@paragraph{Contributions}
-Presentation of CLL in a functional, ISWIM style. 
-
-No reference to an external calculus.
-
-Proper treatment of the multiplicative fragment.  (allow asynchronicity).
-
-Technically:
-@itemize{
- @item An ISWIM-style term assignment for the one-sided sequent calculus of linear logic
- @item An adaptation of standard concepts of lambda-calculus evaluation (head normal form, etc.)
-       to linear logic. 
- @item An abstract machine capable of running linear logic sequents in a concurrent manner,
-       based on a von neumann architecture.
-}
 }
 
 @syntaxSec<-section{Syntax}
@@ -937,6 +903,7 @@ Coupling diagrams, the structural reasons of deadlock avoidance, mediating infor
 particles. This has allowed us to shed a new light to some poorly understood
 aspects of LL, such as the structural character of the multiplicative fragment.
 
+@acks{This work is funded by some agency, which we cannot name for anonymity reasons.}
 
 @bibliography
 

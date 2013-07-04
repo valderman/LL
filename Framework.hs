@@ -26,6 +26,8 @@ return' = return
 ----------
 -- Text
 
+acks = cmd "acks"
+
 kern :: String -> TeX
 kern x = braces $ tex $ "\\kern " ++ x
 

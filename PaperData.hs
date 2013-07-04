@@ -36,6 +36,8 @@ preamble inMetaPost = do
         
     title "Linear Logic: I see what it means!"
     authorinfo SIGPlan [("Anonymous","email","institution")]
+    cmd "titlebanner" ("Draft of " <> cmd0 "today")
+    cmd "preprintfooter" "Submitted to POPL 2014"
 
 
 authors = [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
