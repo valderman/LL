@@ -66,7 +66,7 @@ neg (TVar b x) = TVar (not b) x
 neg (Bang t) = Quest (neg t)
 neg (Quest t) = Bang (neg t)
 neg (Meta b x xs) = Meta (not b) x xs
-neg (Lollipop x y) = x :⊗: (neg x)
+neg (Lollipop x y) = x :⊗: (neg y)
 
 -- | Classification of types as positive and negative
 positiveType t = case t of
