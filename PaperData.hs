@@ -104,6 +104,9 @@ lollipop_ = "⊸"
 diamond_ :: TeX
 diamond_ = math "⋄"
 
+cdot :: TeX
+cdot = cmd0 "cdot"
+
 gamma_ :: TeX
 gamma_ = "Γ"
 
@@ -118,13 +121,17 @@ redLL :: TeX
 redLL = math $ cmd0 "Longrightarrow"
 
 redOM :: TeX
-redOM = math $ cmdn_ "stackrel" [redLL,cmd0 "cdot"]
+redOM = math $ cmdn_ "stackrel" ["o", redLL]
+
+redAX :: TeX
+redAX = math $ cmdn_ "stackrel" [ax_, redLL]
 
 redBO :: TeX
-redBO = math $ cmd0 "longrightarrow"
+redBO = math $ cmdn_ "stackrel" ["oa", redLL]
+        -- cmd0 "longrightarrow"
 
 redBOAM :: TeX
-redBOAM = math $ cmdn_ "stackrel" [redBO,cmd0 "cdot"]
+redBOAM = math $ cmdn_ "stackrel" [cdot, redBO]
 
 redAM :: TeX
 redAM = math $ cmd0 "Rrightarrow"
@@ -180,12 +187,8 @@ cutRules = [[(cutRule, @"It allocates @math{|@tA|} cells on the heap. The childr
 structuralRules = cutRules ++ [[(axRule, "Copy the data between the closures; when it's ready.")]]
 
 operationalRules = 
-  [[(parRule, "It splits the environment in two parts. Each becomes a closure, whose environment is either of the parts."),
-    (crossRule, @"It adds an entry in the context for @tB, pointing to the location @math{z + @mkLayout(tA)}.@")]
-  ,[(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
-                     not to be used (in this case @math{|@tB|-|@tA|}.@"),
-    (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
-                A branch is then chosen according to the tag. The cell holding the tag is freed.@")]
+  [multiplicatives
+  ,additives
   ,[(botRule,"The closure is deleted."),
     (oneRule False,"An entry of the environment is deleted.")]  
   ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system.")]
@@ -194,15 +197,8 @@ operationalRules =
                   together with a pointer to the newly allocated area.
                 @")
    ,(existsRule,existComment)]
-  ,[(questRule False,@"The pointer to the closure @math{a} is written to the cell pointed by @math{x}. In the environment of that closure, 
-                 replace the pointer to TODO by a null pointer.
-                 The closure is then removed from 
-                 the list of ready closures.@"),
-    (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
-                cells, and spawn a new closure, which is obtained from copying that pointed by 
-                 by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
-                 The reference count of the cell is decremented.@")]
-  ,[(weakenRule False,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
+  ,offerDemand,
+   [(weakenRule False,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
                   The closure is deallocated if the count reached zero.@")]
   ,[(contractRule False,"The the pointer is copied to a new environment entry, and the reference count incremented.")]
   ] 
@@ -211,6 +207,21 @@ operationalRules =
                  One copies the type representation found in the cell to the type environment. 
                  The cell is then freed, and one proceeds with the execution of the child.@"
 
+multiplicatives = [(parRule, "It splits the environment in two parts. Each becomes a closure, whose environment is either of the parts."),
+                  (crossRule, @"It adds an entry in the context for @tB, pointing to the location @math{z + @mkLayout(tA)}.@")]
+additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
+                     not to be used (in this case @math{|@tB|-|@tA|}.@"),
+             (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
+                A branch is then chosen according to the tag. The cell holding the tag is freed.@")]
+offerDemand = [(questRule False,@"The pointer to the closure @math{a} is written to the cell pointed by @math{x}. In the environment of that closure, 
+                 replace the pointer to TODO by a null pointer.
+                 The closure is then removed from 
+                 the list of ready closures.@"),
+               (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
+                cells, and spawn a new closure, which is obtained from copying that pointed by 
+                 by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
+                 The reference count of the cell is decremented.@")]
+  
 -- | Print all derivation rules               
 typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
     env "center" $ do
@@ -252,15 +263,17 @@ typesetReductions displayer reds = mathpar [[
 -- Abstract Machine         
          
 
-texAmRules = figure_ "Abstract Machine Rules" $ do
+amRules = cutRules ++ operationalRules
+
+texAmRules caption = figure_ caption $ do
   cmd0 "small"
-  mathpar [forAllAmRules $ \(sequ,explanation) s s' -> do
+  mathpar [forAmRules amRules $ \(sequ,explanation) s s' -> do
               amRuleAsMath sequ s s' 
    ]  
 
-texAmRulesExplanation = 
+texAmRulesExplanation whichRules = 
   itemize $ 
-  sequence_ $ forAllAmRules $ \(sequ,explanation) sys0 sys1 -> do
+  sequence_ $ forAmRules whichRules $ \(sequ,explanation) sys0 sys1 -> do
     item
     @"Rule @seqName(derivSequent sequ). @"
     @"The rule assumes an input heap of this form:@"
@@ -269,8 +282,8 @@ texAmRulesExplanation =
     @"The heap after execution is:@"
     displayMath $ diagSystem sys1
 
-forAllAmRules :: ((Deriv, TeX) -> System SymHeap -> System SymHeap -> TeX) -> [TeX]
-forAllAmRules f = concatMap (amRule f) (cutRules ++ operationalRules)
+forAmRules ::  [[(Deriv, t)]]  -> ((Deriv, t) -> System SymHeap -> System SymHeap -> b) -> [b]
+forAmRules rules f = concatMap (amRule f) rules
 
 -- | Render abstract machine rules
 amRule f = amRule' f emptyHeap 
@@ -354,20 +367,27 @@ typesetBosonReds reds = env "center" $
       return ()
 -}
 
+texReductionFigure caption relation displayer rules = 
+  figure_ caption $ mathpar [
+                  [ displayer input <>
+                    relation <>
+                    displayer (evaluator input)
+                   | (evaluator,_name,input) <- rules ] 
+                  ]
+
 texBosonReds :: Tex SortedLabel
-texBosonReds =  figure_ 
+texBosonReds =  texReductionFigure 
                 @"Asynchronous reduction rules.
                   The @mem_/@contract_ rule is shown for arity @math{n=1} of @mem_,
                   but it exists for any @math{n≥1}.
                   Similarly the @mem_/@weaken_ rule is shown for arity 3.
-                @" $ 
-                mathpar [
-                  [ sequent input <>
-                    redBO <>
-                    sequent (evaluator input)
-                   | (evaluator,_name,input) <- chanRedRules ++ chanAxRedRules ] 
-                        ]
+                @" 
+                redBO sequent chanRedRules
 
+texAxiomReds :: Tex SortedLabel
+texAxiomReds = texReductionFigure 
+               @"Explicit Axiom Reductions@"
+               redAX sequent chanAxRedRules
 
 chanRedRules,chanAxRedRules :: [(Deriv -> Deriv, String, Deriv)]
 chanRedRules =
