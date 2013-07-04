@@ -237,8 +237,11 @@ texVarT v t = texVar v <> ":" <> t
        
 texVar :: String -> TeX              
 texVar ('_':nm) = cmd "bar" $ texVar nm
-texVar nm = textual nm
-             
+texVar nm | length pre > 0 && length post > 1 = textual pre <> tex "_{" <> 
+                                                textual (tail post) <> tex "}"
+          | otherwise = textual nm
+  where (pre,post) = break (=='_') nm
+
 texCtx :: Bool -> [String] -> [(String,Type)] ->  TeX
 texCtx showVars ts vs = do
   -- uncomment to show the types context
