@@ -57,6 +57,9 @@ sequent = deriv False
 -- | Render a derivation as a program (term)
 program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
+programWithCtx (Deriv tvs vs s) = 
+  array[] "l" [[texCtx True tvs vs <> "⊢"], [program (Deriv tvs vs s)]]
+
 -- Element instances
 
 instance Element Type where

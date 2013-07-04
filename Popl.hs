@@ -52,7 +52,7 @@ outputTexMp fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
 @intro<-section{Intro}
 
 There is a strong relationship between evaluating programs and proofs.
-The correspondance is usually know as the Curry-Howard isomorphism, and goes
+The correspondance is usually known as the Curry-Howard isomorphism, and goes
 as follows:
 @dm(array[]("cc")(map (map (cmd "text")) [
   ["Propositions", "Types"],
@@ -277,7 +277,7 @@ doesn't have much in the way of data types the examples are by necessity rather 
 
 The first example is a program to swap the values in a tensor product.
 
-@id(program swap)
+@id(programWithCtx swap)
 
 A natural way to think about this program is that it has type 
 @id(swapType).
