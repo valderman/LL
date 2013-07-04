@@ -129,10 +129,10 @@ They are shown in @tytab.
 
 We provide some intuition for how to understand these types.
 @itemize{
-@item @id(tA ⊗ tB): the tensor product provide both @tA and @tB. 
-@item @id(tA ⅋ tB): both @tA and @tB. The context chooses when to use either of them.
+@item @id(tA ⊗ tB): the tensor product provide both @tA and @tB at the same time. The program decides in what order to use them.
+@item @id(tA ⅋ tB): both @tA and @tB. The context chooses in what order they become availabl
 @item @id(tA ⊕ tB): either @tA and @tB. The context chooses which one.
-@item @id(tA & tB): both @tA and @tB. The program chooses which one.
+@item @id(tA & tB): either @tA and @tB. The program chooses which one.
 @item @id(Forall "α" tAofAlpha): Polymorphism
 @item @id(Exists "α" tAofAlpha): Existentials
 @item @id(Bang tA): As many @tA 's as one wants.
