@@ -27,7 +27,7 @@ acmCategories = do
   
 acmKeywords = do  
   cmd0 "keywords"
-  mconcat $ intersperse "," ["linear logic","lambda calculus"]
+  mconcat $ intersperse ", " ["linear logic","lambda calculus"]
 
 abstract = env "abstract" $ @"
 Awesome Paper
@@ -638,7 +638,11 @@ as an arrow pointing to some area of the heap, which is shown in the second row.
 
 We proceed to explain a few important ones (multiplicatives, additives, @offer_ and @demand_); 
 the complete list of diagrams with explanation
-can be found in appendix.
+can be found in appendix. 
+To simplify diagrams, whenever an arbitrary context Γ can be handled, we write a single
+variable pointing to a memory area of type Γ.
+
+
 
 @texAmRulesExplanation[additives,multiplicatives,offerDemand]
 

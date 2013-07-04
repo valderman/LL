@@ -207,32 +207,36 @@ operationalRules =
                  One copies the type representation found in the cell to the type environment. 
                  The cell is then freed, and one proceeds with the execution of the child.@"
 
-multiplicatives = [(parRule, "It splits the environment in two parts. Each becomes a closure, whose environment is either of the parts."),
-                  (crossRule, @"It adds an entry in the context for @tB, pointing to the location @math{z + @mkLayout(tA)}.@")]
+multiplicatives, additives, offerDemand :: [(Deriv, TeX)]
+multiplicatives = [(parRule, @"An additional process is spawned, hence we have one process for each
+                              of the children of the rule. The original environment is split into two parts,
+                              which become the new environments of the new processes. A new variable is
+                              added to each environment, which points respectively to either the @tA or @tB part
+                              of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"),
+                  (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@")]
 additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
-                     not to be used (in this case @math{|@tB|-|@tA|}.@"),
+                     not to be used (in this case @math{|@tB|-|@tA|}).@"),
              (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
                 A branch is then chosen according to the tag. The cell holding the tag is freed.@")]
-offerDemand = [(questRule False,@"The pointer to the closure @math{a} is written to the cell pointed by @math{x}. In the environment of that closure, 
-                 replace the pointer to TODO by a null pointer.
-                 The closure is then removed from 
-                 the list of ready closures.@"),
+offerDemand = [(questRule False,
+  @"The pointer to the closure @math{a} is written to the cell pointed by @math{z}. 
+    The environment of the new closure is the current environment, but where the 
+    pointer @math{z} is replaced by the NULL pointer (represented by a cross below).
+    The created closure not ready to run: the current process is then terminated.@"),
                (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
                 cells, and spawn a new closure, which is obtained from copying that pointed by 
                  by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
-                 The reference count of the cell is decremented.@")]
+                 The reference count of the cell is decremented. In the situation represented in the diagram, 
+                 there is no other reference to that cell, so it should be deallocated.@")]
   
 -- | Print all derivation rules               
 typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
-    env "center" $ do
-    forM_ allRules $ \r -> do 
-         case r of
-            [a] -> math $ deriv'' a
-            [a,b] -> math $ deriv'' a >> cmd0 "hspace{1em}" >> deriv'' b
-         newline  
-         cmd0 "vspace{1em}"
+            mathpar $ multiSplit [2,2,2,3,2,2] $
+            concat $ map (map deriv'') allRules 
   where deriv'' (x,_) = derivation x
 
+multiSplit [] xs = [xs]
+multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
 
 --------------
 -- Reductions
@@ -275,11 +279,11 @@ texAmRulesExplanation whichRules =
   itemize $ 
   sequence_ $ forAmRules whichRules $ \(sequ,explanation) sys0 sys1 -> do
     item
-    @"Rule @seqName(derivSequent sequ). @"
-    @"The rule assumes an input heap of this form:@"
+    @" Rule @seqName(derivSequent sequ).@"
+    @" The rule assumes an input heap of this form:@"
     displayMath $ diagSystem sys0
     explanation
-    @"The heap after execution is:@"
+    @" The heap after execution is:@"
     displayMath $ diagSystem sys1
 
 forAmRules ::  [[(Deriv, t)]]  -> ((Deriv, t) -> System SymHeap -> System SymHeap -> b) -> [b]
