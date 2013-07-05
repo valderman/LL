@@ -43,7 +43,6 @@ cutQuant = cutQuant' False
 
 assocRules,syncRules,pushRules :: [(TeX,Deriv)]
 syncRules = [
-    ("AxCut",cutAx),
     (math par<>"⊗",cutParCross),
     (amp<>"⊕",cutWithPlus True),
     ("?!", cutBang),
@@ -53,6 +52,8 @@ syncRules = [
     ("?Weaken",cutIgnore)
     ]
 assocRules = [("CutCut",cutAssoc1)]
+structRules = [("CutCut",cutAssoc1)
+              ,("AxCut",cutAx)]
 
 altParPush = Deriv ["Θ"] (derivContext parRule ++ [xi]) (Cut "z" "_z" (meta "C") 3 (Par False dum "_x" "_y" 2 whatA whatB) whatB)
 
