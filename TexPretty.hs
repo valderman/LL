@@ -118,15 +118,15 @@ texSeq showProg = foldSeq sf where
   signore w ty s = rul [s]
   salias _ w w' ty s = rul [s]
   smem _ t u = rul [t,u]
-  swhat a _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> 
-                                                  -- if showProg then texVar a else mempty
-                                                  texVar a -- always show the program so we know how to refer to this proof continuation.
+  swhat _ _ _ = Node (Rule () None mempty mempty (texCtx showProg ts vs <> "⊢" <> 
+                                                  sureProg -- always show the program so we know how to refer to this proof continuation.
                                                  )) [] 
                 -- [defaultLink ::> Node (Rule () None mempty mempty (textual a)) []]
                 
   rul :: [Derivation] -> Derivation
   rul subs = Node (Rule () Simple mempty (seqName' ts seq) (texCtx showProg ts vs <> "⊢" <> maybeProg)) (map (defaultLink ::>) subs)
-  maybeProg = if showProg then linearize (texProg ts vs seq) else mempty
+  maybeProg = if showProg then sureProg else mempty
+  sureProg = linearize (texProg ts vs seq)
 
 
 

@@ -56,6 +56,8 @@ frac x y = cmdn_ "frac" [x,y]
 
 centerVertically = math . cmd "vcenter" . cmd "hbox"
 
+qedhere = cmd0 "qedhere"
+
 -- Envs
 
 mathpreamble :: TeX

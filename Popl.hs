@@ -423,6 +423,7 @@ We have the following cases:
 @item @graph1 is waiting on @vX and @graph2 is waiting on @vX'. Then the new edge is ready.
 @item Either system is not waiting on the designated hypothesis. In this case, some other
    edge in that system must be ready, and it remains ready in the combined system.
+@qedhere
 }}
 
 Perhaps surprisingly, the freedom from deadlock does not depend on the specifics of evaluation rules,
