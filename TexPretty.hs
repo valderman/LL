@@ -5,15 +5,12 @@
 
 module TexPretty where
 
-import Data.Foldable hiding (elem)
 import LL 
 import AM
-import MarXup
 import MarXup.Tex
 import MarXup.Latex
 import MarXup.DerivationTrees
 import Data.List
-import Data.String
 import Data.Monoid
 import qualified Data.Map as M
 import Symheap

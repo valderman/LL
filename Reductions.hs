@@ -8,7 +8,7 @@ import TexPretty
 import MarXup.Tex
 import MarXup.Latex (math)
 
-cutAssoc1 = Deriv [] [gamma,delta,xi] $ Cut "y" "_y" tB 2 (Cut "x" "_x" tA 1 whatA whatB) whatC
+cutAssoc1 = Deriv [] [gamma,delta,xi] $ Cut "y" "_y" tB 2 (Cut "x" "_x" tA 2 whatA whatB) whatC
 -- cutAssoc2 = Deriv [] [gamma,delta,xi] $ Cut "x" "_x" tA 1 whatA (Cut "y" "_y" tB 1 whatB whatC)
 
 cutAx = Deriv ["Θ"] [gamma,("w",neg $ meta "A")] $

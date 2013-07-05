@@ -322,7 +322,8 @@ cut :: Int -> -- ^ size of the context
 -- probably go away.
 
 
-cut n w w' ty γ (Cut v v' ty' δ a b) c = Cut v v' ty γ (cut γ w w' ty' δ a b) c
+cut n w w' ty γ (Cut v v' ty' δ a b) c = Exchange [1,0,2] $  Cut v v' (neg ty') (δ-1) b $ 
+                                         cut (n-δ+1) w w' ty γ (exchange [1,0,2] a) c
 -- cut n w ty γ a (Cut w' ty' δ b c) = cut n w ty γ a (cut (n-γ+1) w' ty' δ b c)
 
 cut n w w' ty γ (SOne β x s) t | x > 0 = SOne β (x-1) (Cut w w' ty (γ-1) s t)

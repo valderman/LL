@@ -330,9 +330,10 @@ can be represented by
 It can be useful to think of a node as a process, 
 and an edge as a communication channel, whose label defines which 
 communication protocol which is employed on the channel.
-We emphasize that the direction of edges do not represent the
+We emphasize that the direction of edges do @emph{not} represent the
 direction of flow of data; they are a mere convention which allows to
-know which side of the arrow interprets the label literally, and which side interprets it as its negation. 
+know which side of the arrow interprets the label literally, 
+and which side interprets it as its dual.
 We call such a picture a @emph{coupling diagram}.
 
 @outermostCut<-definition("Outermost Cut"){
@@ -373,7 +374,7 @@ concurrent processes.
   formed by reductions rules so far,
   at the exclusion of commuting reductions and assoc, plus @cut_ congruence:
   if @math{a @redOM a'} and @math{b @redOM b'} then 
-  @dm(sequent(simpleCut' "a" "a'") <> redOM <> sequent (simpleCut' "b" "b'"))
+  @dm(sequent(simpleCut' "a" "b") <> redOM <> sequent (simpleCut' "a'" "b'"))
 
 }
 
@@ -640,8 +641,8 @@ This concludes our description of bosons, whose complete list is shown in @boson
 
 @definition("Outermost asynchronous reduction"){
   The outermost asynchronous reduction, explained described above, is denoted @redBO. 
-  The complete list of direct reductions is found in @bosonRedsFig, to which one
-  adds @cut_ congruence.
+  The list of direct reductions is found in @bosonRedsFig, to which one
+  adds @cut_ congruence and boson congruences.
 }
 
 The full asynchronous reduction is a refinement of the synchronous reduction with asynchronous
@@ -961,7 +962,7 @@ of communication. We have also shed a new light to some poorly understood
 aspects of LL, such as the structural character of the multiplicative fragment. We
 have shown that no communication is necessary to implement it.
 
-@acks{This work is partially funded by some agency, which we cannot name for BDR reasons.}
+@acks{This work is partially funded by some agency, which we cannot name for DBR.}
 
 @bibliography
 
@@ -973,9 +974,7 @@ have shown that no communication is necessary to implement it.
 
 
 @syncFig
-@pushFig1
-@pushFig2
-
+@pushFig
 
 @bosonRedsFig<-texBosonReds
 

@@ -50,7 +50,9 @@ authors = [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
 -- | Render a derivation tree. 
 deriv :: Bool -- ^ Show terms?
          -> Deriv -> TeX
-deriv showProg (Deriv tvs vs s) = derivationTree $ texSeq showProg tvs vs s
+deriv showProg (Deriv tvs vs s) = derivationTree' $ texSeq showProg tvs vs s
+
+derivationTree' x = derivationTreeMP [] x >> return ()
 
 derivation, sequent, program :: Deriv -> TeX
 derivation = deriv True 
@@ -251,12 +253,12 @@ multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
 
 syncFig = figure_ "Reduction rules" $
           env "center" $
-          typesetReductions program (assocRules ++ syncRules)
+          typesetReductions sequent (assocRules ++ syncRules)
 
-pushFig = figure_ "Reduction rules" $
+pushFig = figure_ "Commuting conversions" $
           env "center" $
           typesetReductions program pushRules
-
+{-
 pushFig1 = figure_ "Auxiliary reduction rules I" $
            env "center" $
            typesetReductions program (take 7 pushRules)
@@ -264,7 +266,7 @@ pushFig1 = figure_ "Auxiliary reduction rules I" $
 pushFig2 = figure_ "Auxiliary reduction rules II" $
            env "center" $
            typesetReductions program (drop 7 pushRules)
-
+-}
 typesetReductions displayer reds = mathpar [[
       -- "name:" <> name
       displayer input <> kern "-1em" <> redLL <> displayer (eval input)
