@@ -347,7 +347,7 @@ texHeap h = commas [textual r <> "↦" <> texHeapPart h (Named t r) | Named t r 
 texSystem :: System SymHeap -> TeX
 texSystem (cls,h) = do
   "H=…," <>texHeap h <>";"
-  "C=ξ," <> commas (map pClosure cls)
+  "C=ζ," <> commas (map pClosure cls)
 
 punctuate p = mconcat . intersperse p
 commas = punctuate ", "

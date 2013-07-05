@@ -5,17 +5,8 @@ module Framework where
 import MarXup
 import MarXup.Latex
 import MarXup.Tex
-import MarXup.DerivationTrees hiding (label)
 import Control.Applicative
 import MarXup.MultiRef
-import Reductions
-import Symheap
-import TexPretty
-import LL
-import AM
-import DiagPretty
-import Control.Monad
-import GraphViz
 import Data.Monoid
 
 
@@ -60,6 +51,8 @@ citet,citep :: TeX -> TeX
 
 --------------
 -- Math 
+
+frac x y = cmdn_ "frac" [x,y]
 
 -- Envs
 

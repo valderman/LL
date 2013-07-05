@@ -28,7 +28,7 @@ acmKeywords = do
 abstract = env "abstract" $ @"
 Girard's Linear Logic (LL) is a low-level logic: System F or Classical Logic can be 
 embedded into it. Thanks to the isomorphism between logics and programming
-languages, LL corresponds to a low-level programming languages where management of ressources
+languages, LL corresponds to a low-level programming languages where management of resources
 is explicit, and concurrent aspects of programs can be expressed.
 
 However, LL does not appear to be very much used as such in the programming language
@@ -305,7 +305,7 @@ as it is no longer needed. Evaluation proceeds only in the ignore process.
 
 Finally, reduction for @One and @Bot simply ends the @Bot process.
 
-@section{Outermost Reduction}
+@outerSec<-section{Outermost Reduction}
 
 The fact that the program @math{a} is working in a environment @math{Γ = x:A,y:B,z:C⟂} is
 usually represented by a judgement @derivation(simpleEnv). In the
@@ -313,7 +313,7 @@ rest of the paper we also use the following graphical representation:
 we label a node with the program that it represents, and 
 connect edges to it to represent the environment.
 @simpleEnv
-Two remarks are worth making. First, the edges should be labeled with variable names, but in all
+Two remarks are worth making. First, the edges could be labeled explicitly with variable names, but in all
 the examples we use, the types alone are enough to lift any ambiguity.
 Second, the representation of @tA being in the environment of the program can be  
 either an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
@@ -332,8 +332,7 @@ and an edge as a communication channel, whose label defines which
 communication protocol which is employed on the channel.
 We emphasize that the direction of edges do not represent the
 direction of flow of data; they are a mere convention which allows to
-know on which side of the arrow should be interpreted as @tA and which side should be interpreted 
-as @neg(tA).
+know which side of the arrow interprets the label literally, and which side interprets it as its negation. 
 We call such a picture a @emph{coupling diagram}.
 
 @outermostCut<-definition("Outermost Cut"){
@@ -348,7 +347,7 @@ of outermost cuts is necessarily a tree.
 
 Representing a @cut_ structure by a coupling diagram has two immediate advantages.
 First, it is a concise notation that relieves much notational burden compared to
-full derivations. Second, equivalent sequents (TODO: ref rule) are represented by 
+full derivations. Second, equivalent sequents (by the @cut_/@cut_ rule) are represented by 
 topologically equivalent diagrams, making the equivalence intuitive.
 
 It may be enlightening to review cut reduction of the multiplicative fragment with this view.
@@ -357,7 +356,7 @@ A multiplicative cut is represented by
 and it reduces to
 @dm(couplingDiag(eval cutParCross))
 which makes plain that the reduction 
-splits the process on the @par_ side into two separate, 
+splits the process on the @par_ side into two separate 
 processes, which may communicate only via the process
 coming from the @tensor_ side.
 
@@ -385,8 +384,8 @@ considers only outermost cuts is well-behaved.
 We say that a program is @emph{waiting} on a variable @vX in its context if:
 @itemize{
  @item it is an axiom, or
- @item if is a contract or weakening rule acting on @vX, or
- @item if is a non-structural rule acting on @id(vX).
+ @item if starts with a @contract_ or @weaken_ rule acting on @vX, or
+ @item if starts with an operational rule acting on @id(vX).
 }}
 
 @definition("Ready edge"){
@@ -419,10 +418,9 @@ We have the following cases:
    edge in that system must be ready, and it remains ready in the combined system.
 }}
 
-Perhaps surprisingly, the freedom from deadlock not depend on the specifics of evaluation rules.
-It depends only on the structure of the logical rules: namely that each rule is ready to interact on at least
+Perhaps surprisingly, the freedom from deadlock does not depend on the specifics of evaluation rules,
+but on their broad structure: namely that each rule is ready to interact on at least
 one variable, and crucially that the coupling structure is a tree. 
-
 
 
 @livenessThm<-theorem("Liveness"){
@@ -435,35 +433,34 @@ there cannot be in particular an infinite chain of outermost ones.
 }
 
 In sum, the above theorems means that linear logic programs can be run in a way similar
-to usual ways of running the lambda calculus. A @cut_ in linear logic corresponds to a redex.
-In both cases, the elimination of a top-level
+to usual ways of running the lambda calculus. In fact, the correspondance is deep: we can draw 
+parallels between both sides for every concept used by the respective evaluators.
+
+A ready @cut_ corresponds to a redex. In both cases, the reduction of a top-level
 @cut_ (or redex) involves in-depth rewriting of the term, which is costly and does not correspond
 to the notion that programs are static entities. In both cases, it is possible to delay the 
 elimination of a @cut_ up to the point where direct interaction occurs.
-
-The analogy between the above execution scheme and execution of lambda terms as programs is deep. 
 A ready edge corresponds to a lambda-calculus redex in head position. 
-Inner cuts correspond to redexes under lambdas. Non-structural rules correspond to constructors.
+Inner cuts correspond to redexes under lambdas. Operational rules correspond to constructors.
 A lambda term in head normal form corresponds to a linear program in with an hypothesis edge ready.
 
-The behaviour of Krivine's (TODO SECD) abstract machine is to traverse
-the spine of applications inwards and leftwards until it finds a redex, then reduce it.
+The behaviour of the abstract machine of @citet{krivine_call-by-name_2007} is to traverse
+the spine of applications inwards and leftwards until it finds a redex, then reduce it. 
+(The SECD machine of @citet{landin_mechanical_1964} behaves likewise)
 The reduction yields then another redex in the same position, or one must continue the traversal inwards and leftwards.
 An abstract machine for linear logic must traverse the coupling structure, potentially considering all outermost
 cuts, to eventually find a one which is ready, and reduce it. The difficulty in the
-linear-concurrent case is that one cannot @italic{a priori} know where the ready cut is located. Furthermore,
+linear/concurrent case is that one cannot @italic{a priori} know where the ready cut is located. Furthermore,
 the next ready cut may not be in the neighborhood, so a working list of potentially ready cuts must 
 be maintained.
 
-The execution strategy outline above is a direct generalisation of
+The execution strategy outlined above is a direct generalisation of
 classical execution strategies for lambda calculi.
  However this evaluation
 mechanism has an important shortcoming for the interpretation of
 LL as concurrent processes. Namely, if one thinks of a node as a process, 
 then every communication is synchronous. Indeed, when a cut-reduction rule
 fires, the processes at both ends change state simultaneously.
-
-TODO: see also Danvy
 
 This goes against at least two commonly admitted principles:
 @itemize{
@@ -481,8 +478,14 @@ We attack this shortcoming before taking a brief detour.
 The @cut_ rule allows two processes to communicate via exactly one channel. 
 Variants of the rule allowing zero (@mix_) two (@bicut_)
 channels have been proposed.
-@figure{@mix_ and @bicut_ TODO}{
-@mathpar[[mix_,bicut_]]
+
+@mixBicutFig<-figure{
+  @mix_ and @bicut_
+}{
+  @mathpar[[
+  frac(@"Γ⊢ @hspace("2em") Δ⊢ @")(@"Γ,Δ⊢ @") <> mix_,
+  frac(@"Γ,A,B⊢ @hspace("2em") A⟂,B⟂,Δ⊢ @")(@"Γ,Δ⊢ @") <> bicut_
+  ]]
 }
 
 The @mix_ rule has been proposed by 
@@ -491,7 +494,7 @@ valid: if a cut creates no edge then it is clear that ready edges are preserved.
 is not safe: if two edges are created, then it is possible to create a symmetric situation where
 each subsystem waits for the other to be ready.
 
-@section{Asynchronous Outermost Reduction}
+@asyncSec<-section{Asynchronous Outermost Reduction}
 
 @subsection{Explicit Axioms}
 
@@ -520,7 +523,6 @@ for formal purposes, because @cut_/@ax_ is an equivalence.
     @math{a @redAX b} then  there exist c such that @math{a @redOM c} and b =(cut/ax*)= b.
   @item  
     If neither a nor b contain an intermediate axiom state and @math{a @redOM c} then @math{a @redAX b}.
-    
 }
 }{
  The proof proceeds by case analysis. For each axiom type, it can be shown that the evaluation via
@@ -727,7 +729,18 @@ which we present in the rest of the section.
   The execution of the @ax_ rule merely involves updating the code in its closure 
   when the type where it operates becomes concrete (when it is not just a type variable). 
   This is done using rules
-  shown in @axiomRedsFig, which we do not detail it here.
+  shown in @axiomRedsFig, which we do not repeat here.
+  The notation is as follows. The heap is prefixed by @math{H=}. To reduce clutter, we 
+  do not name the parts of the heap which are untouched be rules, but use a wildcard (…) for them.
+  Position in the heap can be named using the notation @math{name ↦}.
+  A new cell is represented by a square (□). A deallocated cell is represented by a dagger. A tag 
+  (for additives) is represented by either 0 or 1. A server (for exponentials) is represented by a 
+  closure in braces, followed by a natural (reference count). A polymorphic value (for quantifiers) is
+  represented by a type followed by a pointer to the monomorphic representation. The set of closures
+  is prefixed by @math{C=}. A rule always acts on a single closure in the set and leaves the rest of
+  the closures (ζ) untouched. A closure is represented by its code in braces, followed by an environment
+  in brackets. The environment is a map of variables to positions in the heap. Arbitarary subsets of 
+  an environment are represented by metasyntactic variables @math{γ,δ,ξ}.
   }
 
 In each diagram, the set of closures is presented first (only the closures relevant to
@@ -862,17 +875,15 @@ on the right-hand-side of the turnstile.
 
 An issue with this version of LL is that ⅋ does not have the same properties 
 as Girard's version of it @citep{hyland_full_1993}. Furthermore, 
-calling them intuitionistic variants is misleading: LL has good
+calling them intuitionistic variants is misleading: LL has good 
 computational behaviour.
 
-We remain faithful to the spirit of Girard's LL ---
-LL is already intuitionistic: there is no need to restrict the system
+Our presentation is faithful to the spirit of Girard's LL:
+LL is already intuitionistic, and there is no need to restrict it
 to give it computational content.
 
 @paragraph{Session Types}
 @citep{caires_concurrent_2012} (also ILL)
-
-
 
 @citet{wadler_propositions_2012}
 
@@ -901,7 +912,7 @@ we have interpreted the type formers in these terms in @syntaxSec.
 
 Another small improvement of this presentation over that of @citet{wadler_propositions_2012}
 is that we have refined the notion of deadlock (shaving off liveness) in LL, 
-showing that it is a purely structural property.
+underlining the strcutrual character of this property in LL.
 
 @paragraph{Graphical representations}
 
@@ -920,26 +931,41 @@ intead of being an informal reference to some interface.
 The diagrams are also closely related to proof nets.
 Considers the multiplicative logic (MLL): then all possible bosons can be emited. If one writes 
 the coupling diagram with all bosons represented, it is topologically equivalent to the proof net for
-the same sequent. (In a proof-net all hypotheses are at the bottom, and bosons point in a particular direction.)
+the same sequent. (In a proof-net all hypotheses are at the bottom, and bosons are represented 
+in a particular direction.)
 
-@paragraph{Abstract Machine}
+@paragraph{Abstract Machines}
+We identify two serious attempts to provide abstract machines for linear logic.
 
-Lafont categorical linear abstract machine.
+@citet{lafont_linear_1988} describes an abstract machine to evaluate proofs of
+ILL. According to Lafont, CLL is more promising than ILL, but he chose to attack
+ILL for simplicity. Another difference is that 
+Lafont's machine is based on categorical combinators, while
+we remain purely based on the syntax of CLL.
 
-+ some masters thesis
+@citet{abramsky_computational_1993} presents a linear version of the 
+Chemical Abstract Machine (CHAM) @citep{berry_chemical_1992}, which can handle
+CLL. Abramsky's machine appears to be similar to the execution scheme we
+outline in @outerSec. However, Abramsky's use of the CHAM's concepts
+have some cost: he introduces a new syntax for proofs within the machine, and
+a system of names is employed to link proof terms together.
+This use of new concepts is superfluous: we are able to give an account of 
+our AM which relies soley on concepts coming straight from LL syntax.
 
 
 @section{Conclusion}
 
-In our journey to build an AM for LL, we have encountered a number of useful concepts.
-Coupling diagrams, the structural reasons of deadlock avoidance, mediating information 
-particles. This has allowed us to shed a new light to some poorly understood
-aspects of LL, such as the structural character of the multiplicative fragment.
+In our journey to build an abstract machine for linear logic, we have encountered
+two generally useful concepts: coupling diagrams, and rules for asynchronous mediation
+of communication. We have also shed a new light to some poorly understood
+aspects of LL, such as the structural character of the multiplicative fragment. We
+have shown that no communication is necessary to implement it.
 
-@acks{This work is funded by some agency, which we cannot name for anonymity reasons.}
+@acks{This work is partially funded by some agency, which we cannot name for BDR reasons.}
 
 @bibliography
 
+@cmd0("newpage")
 @cmd0("appendix")
 
 @section{Auxiliary reduction rules}
