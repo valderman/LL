@@ -248,10 +248,13 @@ multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
 --------------
 -- Reductions
 
+structFig = figure_ "Structural cut equivalences" $
+            env "center" $
+            typesetEquivalences derivation structRules
 
 syncFig = figure_ "Reduction rules" $
           env "center" $
-          typesetReductions program (assocRules ++ syncRules)
+          typesetReductions programWithCtx syncRules
 
 pushFig = figure_ "Reduction rules" $
           env "center" $
@@ -265,10 +268,15 @@ pushFig2 = figure_ "Auxiliary reduction rules II" $
            env "center" $
            typesetReductions program (drop 7 pushRules)
 
-typesetReductions displayer reds = mathpar [[
+typesetReductions = typesetRules redLL
+
+typesetEquivalences = typesetRules (cmd0 "equiv")
+
+typesetRules relation displayer reds = mathpar  [[
       -- "name:" <> name
-      displayer input <> kern "-1em" <> redLL <> displayer (eval input)
+      displayer input {- <> kern "-1em"-} <> relation <> displayer (eval input)
     | (name,input) <- reds]]
+
 
 --------------------
 -- Abstract Machine         

@@ -265,19 +265,25 @@ will be typing judgement which can guide the derivation of the program.
 
 @subsection{Reduction rules}
 
+@assocFig<-structFig
 
 @redFig<-syncFig
 
 The meaning of our language is defined in terms of the reduction rules given in 
-figure @redFig. As usual in logic, the reductions eliminates the use of the
+figure @redFig. As is usual in logic, the reductions eliminates the use of the
 cut rule. From a programming language point of view we can understand reduction
 as communication. Channels in our language are one-shot, meaning that they are
-only ever used for a single exchange (although that exchange can be arbitrarily
-complicated and communicate in both directions). This means that once the
+only ever used for a single exchange, although that exchange can be arbitrarily
+complicated and communicate in both directions. This means that once the
 communication has happened the channel can be eliminated and hence also the cut
-rule.
+rule. However, not all reduction rules perform communication. Some reductions
+are administrative and in some cases there is no information to communicate.
+The principal reduction rules are shown in figure @redFig.
 
-(TODO: Cut-cut and cut-ax)
+The first reduction rule deal with the axiom construct which forwards channels. 
+The process doing the forward transmits a new channel @math{w} and terminates. 
+The other process will continue and communicate with the new channel replaced 
+by the old one.
 
 Reduction between tensor and par isn't so much communication as splitting the
 channel and forking off a new thread. No information as such is transmitted
