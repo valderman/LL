@@ -54,6 +54,8 @@ citet,citep :: TeX -> TeX
 
 frac x y = cmdn_ "frac" [x,y]
 
+centerVertically = math . cmd "vcenter" . cmd "hbox"
+
 -- Envs
 
 mathpreamble :: TeX

@@ -52,7 +52,11 @@ deriv :: Bool -- ^ Show terms?
          -> Deriv -> TeX
 deriv showProg (Deriv tvs vs s) = derivationTree' $ texSeq showProg tvs vs s
 
-derivationTree' x = derivationTreeMP [] x >> return ()
+derivationTree' x = do
+   centerVertically $ 
+     derivationTreeMP [] x
+   return ()
+-- "scale=0.1" can be passed as an option to compress things.
 
 derivation, sequent, program :: Deriv -> TeX
 derivation = deriv True 
@@ -153,14 +157,15 @@ norm ty = math $ "|" <> texClosedType ty <> "|" <> index rho
 
 
 allPosTypesTable :: [(Type,TeX)]
-allPosTypesTable = [(One,"0")
-              ,(Zero,"∞")
-              ,(tA:⊕:tB,@"1 + @norm(tA) ⊔ @norm(tB) @")
-              ,(tA:⊗:tB,@"@norm(tA) + @norm(tB) @")
-              ,(Bang tA,"1")
-              ,(Forall "α" tAofAlpha,"1")
-              ,(meta "α", "|ρ(α)|" <> index rho)
-              ]
+allPosTypesTable = 
+  [(Zero,"∞")
+  ,(One,"0")
+  ,(tA:⊕:tB,@"1 + @norm(tA) ⊔ @norm(tB) @")
+  ,(tA:⊗:tB,@"@norm(tA) + @norm(tB) @")
+  ,(Bang tA,"1")
+  ,(Forall "α" tAofAlpha,"1")
+  ,(meta "α", "|ρ(α)|" <> index rho)
+            ]
 
 allPosTypes = map fst allPosTypesTable
 
@@ -450,5 +455,6 @@ chanRedRules =
                
 chanAxRedRules =   
   [
-    (eval', "axiom eval", Deriv ["Θ"] [("_w",neg t),("_w",t)] $ Ax t) | t <- init allPosTypes
+    (eval', "axiom eval", Deriv ["Θ"] [("_w",neg t),("_w",t)] $ Ax t) | t <- drop 1 $ -- This drops the zero type, which can never occur dynamically
+                                                                             init allPosTypes -- Drops type variable case
   ]
