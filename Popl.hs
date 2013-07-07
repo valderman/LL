@@ -120,6 +120,8 @@ To do so, we present:
 
 This section will present our language based on  classical linear logic.
 
+@termFigure
+
 @subsection{Types}
 
 The types of our language are directly taken from classical linear logic.
