@@ -122,16 +122,18 @@ diamond_ = math "⋄"
 cdot :: TeX
 cdot = cmd0 "cdot"
 
-gamma_ :: TeX
+gamma_, delta_, xi_ :: TeX
 gamma_ = "Γ"
+delta_ = "Δ"
+xi_    = "Ξ"
 
 forall_, exists_ :: TeX
 forall_ = math "∀"
 exists_ = math "∃"
 
-alpha_ :: TeX
+alpha_, beta_ :: TeX
 alpha_ = "α"
-
+beta_  = "β"
 
 
 -------------------------------------
@@ -211,7 +213,7 @@ allPosTypes = map fst allPosTypesTable
 
 
 texNegationTable = array [] (tex "c@{~=~}c")
-  [ map element [MetaNeg t, neg t] | t <- init allPosTypes]
+  [ map element [MetaNeg t, neg t] | t <- Meta True "A" [] : init allPosTypes]
   -- Note the last row (variable case) is dropped.
 
 layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
@@ -281,7 +283,7 @@ multiplicatives = [(parRule, @"An additional process is spawned, hence we have o
                               of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"
                    ,"parallel channel splitting"),
                   (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@"
-                  ,"consume both")]
+                  ,"sequential channel splitting")]
 additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
                      not to be used (in this case @math{|@tB|-|@tA|}).@"
              ,"left selection"),

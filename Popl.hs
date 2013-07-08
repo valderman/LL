@@ -125,7 +125,7 @@ operational behaviour.
 @subsection{Types}
 
 The types of our language are directly taken from classical linear logic.
-They are shown in @tytab.
+They are shown in @tytab. Variables @tA and @tB denotes types.
 
 @tytab<-typeTable
 
@@ -148,16 +148,28 @@ the tensor product has neutral element @One, which means that
 
 There is no type representing negation. Instead, negation is a defined notion 
 along the rules below. We only show half of the rule, the other half
-are demorgan duals. (Negation is an involution.)
+are demorgan duals. 
 
-@texNegationTable 
+@texNegationTable
 
-Furthermore, there is no type for linear functions.
+The syntax @tA@texNeg(False) will be used frequently to refer to the negation
+of a type.
+
+Negation is an involution: @math{(@tA^@Bot)^@Bot = @tA}.
+
+There is no type for linear functions.
 Functions can be defined using as 
 follows:
 @tA @lollipop_ @tB = @id(tA ⊸ tB)
 
 @subsection{Typing rules (with term assignment)}
+
+We will use @math{x}, @math{y} and @math{z} to refer to variables in our
+language. @alpha_ and @beta_ ranges over types.
+
+@gamma_, @delta_ and @xi_ will be used to denote contexts. Contexts maps 
+variables to types and these mappings are written @math{x : @tA}. Variable
+names in contexts are assumed distinct.
 
 Terms in the language are defined by the following grammar:
 
