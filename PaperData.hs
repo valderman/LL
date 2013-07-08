@@ -301,8 +301,10 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
 multiSplit [] xs = [xs]
 multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
 
-termFigure = array [] "rl" $ map return $ concat $ map (map apa) allRules
-  where apa (x,_,short) = program x <> tex "&" <> short
+termFigure = array [] "|c|l|" $ 
+             ["a, b, c ::=", ""] :
+             (concat $ map (map mkRow) allRules)
+  where mkRow (x,_,short) = [cmd0 "hline" <> " " <> program x, text short]
 
 --------------
 -- Reductions

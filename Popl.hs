@@ -118,9 +118,9 @@ To do so, we present:
 
 @syntaxSec<-section{Syntax}
 
-This section will present our language based on  classical linear logic.
-
-@termFigure
+This section will present our language based on  classical linear logic. The
+language has a functional syntax which is meant to be suggestive of the 
+operational behaviour.
 
 @subsection{Types}
 
@@ -152,12 +152,14 @@ are demorgan duals. (Negation is an involution.)
 
 @texNegationTable 
 
-Furthermore , there is no type for linear functions.
+Furthermore, there is no type for linear functions.
 Functions can be defined using as 
 follows:
 @tA @lollipop_ @tB = @id(tA ⊸ tB)
 
 @subsection{Typing rules (with term assignment)}
+
+@termFigure
 
 @rules shows the typing rules for our language. The judgement form 
 we use is a one-sided, Tait-style sequent calculus with only hypotheses. This 
@@ -274,12 +276,20 @@ will be typing judgement which can guide the derivation of the program.
 The meaning of our language is defined in terms of the reduction rules given in 
 figure @redFig. As is usual in logic, the reductions eliminates the use of the
 cut rule. From a programming language point of view we can understand reduction
-as communication. Channels in our language are one-shot, meaning that they are
+as communication between processes. Channels in our language are one-shot, meaning that they are
 only ever used for a single exchange, although that exchange can be arbitrarily
 complicated and communicate in both directions. This means that once the
 communication has happened the channel can be eliminated and hence also the cut
 rule. However, not all reduction rules perform communication. Some reductions
 are administrative and in some cases there is no information to communicate.
+
+First, there are the structural equivalences, show in figure @assocFig. The
+first equivalence implies that the cut rule is associative. The second
+equivalence
+
+operationally, this equivalence corresponds to introducing and removing channel
+forwarding.
+
 The principal reduction rules are shown in figure @redFig.
 
 The first reduction rule deal with the axiom construct which forwards channels. 
