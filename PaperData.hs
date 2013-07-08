@@ -142,8 +142,8 @@ bidir x = x ∪ swapped x
 cutAssoc = math $ text $ smallcaps "CutAssoc"
 cutSwap = math $ text $ smallcaps "CutSwap"
 cutAx_ = math $ text $ smallcaps "CutAx"
-bosonBoson = math $ text $ smallcaps "Boson/Boson"
-bosonOper = math $ text $ smallcaps "Boson/Oper"
+bosonBoson_ = math $ text $ smallcaps "Boson/Boson"
+bosonOper_ = math $ text $ smallcaps "Boson/Oper"
 boson_ = ruleName "Boson"
 explicitAxiom = math $ text $ smallcaps $ "Ax/Oper"
 commutingConversions = text "commuting conversions"
@@ -169,14 +169,14 @@ redAXDef_ = foldr1 (∪) [bidir operationalRules_, explicitAxiom, cut_ `cong` re
 
 redBO :: TeX
 redBO = math $ cmdn_ "stackrel" ["oa", redLL]
-redBODef_ = foldr1 (∪) [bidir bosonBoson, bidir bosonOper, explicitAxiom, cut_ `cong` redBO, boson_ `cong` redBO ]
+redBODef_ = foldr1 (∪) [bidir bosonBoson_, bidir bosonOper_, explicitAxiom, cut_ `cong` redBO, boson_ `cong` redBO ]
 
 
 redHeap :: TeX
 redHeap = math $ cmdn_ "stackrel" [cdot, redBO]
 
 redHeapDef_ :: TeX
-redHeapDef_ = foldr1 (∪) [bidir bosonBoson, cut_ `cong` redHeap, boson_ `cong` redHeap ]
+redHeapDef_ = foldr1 (∪) [bidir bosonBoson_, cut_ `cong` redHeap, boson_ `cong` redHeap ]
 
 
 redAM :: TeX
@@ -454,41 +454,34 @@ texReductionFigure caption relation displayer rules =
                    | (evaluator,_name,input) <- rules ] 
                   ]
 
-texBosonReds :: Tex SortedLabel
-texBosonReds =  texReductionFigure 
-                @"Asynchronous reduction rules.
+texBosonBoson :: Tex SortedLabel
+texBosonBoson =  texReductionFigure 
+                @"@bosonBoson_ rules.
                   The @mem_/@contract_ rule is shown for arity @math{n=1} of @mem_,
                   but it exists for any @math{n≥1}.
                   Similarly the @mem_/@weaken_ rule is shown for arity 3.
                 @" 
-                redBO sequent chanRedRules
+                redBO sequent bosonBoson
+
+texBosonOper :: Tex SortedLabel
+texBosonOper =  texReductionFigure 
+                @"@bosonOper_ rules.
+                @" 
+                redBO sequent bosonOper
+
 
 texAxiomReds :: Tex SortedLabel
 texAxiomReds = texReductionFigure 
-               @"Explicit Axiom Reductions@"
+               @" @explicitAxiom Reductions@"
                redAX sequent chanAxRedRules
 
-chanRedRules,chanAxRedRules :: [(Deriv -> Deriv, String, Deriv)]
-chanRedRules =
-   [(eval' ,"bit write"  ,         fillTypes $ withRule False True)
-   ,(eval,"bit read"   ,           fillTypes $ cutWithPlus' True True)
-   ,(eval',"type write" ,          fillTypes $ forallRule False) 
-   ,(eval ,"type read"  ,          fillTypes $ cutQuant' True)
-   ,(eval',"left split" ,          fillTypes $ parRule' False)
-   ,(eval',"right split",          fillTypes $ crossRule' False)
-   ,(eval ,"split meet" ,          fillTypes $ cutParCross' True)
---   ,(eval',"left sever" ,          fillTypes $ botRule False) -- USELESS!
-   ,(eval',"right sever",          fillTypes $ oneRule False)
-   ,(eval ,"sever meet" ,          fillTypes $ cutUnit' True)
-   ,(eval',"server wait",          fillTypes $ 
-                                   Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
-                                   Cut "z" "_z" (Bang tA) 1 (Offer False "x" 0 whatA) whatB)
-   ,(eval',"pointer copy (right)", fillTypes $ contractRule False)
+bosonBoson,bosonOper,chanAxRedRules :: [(Deriv -> Deriv, String, Deriv)]
+bosonBoson = 
+  [(eval ,"split meet" ,          fillTypes $ cutParCross' True)
    ,(eval',"pointer copy (left)",  fillTypes $ 
                                    Deriv ["θ"] [gammaBang,xi] $
                                    -- Cut "w" "_w" (Bang tA) $
                                    Mem tA 1 1 whatA (Alias True 0 "x" whatB) )
-   ,(eval',"pointer delete (right)",  fillTypes $ weakenRule True)
    ,(eval',"pointer delete (left)",  
      fillTypes $ 
      Deriv ["θ"] [gammaBang,xi] $
@@ -499,7 +492,22 @@ chanRedRules =
                                    Deriv ["θ"] [gammaBang,xi] $
                                    -- Cut "w" "_w" (Bang tA) $
                                    Mem tA 1 0 whatA whatB) -- TODO
---   ,("client spawn", cutBang' True)
+  ]
+bosonOper =
+   [(eval' ,"bit write"  ,         fillTypes $ withRule False True)
+   ,(eval,"bit read"   ,           fillTypes $ cutWithPlus' True True)
+   ,(eval',"type write" ,          fillTypes $ forallRule False) 
+   ,(eval ,"type read"  ,          fillTypes $ cutQuant' True)
+   ,(eval',"left split" ,          fillTypes $ parRule' False)
+   ,(eval',"right split",          fillTypes $ crossRule' False)
+--   ,(eval',"left sever" ,          fillTypes $ botRule False) -- USELESS!
+  ,(eval ,"left sever",            fillTypes $ cutUnit' True)
+   ,(eval',"right sever",          fillTypes $ oneRule False)
+   ,(eval',"server wait",          fillTypes $ 
+                                   Deriv ["Θ"] [(mempty, Bang (meta "Γ")), delta] $
+                                   Cut "z" "_z" (Bang tA) 1 (Offer False "x" 0 whatA) whatB)
+   ,(eval',"pointer copy (right)", fillTypes $ contractRule False)
+   ,(eval',"pointer delete (right)",  fillTypes $ weakenRule True)
    ]
 --   ,("output",    Deriv ["Θ"] [gamma,delta,("z",neg (tA :⊗: tB))] $ Cut "w" "_w" (tA :⊗: tB) 2 (Exchange [1,0,2] $ Par dum "x" "y" 1 whatA whatB) (Channel dum))
 --   ,("input",    Deriv ["Θ"]  [("x",tA), ("y",tB),delta] $ Cut "w" "_w" (tA :⊗: tB) 2 (ChanPar dum dum) (Cross dum "x" "y" 0 whatA) )

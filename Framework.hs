@@ -13,9 +13,30 @@ import Data.Monoid
 return' :: a -> Tex a
 return' = return
 
+----------
+-- Basics
+
+
+-- | Environment with options
+env'' :: String -> TeX -> Tex a -> Tex a
+env'' e opts body = do
+  cmd "begin" $ tex e
+  brackets opts
+  x <- body
+  cmd "end" $ tex e
+  return x
+
 
 ----------
 -- Text
+
+-- Should replace array
+array' :: [String] -> String -> [[TeX]] -> TeX
+array' opts format bod = math $ do
+  env' "array" opts $ do
+    braces $ tex format
+    mkrows (map mkcols bod)
+  return ()
 
 text = math . cmd "text"
 
@@ -83,23 +104,23 @@ mathpar = env "mathpar" . mkrows . map mk . filter (not . null)
 newtheorem :: String -> TeX -> TeX
 newtheorem ident txt = cmd "newtheorem" (tex ident) >> braces txt
 
-deflike :: String -> String -> String -> TeX -> Tex SortedLabel
-deflike reference nv name statement = env' nv [name] $ do
+deflike :: String -> String -> TeX -> TeX -> Tex SortedLabel
+deflike reference nv name statement = env'' nv name $ do
   statement
   label reference
   
-thmlike :: String -> String -> String -> TeX -> TeX -> Tex SortedLabel
+thmlike :: String -> String -> TeX -> TeX -> TeX -> Tex SortedLabel
 thmlike reference nv name statement proof = do
   x <- deflike reference nv name statement
   env "proof" proof
   return x
 
-theorem,lemma ::  String -> TeX -> TeX -> Tex SortedLabel
+theorem,lemma ::  TeX -> TeX -> TeX -> Tex SortedLabel
 theorem = thmlike "Thm." "theorem"
 lemma = thmlike "Lem." "lemma"
 
 
-definition,corollary :: String -> TeX -> Tex SortedLabel
+definition,corollary :: TeX -> TeX -> Tex SortedLabel
 definition = deflike "Def." "definition"
 corollary = deflike "Cor." "corollary"
 

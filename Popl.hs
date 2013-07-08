@@ -536,17 +536,16 @@ It means however that @ax_ rules rules disappear only when they apply to unit ty
 This is problematic operationally (we discuss this issue in @axiomOptSec), but not 
 for formal purposes, because @cut_/@ax_ is an equivalence.
 
-@theorem(""){
- @itemize{
-  @item 
-    @math{a @redAX b} then  there exist c such that @math{a @redOM c} and b =(cut/ax*)= b.
-  @item  
-    If neither a nor b contain an intermediate axiom state and @math{a @redOM c} then @math{a @redAX b}.
+@definition{@redAX}{
+@math{@redAX = @redAXDef_}
 }
+
+@theorem(""){
+ For any terms @math{a,b}, @math{a @redOM b} iff @math{a @redAX b}.
 }{
- The proof proceeds by case analysis. For each axiom type, it can be shown that the evaluation via
- the explicit copy is confluent with the elimination of cut, reduction, then recreation of the
- axiom(s).
+ The proof proceeds by case analysis. For each type where @ax_ opers, 
+ it can be shown that the evaluation via
+ the explicit copy is confluent with the following steps: elimination of @cut_, reduction of the original rule, then recreation of @ax_ instance(s).
 }
 
 @subsection{Mediating Rules}
@@ -657,7 +656,8 @@ The @weaken_ rule behaves in a manner similar to @contract_.
 This concludes our description of bosons, whose complete list is shown in @bosonsFig
 @bosonsFig<-texBosons
 
-@definition("Outermost asynchronous reduction"){
+@definition{@redBO}{
+  @math{@redBO = @redBODef_}
   The outermost asynchronous reduction, explained described above, is denoted @redBO. 
   The list of direct reductions is found in @bosonRedsFig, to which one
   adds @cut_ congruence and boson congruences.
