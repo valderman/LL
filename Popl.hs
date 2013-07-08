@@ -434,12 +434,16 @@ one variable, and crucially that the coupling structure is a tree.
 
 
 @livenessThm<-theorem("No Starvation"){
-There is no infinite chain of outermost evaluations. This means that, eventually, 
-outermost evaluation will yield a program waiting on one of the variables of its environment.
-In other words: every process eventually provide its environment with what it asks.
+If the @cutAx_ rule is never used to create a @cut_, there is no infinite chain of reduction steps.
+This means that 
+outermost evaluation eventually yields a program waiting on one of the variables of its environment.
+In other words: every process eventually provides its environment with what it asks.
 }{
-Because there is no infinite chain of evaluations (TODO cite), 
-there cannot be in particular an infinite chain of outermost ones.
+The result is a consequence a classical result: cut-elimination in LL. 
+The proof is based on the observation that the products of @cut_ reduction are smaller than 
+the initial @cut_. Two cases are non-obvious. First, the @offer_/@contract_ rule creates syntactically
+bigger trees, but the resulting contractions happen on smaller trees. Second, because of
+impredicativity, some extra care is necessary to ensure termination @citep{gallier_girards_1989}. 
 }
 
 In sum, the above theorems means that linear logic programs can be run in a way similar
