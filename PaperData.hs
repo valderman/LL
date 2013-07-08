@@ -232,19 +232,19 @@ allRules = structuralRules ++ operationalRules
 
 cutRules = [[(cutRule, @"It allocates @math{|@tA|} cells on the heap. The children become new closures, each with an additional 
                          entry in the environment pointing to the newly allocated area.@"
-                       , "Parallel execution"
+                       , "parallel execution"
              )]]
 
 structuralRules = cutRules ++ [[(axRule, "Copy the data between the closures; when it's ready."
-                                ,"Channel forwarding")]]
+                                ,"channel forwarding")]]
 
 operationalRules = 
   [multiplicatives
   ,additives
   ,[(botRule,"The closure is deleted."
-    ,"termination"),
+    ,"process termination"),
     (oneRule False,"An entry of the environment is deleted."
-    ,"empty output")]  
+    ,"empty input")]  
   ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system."
     ,"empty choice")]
   ,[(forallRule False,@"An area in the heap of size @math{|@tAofB|} is allocated.
@@ -272,7 +272,7 @@ multiplicatives = [(parRule, @"An additional process is spawned, hence we have o
                               which become the new environments of the new processes. A new variable is
                               added to each environment, which points respectively to either the @tA or @tB part
                               of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"
-                   ,"parallel execution"),
+                   ,"parallel channel splitting"),
                   (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@"
                   ,"consume both")]
 additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
@@ -303,10 +303,10 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
 multiSplit [] xs = [xs]
 multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
 
-termFigure = array [] "|c|l|" $ 
-             ["a, b, c ::=", ""] :
+termFigure = array [] "ll" $ 
+             [cmdn_ "multicolumn" ["2","l","a, b, c ::=", ""]] :
              (concat $ map (map mkRow) allRules)
-  where mkRow (x,_,short) = [cmd0 "hline" <> " " <> program x, text short]
+  where mkRow (x,_,short) = [programOneLine x, text short]
 
 --------------
 -- Reductions

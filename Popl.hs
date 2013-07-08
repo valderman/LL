@@ -159,7 +159,16 @@ follows:
 
 @subsection{Typing rules (with term assignment)}
 
+Terms in the language are defined by the following grammar:
+
 @termFigure
+
+Name binding works as follows: in the two connect constructs and in the case 
+construct, @math{x} is 
+bound in @math{a} and @math{y} is bound in @math{b}. 
+In all the let constructs, all variables @math{x}, @math{z} and/or @alpha_ 
+appearing to the left of the equals sign, are bound in @math{a}. In the ignore
+construct @math{z} is no longer in scope in @math{a}.
 
 @rules shows the typing rules for our language. The judgement form 
 we use is a one-sided, Tait-style sequent calculus with only hypotheses. This 
@@ -185,13 +194,13 @@ channels must be duals such that one channel is a producer and the other a
 consumer. It also ends the current thread; there is nothing happening after
 the exchange.
 
-The cut rule creates a new channel with two ends, @math{x} and @math{y}, which 
+The @cut_ rule creates a new channel with two ends, @math{x} and @math{y}, which 
 are connected. The channels are used in two separate threads, @math{a} and 
 @math{b}, which run concurrently and in different, disjoint contexts. It is 
 worth noting that the two ends of the channel have different types which are 
 duals.
 
-There is a similar construct to the cut rule which is the @par_ rule. The 
+There is a similar construct to the @cut_ rule which is the @par_ rule. The 
 difference is that the @par_ rule doesn't create a new channel, it splits the
 channel @math{z} of type @tA @par_ @tB and each of the parts are used in
 different processes. 
@@ -201,7 +210,7 @@ There is no order imposed on how @math{x} and @math{y} should be used. The
 order is dictated by how they are used inside the process @math{a}.
 
 There are two symmetric rules for the @with_ type, only one is shown in the 
-figure. Given a channel of type @tA @with_ @tB, the rule @with_ decides to
+figure. Given a channel of type @tA @with_ @tB, the rule @math{&_1} decides to
 send something of type @tA along the channel. That value is in turn produced in 
 the channel @math{x}. This rule realizes internal choice, the process decides 
 which choice to make. Dually, external choice is realized by the @plus_ rule 
@@ -275,16 +284,16 @@ will be typing judgement which can guide the derivation of the program.
 
 The meaning of our language is defined in terms of the reduction rules given in 
 figure @redFig. As is usual in logic, the reductions eliminates the use of the
-cut rule. From a programming language point of view we can understand reduction
+@cut_ rule. From a programming language point of view we can understand reduction
 as communication between processes. Channels in our language are one-shot, meaning that they are
 only ever used for a single exchange, although that exchange can be arbitrarily
 complicated and communicate in both directions. This means that once the
-communication has happened the channel can be eliminated and hence also the cut
+communication has happened the channel can be eliminated and hence also the @cut_
 rule. However, not all reduction rules perform communication. Some reductions
 are administrative and in some cases there is no information to communicate.
 
 First, there are the structural equivalences, show in figure @assocFig. The
-first equivalence implies that the cut rule is associative. The second
+first equivalence implies that the @cut_ rule is associative. The second
 equivalence
 
 operationally, this equivalence corresponds to introducing and removing channel
