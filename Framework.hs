@@ -83,23 +83,25 @@ mathpar = env "mathpar" . mkrows . map mk . filter (not . null)
 newtheorem :: String -> TeX -> TeX
 newtheorem ident txt = cmd "newtheorem" (tex ident) >> braces txt
 
-deflike :: String -> String -> TeX -> Tex SortedLabel
-deflike nv name statement = env' nv [name] $ do
+deflike :: String -> String -> String -> TeX -> Tex SortedLabel
+deflike reference nv name statement = env' nv [name] $ do
   statement
-  label nv 
+  label reference
   
-thmlike :: String -> String -> TeX -> TeX -> Tex SortedLabel
-thmlike nv name statement proof = do
-  x <- deflike nv name statement
+thmlike :: String -> String -> String -> TeX -> TeX -> Tex SortedLabel
+thmlike reference nv name statement proof = do
+  x <- deflike reference nv name statement
   env "proof" proof
   return x
 
 theorem,lemma ::  String -> TeX -> TeX -> Tex SortedLabel
-[theorem,lemma] = map thmlike ["theorem","lemma"]
+theorem = thmlike "Thm." "theorem"
+lemma = thmlike "Lem." "lemma"
 
 
 definition,corollary :: String -> TeX -> Tex SortedLabel
-[definition,corollary] = map deflike ["definition", "corollary"]
+definition = deflike "Def." "definition"
+corollary = deflike "Cor." "corollary"
 
 -- Other stuff
 oxford :: Tex a -> Tex a

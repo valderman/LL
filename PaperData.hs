@@ -136,7 +136,7 @@ alpha_ = "α"
 -- Reductions
 
 operationalRules_, cutAssoc, cutSwap, cutAx_, explicitAxiom, commutingConversions :: TeX
-operationalRules_ = math $ text $ "Oper/Oper"
+operationalRules_ = math $ text $ smallcaps "Oper/Oper"
 swapped x = x <> tex "^{∘}"
 bidir x = x ∪ swapped x 
 cutAssoc = math $ text $ smallcaps "CutAssoc"
@@ -147,10 +147,10 @@ bosonOper = math $ text $ smallcaps "Boson/Oper"
 boson_ = ruleName "Boson"
 explicitAxiom = math $ text $ smallcaps $ "Ax/Oper"
 commutingConversions = text "commuting conversions"
-x `cong` y = x <> text " congruences of " <> y
+x `cong` y = x <> paren y
 
 (∪) :: TeX -> TeX -> TeX
-x ∪ y = x <> " ∪ " <> y
+x ∪ y = x <> "∪" <> y
 
 redLL :: TeX
 redLL = math $ cmd0 "Longrightarrow"

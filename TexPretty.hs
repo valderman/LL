@@ -77,7 +77,7 @@ seqLab s = case s of
    (Offer β _ _ _)       -> "?"
    (Demand _ _ _ _)    -> "!"
    (Ignore _ _ _)        -> "Wk"
-   (Alias β _ _ _)       -> "Ct"
+   (Alias β _ _ _)       -> "Con"
    (Mem _ _ _ _ _)       -> "M"
 --   (Channel ty)        -> "Ch"
    (ChanPlus b)  -> indicator b
