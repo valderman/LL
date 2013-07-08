@@ -225,65 +225,84 @@ typeTable = figure "Types " $
 ------------------------              
 -- Typing rules
 
-allRules, structuralRules, operationalRules, cutRules :: [[(Deriv, TeX)]]
+allRules, structuralRules, operationalRules, cutRules :: [[(Deriv, TeX, TeX)]]
 allRules = structuralRules ++ operationalRules
 
 cutRules = [[(cutRule, @"It allocates @math{|@tA|} cells on the heap. The children become new closures, each with an additional 
-                         entry in the environment pointing to the newly allocated area.@")]]
+                         entry in the environment pointing to the newly allocated area.@"
+                       , "Parallel execution"
+             )]]
 
-structuralRules = cutRules ++ [[(axRule, "Copy the data between the closures; when it's ready.")]]
+structuralRules = cutRules ++ [[(axRule, "Copy the data between the closures; when it's ready."
+                                ,"Channel forwarding")]]
 
 operationalRules = 
   [multiplicatives
   ,additives
-  ,[(botRule,"The closure is deleted."),
-    (oneRule False,"An entry of the environment is deleted.")]  
-  ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system.")]
+  ,[(botRule,"The closure is deleted."
+    ,"termination"),
+    (oneRule False,"An entry of the environment is deleted."
+    ,"empty output")]  
+  ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system."
+    ,"empty choice")]
   ,[(forallRule False,@"An area in the heap of size @math{|@tAofB|} is allocated.
                   The representation of the concrete type @tB is written in the cell,
                   together with a pointer to the newly allocated area.
-                @")
-   ,(existsRule,existComment)]
+                @"
+    ,"sending type")
+   ,(existsRule,existComment
+    ,"receiving type")]
   ,offerDemand,
    [(weakenRule False,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
-                  The closure is deallocated if the count reached zero.@")]
-  ,[(contractRule False,"The the pointer is copied to a new environment entry, and the reference count incremented.")]
+                  The closure is deallocated if the count reached zero.@"
+    ,"drop reference")]
+  ,[(contractRule False,"The the pointer is copied to a new environment entry, and the reference count incremented."
+    ,"duplicate reference")]
   ] 
 
  where existComment = @"(In particular the closure waits if the cell pointed by @math{z} is empty.) 
                  One copies the type representation found in the cell to the type environment. 
                  The cell is then freed, and one proceeds with the execution of the child.@"
 
-multiplicatives, additives, offerDemand :: [(Deriv, TeX)]
+multiplicatives, additives, offerDemand :: [(Deriv, TeX, TeX)]
 multiplicatives = [(parRule, @"An additional process is spawned, hence we have one process for each
                               of the children of the rule. The original environment is split into two parts,
                               which become the new environments of the new processes. A new variable is
                               added to each environment, which points respectively to either the @tA or @tB part
-                              of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"),
-                  (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@")]
+                              of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"
+                   ,"parallel execution"),
+                  (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@"
+                  ,"consume both")]
 additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
-                     not to be used (in this case @math{|@tB|-|@tA|}).@"),
+                     not to be used (in this case @math{|@tB|-|@tA|}).@"
+             ,"left selection"),
              (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
-                A branch is then chosen according to the tag. The cell holding the tag is freed.@")]
+                A branch is then chosen according to the tag. The cell holding the tag is freed.@"
+             ,"choice")]
 offerDemand = [(questRule False,
   @"The pointer to the closure @math{a} is written to the cell pointed by @math{z}. 
     The environment of the new closure is the current environment, but where the 
     pointer @math{z} is replaced by the NULL pointer (represented by a cross below).
-    The created closure not ready to run: the current process is then terminated.@"),
+    The created closure not ready to run: the current process is then terminated.@",
+  "create a closure"),
                (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
                 cells, and spawn a new closure, which is obtained from copying that pointed by 
                  by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
                  The reference count of the cell is decremented. In the situation represented in the diagram, 
-                 there is no other reference to that cell, so it should be deallocated.@")]
+                 there is no other reference to that cell, so it should be deallocated.@",
+                "invoke the closure")]
   
 -- | Print all derivation rules               
 typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
             mathpar $ multiSplit [2,2,2,3,2,2] $
             concat $ map (map deriv'') allRules 
-  where deriv'' (x,_) = derivation x
+  where deriv'' (x,_,_) = derivation x
 
 multiSplit [] xs = [xs]
 multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
+
+termFigure = array [] "rl" $ map return $ concat $ map (map apa) allRules
+  where apa (x,_,short) = program x <> tex "&" <> short
 
 --------------
 -- Reductions
@@ -342,7 +361,7 @@ texAmRulesExplanation whichRules =
     @" The heap after execution is:@"
     displayMath $ diagSystem sys1
 
-forAmRules ::  [[(Deriv, t)]]  -> ((Deriv, t) -> System SymHeap -> System SymHeap -> b) -> [b]
+forAmRules ::  [[(Deriv, t,s)]]  -> ((Deriv, t) -> System SymHeap -> System SymHeap -> b) -> [b]
 forAmRules rules f = concatMap (amRule f) rules
 
 -- | Render abstract machine rules
@@ -355,7 +374,7 @@ amRuleAsMath sequ s s' = do
   return ()
     
 amRule' _ _ [] = []
-amRule' f h0 ((sequ,explanation):seqs) = do
+amRule' f h0 ((sequ,explanation,_):seqs) = do
   case msys1 of
      Nothing -> []
      Just sys1 -> f (sequ,explanation) sys0 sys1 : 
