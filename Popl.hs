@@ -356,7 +356,7 @@ of outermost cuts is necessarily a tree.
 
 Representing a @cut_ structure by a coupling diagram has two immediate advantages.
 First, it is a concise notation that relieves much notational burden compared to
-full derivations. Second, equivalent sequents (by the @cut_/@cut_ rule) are represented by 
+full derivations. Second, equivalent sequents (by the @cutAssoc rule) are represented by 
 topologically equivalent diagrams, making the equivalence intuitive.
 
 It may be enlightening to review cut reduction of the multiplicative fragment with this view.
@@ -375,19 +375,23 @@ first step towards execution of linear logic proofs as
 concurrent processes.
 
 @definition("Outermost Evaluation"){
-  Outermost evaluation is evaluation, written @redOM, is 
-  the reduction relation, restricted to outermost instances of @cut_.
-
-  That is, it is the transitive closure of the relation
-  formed by reductions rules so far,
-  at the exclusion of commuting reductions and assoc, plus @cut_ congruence:
+  We define outer evaluation (@redOM) by taking the union of
+  the operational reduction rules (@operationalRules_), 
+  their swapped version (@math(swapped operationalRules_)), 
+  and the congruence of these rules with @cut_:
   if @math{a @redOM a'} and @math{b @redOM b'} then 
   @dm(sequent(simpleCut' "a" "b") <> redOM <> sequent (simpleCut' "a'" "b'"))
 
+  In summary,
+  @math(redOM <> " = " <> redOMDef_).
 }
+The main difference between this evaluation relation and @redLL is the  
+absence of commuting conversions. This means that top-level cuts are not 
+pushed under communicating primitives. Instead they remain part of the 
+outer coupling structure until communication can happen.
 
-Before the end the section, we show that the strategy of evaluation which
-considers only outermost cuts is well-behaved.
+The remainder of the section is devoted to showing that this  strategy of evaluation 
+is well-behaved, and corresponds to usual evaluation strategies of the λ-calculus.
 
 @definition("Waiting on a variable"){
 We say that a program is @emph{waiting} on a variable @vX in its context if:
@@ -468,6 +472,10 @@ linear/concurrent case is that one cannot @italic{a priori} know where the ready
 the next ready cut may not be in the neighborhood, so a working list of potentially ready cuts must 
 be maintained.
 
+In this light, one understands commuting conversions as the ability to bring a waiting 
+communication primitive to the front of a term --- a concept that is not meaningful in  
+λ-calculus.
+
 The execution strategy outlined above is a direct generalisation of
 classical execution strategies for lambda calculi.
  However this evaluation
@@ -492,15 +500,12 @@ We attack this shortcoming before taking a brief detour.
 The @cut_ rule allows two processes to communicate via exactly one channel. 
 Variants of the rule allowing zero (@mix_) two (@bicut_)
 channels have been proposed.
-
-@mixBicutFig<-figure{
-  @mix_ and @bicut_
-}{
+  
   @mathpar[[
   frac(@"Γ⊢ @hspace("2em") Δ⊢ @")(@"Γ,Δ⊢ @") <> mix_,
   frac(@"Γ,A,B⊢ @hspace("2em") A⟂,B⟂,Δ⊢ @")(@"Γ,Δ⊢ @") <> bicut_
   ]]
-}
+
 
 The @mix_ rule has been proposed by 
 @citet{girard_linear_1987}, and is a safe extension. Indeed, the proof of @noDeadlockThm remains
