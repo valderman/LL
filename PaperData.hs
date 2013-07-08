@@ -58,12 +58,14 @@ derivationTree' x = do
    return ()
 -- "scale=0.1" can be passed as an option to compress things.
 
-derivation, sequent, program :: Deriv -> TeX
+derivation, sequent, program,programOneLine :: Deriv -> TeX
 derivation = deriv True 
 sequent = deriv False
 
 -- | Render a derivation as a program (term)
 program (Deriv tvs vs s) = indentation (texProg tvs vs s)
+
+programOneLine (Deriv tvs vs s) = linearize (texProg tvs vs s)
 
 programWithCtx (Deriv tvs vs s) = 
   array[] "l" [[texCtx True tvs vs <> "⊢"], [program (Deriv tvs vs s)]]

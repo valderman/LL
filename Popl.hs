@@ -1004,7 +1004,8 @@ have shown that no communication is necessary to implement it.
 @syncFig
 @pushFig
 
-@bosonRedsFig<-texBosonReds
+@bosonRedsFig<-texBosonBoson
+@texBosonOper
 
 @section{Abstract Machine Reduction: all diagrams}
 
