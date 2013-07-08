@@ -17,6 +17,8 @@ return' = return
 ----------
 -- Text
 
+text = math . cmd "text"
+
 acks = cmd "acks"
 
 kern :: String -> TeX

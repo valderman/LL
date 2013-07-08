@@ -130,21 +130,54 @@ exists_ = math "∃"
 alpha_ :: TeX
 alpha_ = "α"
 
+
+
+-------------------------------------
+-- Reductions
+
+operationalRules_, cutAssoc, cutSwap, cutAx_, explicitAxiom, commutingConversions :: TeX
+operationalRules_ = math $ text $ "Oper/Oper"
+swapped x = x <> tex "^{∘}"
+bidir x = x ∪ swapped x 
+cutAssoc = math $ text $ smallcaps "CutAssoc"
+cutSwap = math $ text $ smallcaps "CutSwap"
+cutAx_ = math $ text $ smallcaps "CutAx"
+bosonBoson = math $ text $ smallcaps "Boson/Boson"
+bosonOper = math $ text $ smallcaps "Boson/Oper"
+boson_ = ruleName "Boson"
+explicitAxiom = math $ text $ smallcaps $ "Ax/Oper"
+commutingConversions = text "commuting conversions"
+x `cong` y = x <> text " congruences of " <> y
+
+(∪) :: TeX -> TeX -> TeX
+x ∪ y = x <> " ∪ " <> y
+
 redLL :: TeX
 redLL = math $ cmd0 "Longrightarrow"
+
+redLLDef_ = foldr1 (∪) [operationalRules_, cutAssoc, cutSwap, cutAx_, commutingConversions]
 
 redOM :: TeX
 redOM = math $ cmdn_ "stackrel" ["o", redLL]
 
+redOMDef_ :: TeX
+redOMDef_ = foldr1 (∪) [bidir operationalRules_, cutAx_, cut_ `cong` redOM ]
+
 redAX :: TeX
 redAX = math $ cmdn_ "stackrel" [ax_, redLL]
+redAXDef_ = foldr1 (∪) [bidir operationalRules_, explicitAxiom, cut_ `cong` redAX ]
 
 redBO :: TeX
 redBO = math $ cmdn_ "stackrel" ["oa", redLL]
-        -- cmd0 "longrightarrow"
+redBODef_ = foldr1 (∪) [bidir bosonBoson, bidir bosonOper, explicitAxiom, cut_ `cong` redBO, boson_ `cong` redBO ]
 
-redBOAM :: TeX
-redBOAM = math $ cmdn_ "stackrel" [cdot, redBO]
+
+redHeap :: TeX
+redHeap = math $ cmdn_ "stackrel" [cdot, redBO]
+
+redHeapDef_ :: TeX
+redHeapDef_ = foldr1 (∪) [bidir bosonBoson, cut_ `cong` redHeap, boson_ `cong` redHeap ]
+
 
 redAM :: TeX
 redAM = math $ cmd0 "Rrightarrow"
