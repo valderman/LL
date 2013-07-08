@@ -222,12 +222,14 @@ multicolumn n fmt c = cmdn_ "multicolumn" [tex (show n),tex fmt,c]
 typeTable = figure "Types " $
     env "center" $ math $ do
       array [] (textual "cccc") $
-        [ [ multicolumn 2 "c" "Positive", multicolumn 2 "c" "Negative" ]
-        , [  @" @id(tA ⊗ tB) @", @" @One @" , @" @id(tA ⅋ tB) @" , @" @Bot @"]
-        , [  @" @id(tA ⊕ tB) @", @" @Zero @", @"  @id(tA & tB) @" , @" @Top @"]
-        , [  @" @id(Forall "α" tAofAlpha) @" , @" @" , @" @id(Exists "α" tAofAlpha) @" , @"@"]
-        , [  @" @id(Bang tA) @", @"@", @" @id(Quest tA) @" , @"@"]
+        [ [ multicolumn 2 "c" "Positive", multicolumn 2 "c" "Negative" ] ] ++
+        map (map element) 
+        [ [ tA ⊗ tB, One , tA ⅋ tB , Bot ]
+        , [ tA ⊕ tB, Zero, tA & tB , Top ]
+        , [ Forall "α" tAofAlpha , __ , Exists "α" tAofAlpha , __]
+        , [ Bang tA, __, Quest tA , __]
           ]
+  where __ = Meta True "" []
 
 ------------------------              
 -- Typing rules
