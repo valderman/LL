@@ -431,10 +431,10 @@ but on their broad structure: namely that each rule is ready to interact on at l
 one variable, and crucially that the coupling structure is a tree. 
 
 
-@livenessThm<-theorem("Liveness"){
+@livenessThm<-theorem("No Starvation"){
 There is no infinite chain of outermost evaluations. This means that, eventually, 
 outermost evaluation will yield a program waiting on one of the variables of its environment.
-In other words: every process eventually communicates with its environment.
+In other words: every process eventually provide its environment with what it asks.
 }{
 Because there is no infinite chain of evaluations (TODO cite), 
 there cannot be in particular an infinite chain of outermost ones.
