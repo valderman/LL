@@ -180,9 +180,14 @@ redHeap = math $ cmdn_ "stackrel" [cdot, redBO]
 redHeapDef_ :: TeX
 redHeapDef_ = foldr1 (∪) [bidir bosonBoson_, cut_ `cong` redHeap, boson_ `cong` redHeap ]
 
-
 redAM :: TeX
 redAM = math $ cmd0 "Rrightarrow"
+
+equivAM = math $ "≡" <> index "AM"
+
+equivAMDef_ = many $ foldr1 (∪) [cutAssoc, cutSwap, bidir bosonOper_, cut_ `cong` equivAM, boson_ `cong` equivAM]
+                      
+many x = x ^^^ "*"
 
 ---------------------------------------
 -- Types
@@ -345,6 +350,8 @@ typesetRules relation displayer reds = mathpar  [[
 --------------------
 -- Abstract Machine         
          
+toMachine = oxford
+fromMachine x = oxford x ^^^ "-1"
 
 amRules = cutRules ++ operationalRules
 

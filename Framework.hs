@@ -81,6 +81,8 @@ centerVertically = math . cmd "vcenter" . cmd "hbox"
 
 qedhere = cmd0 "qedhere"
 
+x ^^^ y = braces x <> tex "^" <> braces y
+
 -- Envs
 
 mathpreamble :: TeX

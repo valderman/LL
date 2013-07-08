@@ -28,7 +28,7 @@ acmKeywords = do
 abstract = env "abstract" $ @"
 Girard's Linear Logic (LL) is a low-level logic: System F or Classical Logic can be 
 embedded into it. Thanks to the isomorphism between logics and programming
-languages, LL corresponds to a low-level programming languages where management of resources
+languages, LL corresponds to a low-level programming language where management of resources
 is explicit, and concurrent aspects of programs can be expressed.
 
 However, LL does not appear to be very much used as such in the programming language
@@ -39,7 +39,7 @@ The style of presentation
 is in the tradition of execution models for functional programming languages,
 typically those following Landin's ISWIM. By using time-tested
 methods in the presentation, we hope to make Linear Logic accessible to a wide 
-portion of the PL community.
+portion of the programming languages community.
 @"
 
 header = do
@@ -551,11 +551,13 @@ for formal purposes, because @cut_/@ax_ is an equivalence.
 }
 
 @theorem(""){
- For any terms @math{a,b}, @math{a @redOM b} iff @math{a @redAX b}.
+ For any terms @math{a,b}, @math{a @many(redOM) b} iff @math{a @many(redAX) b}.
 }{
  The proof proceeds by case analysis. For each type where @ax_ opers, 
  it can be shown that the evaluation via
- the explicit copy is confluent with the following steps: elimination of @cut_, reduction of the original rule, then recreation of @ax_ instance(s).
+ the explicit copy is confluent with the following steps: elimination of @cut_,
+ reduction of the original rule, then recreation of @ax_ instance(s). This recreation
+ explain why we need @cutAx_ to be an equivalence.
 }
 
 @subsection{Mediating Rules}
@@ -578,7 +580,7 @@ follows:
 @dm(couplingDiag $(cutWithPlus True))
 @dm(couplingDiag $ (eval' $ cutWithPlus True))
 @dm(couplingDiag $ eval $ eval' $ cutWithPlus True)
-The intermediate rule being created can be metaphorically seen
+The intermediate rule can be metaphorically seen
 as a particle travelling from left to right. 
 By analogy with the elementary particles mediating physical 
 forces, we will call such mediating rules bosons.
@@ -588,7 +590,7 @@ implements it as the rules
 @mathpar[map (sequent . chanPlusRuleBad) [True, False]]
 However, we make another choice: to represent it as a rule with the
 same premiss and conclusion as @with_, and merely consider the premiss
-to be ready to run in our execution model. 
+to be ready to run in our execution model (the rule will be congruent for evaluation). 
 @mathpar[map (sequent . withRule True) [True, False]]
 In this sense, it is as if
 the new rule had a structural aspect to it (it embeds a virtual cut).
@@ -667,29 +669,34 @@ This concludes our description of bosons, whose complete list is shown in @boson
 @bosonsFig<-texBosons
 
 @definition{@redBO}{
+  The asynchronous reduction, explained above, replaces the @operationalRules_ rules by
+  boson emission and reception (@bosonOper_, @bosonOperFig) and @bosonBoson_ (@bosonBosonFig) interactions.
+  The boson rules are also congruent for this relation.
   @math{@redBO = @redBODef_}
-  The outermost asynchronous reduction, explained described above, is denoted @redBO. 
-  The list of direct reductions is found in @bosonRedsFig, to which one
-  adds @cut_ congruence and boson congruences.
 }
 
 The full asynchronous reduction is a refinement of the synchronous reduction with asynchronous
 axioms.
 
 @theorem(""){
-If @math{a @redOM a'} then @math{a @redBO a'}
+If @math{a @redOM a'} then @math{a @many(redBO) a'}
 }{
-  For additive, multiplicative and quantifiers, this is immediate because the structure of
+  Base case analysis of each of the @operationalRules_.
+  For additive, multiplicative and quantifiers fragments, this is immediate because the structure of
   bosons is the same as the original structure. 
 
-  For axioms the result stems from the following lemma.
+  For exponentials, one must use the memory boson in 
+  intermediate states.
 }
 
 
 @theorem(""){
-if @math{a @redBO a'} and neither of them contain a boson,
-@math{a @redOM a'}
+If @math{a @many(redBO) a'} and neither @math{a} or @math{b} contains a boson then @math{a @many(redOM) a'}.
+For each of the reductions using an intermediate state containing bosons, it is possible to find a direct
+route.
 }{
+By case analysis, as above. Additionally, one remarks that there is only one way to consume 
+an intermediate boson; rules firing concurrently have no bad effect.
 }
 
 
@@ -700,7 +707,7 @@ machine follows closely the refined reduction relation presented in the previous
 It is similar in spirit to classical abstract machines for the lambda calculus, such as the 
 SECD machine.
 
-The machine state is composed of a list of closures and a heap.
+The machine state is composed of a multiset of closures and a heap.
 The processes from the above section will be represented by closures, and the bosons by the heap.
 A closure is a sequent of LL, 
 together with an environment associating each variable
@@ -729,27 +736,29 @@ is computed by the function @norm(tA).
   @dm(layoutTable)
 } 
 There will be exactly two closures pointing to each channel of non-exponential a type @tA. One
-of these will consider the channel as @tA and the other as @neg(tA), which justifies @norm(tA) = @norm(neg $ tA).
+of these will consider the channel as @tA and the other as @neg(tA), which 
+justifies @norm(tA) = @norm(neg $ tA).
 
 Neither @Zero nor @Top can ever occur in the execution of a program.
 We emphasize this fact by assigning them an infinite number of cells.
 
-
 @subsection{Reduction rules}
 
-From the point of view of the abstract machine, the asynchronous reduction
-rules are classified into two categories: 1. the rules emitting or receiving a boson
-2. the rules where two bosons interact between them.
-
-Each rule in the first category involves exactly one rule of the original logic. Hence
+Each rule in the @bosonOper_ category involves exactly one rule of the original logic. Hence
 each top rule in a proof can be interpreted as an instruction of the machine, whose
-meaning follows the asynchronous reduction. Rules in the second category, on the other
-hand, correspond to structural properties of the heap. That is, the interaction between
+meaning follows the asynchronous reduction. Rules in the @bosonBoson_ category, on the other
+hand, correspond to structural properties of the heap. For example, the interaction between
 the ⊗ and ⅋ boson correspond to the property that the components of a ⊗ or ⅋ types are
 laid out in sequence in the heap. Hence, there is no computation associated with them in
-the machine.
+the machine. Lastly, the commutativity and associativity of @cut_ corresponds to the 
+structure of the muliset of closures.
 
-The set of reduction rules in the machine (@amRulesFig) is particularly tedious 
+@definition("Abstract Machine Evaluation"){
+The evaluation relation for the abstract machine is written @redAM, and
+the rules for it are shown in @amRulesFig
+}
+
+The set of reduction rules in the machine is particularly tedious 
 to read in mathematical
 notation, but not difficult to understand using the usual memory layout diagrams,
 which we present in the rest of the section.
@@ -784,30 +793,44 @@ can be found in appendix.
 To simplify diagrams, whenever an arbitrary context Γ can be handled, we write a single
 variable pointing to a memory area of type Γ.
 
-
-
 @texAmRulesExplanation[additives,multiplicatives,offerDemand]
-
-@definition("Abstract Machine Evaluation"){
-The evaluation relation for the abstract machine is written @redAM, and
-the rules for it are shown in @amRulesFig
-}
 
 
 @subsection{Adequacy}
 
-We show the adequacy of the abstract machine with respect to the @redAM
+We can show the adequacy of the abstract machine with respect to the @redBO reduction.
 
-@definition("Sequent to AM "){
-  Straightforward.
+@definition("Proof to Machine"){
+  One can map a proof to a machine with a single closure whose code point to the  
+  program, and whose each variable in the environment points to 
+  an area of the heap freshly allocated.
 }
-@definition("AM to Sequent"){
+
+@theorem{Soundness}{
+  If @math{a @bosonOper_  b} then @math{@toMachine{a} @redAM @toMachine{b}}.
+  If @math{a @bosonBoson_ b} then @math{a = b}.
+}{
+By case analysis.
 }
 
 The boson-aware sequents are more fine-grained than the abstract machine:
 some distinct sequents will be represented by the same state of the abstract machine.
 For example, it is not possible to discover if multiplicative boson have 
 interacted or not.
+
+@definition("Machine to Proof"){
+  To map a machine state to a proof, one can recover the cut structure
+}
+
+@definition{@equivAM}{
+  @math{@equivAM = @equivAMDef_}
+}
+
+@theorem{Completeness}{
+  If @math{a @redAM b} then @math{@fromMachine{a} @equivAM @fromMachine{b}}
+}{
+By case analysis.
+}
 
 The relation between equivalent sequents is a subset of the boson-reduction.
 @definition("Unobservable reductions"){
@@ -1004,8 +1027,8 @@ have shown that no communication is necessary to implement it.
 @syncFig
 @pushFig
 
-@bosonRedsFig<-texBosonBoson
-@texBosonOper
+@bosonBosonFig<-texBosonBoson
+@bosonOperFig<-texBosonOper
 
 @section{Abstract Machine Reduction: all diagrams}
 
