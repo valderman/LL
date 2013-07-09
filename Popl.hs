@@ -286,19 +286,18 @@ respectively.
 
 @subsection{Examples}
 
-To illustrate our language we give some example programs. Since the language is rather austere and 
-doesn't have much in the way of data types the examples are by necessity rather simple.
+To illustrate our language we give some example programs. Because the language is rather austere and 
+does not have much in the way of data types the examples are by necessity rather simple.
 
 The first example is a program to swap the values in a tensor product.
-
+A natural approach for functional programmers is to start with the type 
+@swapType and try to inhabitate it. 
+However, however programs in our language all have type ⊥. We have then to take an approach
+similar to CPS and invert the flow of control: we assume a variable swappee of type 
+@MetaNeg(swapType) = @neg(swapType), and eliminate it.
 @id(programWithCtx swap)
 
-A natural way to think about this program is that it has type 
-@id(swapType).
-However, since programs in our language don't have types as such, and the 
-control flow is inverted, this type doesn't make sense.
-Instead, the program assumes that there is a consumer, the swapee,  which needs 
-to have a tensor product swapped. The swap program invokes the swapee to
+The swap program invokes the swapee to
 retrieve the channels to swap and reorders them accordingly. In order to type
 our swap program the swapee occurs in the context and have a type which is dual
 to the type above @math{(@id(swapType))^⊥}. The type judgement for the
@@ -306,10 +305,10 @@ swap program becomes as follows:
 
 @math(sequent swap)
 
-The swap program illustrates a general principle for writing programs in our 
-language. If one has a type in mind for the program, such as @swapType in the
-case of the swap program, then negate that type and put it in the context. That
-will be typing judgement which can guide the derivation of the program.
+No programmer in their right mind will want to write programs in the above style.
+Indeed, we intend our language to be used as a low-level, intermediate representation;
+concrete programs can be written in direct style, whose desugaring follows closely
+the translation from direct to continuation-passing style.
 
 @subsection{Reduction rules}
 
