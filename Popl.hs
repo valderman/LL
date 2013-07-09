@@ -180,7 +180,7 @@ Using the above syntax, the linear arrow can be defined as follows:
 so far, having @math{x:A ⊸ B} means that if we provide the environment with @tA,
 we will get @tB. The processing order will be at the discretion of the environment.
 
-@subsection{Terms, Typings and Their Meaning}
+@subsection{Terms and Typings}
 
 We metasyntactic variables @math{x}, @math{y} and @math{z} range over variables in our
 language; @alpha_ and @beta_ range over types; 
@@ -200,7 +200,11 @@ In all the @let_ constructs, all variables @math{x}, @math{z} and/or @alpha_
 appearing to the left of the equals sign, are bound in @math{a}. In the @ignore_
 construct @math{z} is no longer in scope in @math{a}.
 
+@rules<-typeRules
 @rules shows the typing rules for our language. 
+While the syntax suggests the operational behaviour, the rule names follow the convention found in the
+linear logic literature. In particular, elimination rules are simply named after
+the type constructor that they eliminate.
 We use a one-sided judgement form, with only hypotheses. 
 This means no conclusion: the program
 terms are the only thing occurring to the right of the turnstile. The judgement
@@ -208,34 +212,63 @@ may look peculiar at first sight, in particular since the terms do not have any
 return type. However, it can be helpful to think of the programs as ``returning''
 @Bot, with the intuitive meaning that every program eventually terminates.
 
-This feature is reminiscent of continuation-passing style intermediate languages,
+Always returning ⊥ is reminiscent of continuation-passing style (CPS) intermediate 
+languages,
 often used as low-level intermediate representations in the compilation of functional
-languages.
-
-Thanks to duality, there is no need for constructors: constructing a value
-is implemented by eliminating its dual.
-
-@rules<-typeRules
+languages. Indeed, we will see that programs written in our languages will
+be similar to CPS programs.
 
 Similarly to other languages based on linear logic, ours is also a concurrent
 language. Computation corresponds to communication over channels. Each variable 
 in the context can be understood as a reference to one end of a channel, whose
 type expresses the protocol employed on the channel.
 
-We now explain the different language constructs. While the syntax suggests
-the operational behaviour, the rule names follow the convention found in the
-linear logic literature. In particular, elimination rules are simply named after
-the type constructor that they eliminate.
+@subsection{Structural Rules}
 
 The @ax_ rule connects two channels and exchange information. The types of the 
 channels must be duals, so that one channel provides what the other requires.
 It is also the last instruction on the current thread: there is nothing happening after
 the exchange.
 
+Channels in our language are one-shot, meaning that they are
+only ever used for a single exchange, although that exchange can be arbitrarily
+complicated and communicate in both directions. This means that once the
+communication has happened the channel is eliminated, together with the corresponding @cut_.
+
 The @cut_ rule creates a new channel with two ends, @math{x} and @math{y}, which 
 are connected and have dual types. The channels are used in two separate threads, 
 respectively running @math{a} and @math{b}. The threads concurrently and in different,
-disjoint contexts. 
+disjoint contexts: any communication must occur via the new channel.
+
+The @cut_ and @ax_ rules are deemed structrual, in that they represent the backbone of
+the communication structure of the program. A given communication structure can be 
+represented in many ways by these rules (we detail this point in @outerSec), all equivalent
+under the relation (@math{≡}) shown in @structEquivFig: @cut_ is commutative, associative, and @ax_ can be  
+inserted or deleted at everly @cut_ without changing the meaning of the program.
+
+@subsection{Operational Rules}
+
+The rest of the constructions transmit or receive information along the channels laid out
+by @cut_. We group them all in a class which we call @oper_ rules, including @weaken_ and
+@contract_ (contrary to convention).
+
+Thanks to duality, linear logic is economical: we need no constructors in the language,
+eliminators suffice. Indeed, constructing a value
+is implemented by eliminating its dual. Indeed, connecting an eliminator to some other 
+part of a program via @cut_ will dualise the type. (An example is given in @exampleSec.)
+
+The operational semantics of our language is given by the reduction rules of
+linear logic, where two @oper_ rules are connected by a @cut_ and reduce.
+From a programming language point of view we can understand this reduction
+as communication occuring between processes. All this rules are listed in @redFig, 
+and we group them under the @operationalRules_ name.
+
+@paragraph{Multiplicatives}
+
+The reduction  between tensor and par isn't so much communication as splitting the
+channel and forking off a new thread. No information as such is transmitted
+during reduction.
+
 The @par_ construct is similar to @cut_. The 
 difference is that the @par_ rule does not create a new channel, but splits the
 channel @math{z} of type @tA @par_ @tB, and each of the parts are used in
@@ -246,14 +279,7 @@ The program @math{a} has complete freedom regarding the order in which  @math{x}
 are used. This means that, conversely, the @par_ rule must be able to honour 
 any order whatsoever between the subchannels. This is indeed enforced by having
 those two parts handled by separate processes.
-
-Given a channel of type @id(tA :&: tB), the rule @math{&_1} commits to protocol @tA,
-naming the new channel @math{x}. This rule realizes active choice: the process decides 
-which choice to make. Dually, passive choice is realized by the @plus_ rule 
-which examines the choice expressed on the channel @math{z} and branches depending on
-the value.
-
-There are three rules for the neutral types @Bot, @One and @Zero. The types
+The types
 @Bot and @One corresponds to a singleton data type. The rule for
 @Bot effectively just terminates the current process. The reference to a channel
 of type @Bot ensures that some other process (connected at the other end) exists, 
@@ -263,17 +289,38 @@ connected to it is terminated. However, because this eventual termination is gua
 by the system, we choose not to transmit any information. If explicit notification of
 termination is wanted, it can always be encoded by an explicit bit of info.
 
+Finally, reduction for @One and @Bot simply ends the @Bot process.
+
+@paragraph{Additives}
+Given a channel of type @id(tA :&: tB), the rule @math{&_1} commits to protocol @tA,
+naming the new channel @math{x}. This rule realizes active choice: the process decides 
+which choice to make. Dually, passive choice is realized by the @plus_ rule 
+which examines the choice expressed on the channel @math{z} and branches depending on
+the value.
+
 The @Zero type is empty: there is no rule eliminating its dual @Top, so it cannot
 be constructed. Accordingly, the elimination rule for @Zero 
 can never trigger at runtime, so it can safely be interpreted
 as crashing the machine. The @gamma_ in the @dump_ construct is there for 
 formal reasons: every variable need to be used once. 
 
+There are two rules for plus and with, one for each choice in the with 
+construct. During communication one bit will be sent from the with process
+which will determine which branch to choose in the plus process. After
+reduction the processes will continue and communicate over the chosen channel.
+
+
+@paragraph{Quantifiers}
 The @forall_ and @exists_ rules deal with channels of polymorphic and 
 existential types. The rule @forall_ instantiates a polymorphic channel with a 
 particular type @tB which means sending the type along the channel. The type is 
 received in the @exists_ rule where the type is given the name @alpha_.
 
+The rules for polymorphism and existentials means sending the type over the
+channel from the type application to the unpack construct.
+
+
+@paragraph{Exponentials}
 Finally, there are four rules for dealing with exponentials, allowing values
 to be duplicated and ignored. The rule ? provides a protocol which can be 
 used an arbitrary number of times (a service).
@@ -286,7 +333,21 @@ according to the linear rules.
 The rules @weaken_ and @contract_ allow for ignoring and duplicating values
 respectively.
 
-@subsection{Examples}
+The reduction rules for exponentials all involve the offer construct on one 
+end of the communication. When the other end is a demand construct, 
+the exponential will simply be dropped and the processes will continue 
+and communicate the value.
+
+When paired with alias, the offer process is
+duplicated and the new process will communicate over the new channel indicated
+by the alias construct.
+
+Finally, when paired with an ignore, the offer process will simply be dropped
+as it is no longer needed. Evaluation proceeds only in the ignore process.
+
+
+
+@exampleSec<-subsection{Example}
 
 To illustrate our language we give some example programs. Because the language is rather austere and 
 does not have much in the way of data types the examples are by necessity rather simple.
@@ -312,65 +373,8 @@ Indeed, we intend our language to be used as a low-level, intermediate represent
 concrete programs can be written in direct style, whose desugaring follows closely
 the translation from direct to continuation-passing style.
 
-@subsection{Reduction rules}
-
-@assocFig<-structFig
-
+@structEquivFig<-structFig
 @redFig<-syncFig
-
-The operational semantics of our language is given by the cut-elimination rules of
-linear logic. From a programming language point of view we can understand reduction
-as communication between processes. Channels in our language are one-shot, meaning that they are
-only ever used for a single exchange, although that exchange can be arbitrarily
-complicated and communicate in both directions. This means that once the
-communication has happened the channel is eliminated, together with the corresponding @cut_.
-However, when working directly on the syntax, eliminating every @cut_ 
-cannot be done only with reduction rules which perform communication. Some administrative
-term-rewriting must also be done. The first category, which we call @operationalRules_,
-comprises the communication rules and somewhat agains convention, @weaken_ and @contract_ 
-as well. The second category is called structural equivalences, and expresses
-equivalent ways to connect processes together. This category is shown in @assocFig and 
-discussed in detail in 
-@outerSec.
-communication, and call that category  @operationalRules_ rules. These rules are listed in 
-@redFig. Lastly, the category of commuting conversions allows to push a @cut_ inside
-an eliminator rule, and are found in @commutingConvFig.
-
-TODO: Structural equivalences, once fig. is done.
-@cutSwap Commutativity and @cutAssoc_ associativity of cut. @cutAx_ Insertion/deletion of Axiom does not change
-anytning.
-The first reduction rule deal with the axiom construct which forwards channels. 
-The process doing the forward transmits a new channel @math{w} and terminates. 
-The other process will continue and communicate with the new channel replaced 
-by the old one.
-
-TODO: should we attempt to merge these explanations in the previous subsection?
-
-Reduction between tensor and par isn't so much communication as splitting the
-channel and forking off a new thread. No information as such is transmitted
-during reduction.
-
-There are two rules for plus and with, one for each choice in the with 
-construct. During communication one bit will be sent from the with process
-which will determine which branch to choose in the plus process. After
-reduction the processes will continue and communicate over the chosen channel.
-
-The rules for polymorphism and existentials means sending the type over the
-channel from the type application to the unpack construct.
-
-The reduction rules for exponentials all involve the offer construct on one 
-end of the communication. When the other end is a demand construct, 
-the exponential will simply be dropped and the processes will continue 
-and communicate the value.
-
-When paired with alias, the offer process is
-duplicated and the new process will communicate over the new channel indicated
-by the alias construct.
-
-Finally, when paired with an ignore, the offer process will simply be dropped
-as it is no longer needed. Evaluation proceeds only in the ignore process.
-
-Finally, reduction for @One and @Bot simply ends the @Bot process.
 
 @outerSec<-section{Outermost Reduction}
 
@@ -946,6 +950,12 @@ However, the proof of @noDeadlockThm suggests ways to construct logics allowing
 graph structures while remaining deadlock free. For example: the connection by two edges
 is possible if connection points are guaranteed to be ready at the same time.
 
+@paragraph{Commuting Conversions}
+However, when working directly on the syntax, eliminating every @cut_ 
+cannot be done only with reduction rules which perform communication. Some administrative
+term-rewriting must also be done. 
+Lastly, the category of commuting conversions allows to push a @cut_ inside
+an eliminator rule, and are found in @commutingConvFig, and will not be discussed further.
 
 @subsection{Future Work}
 
