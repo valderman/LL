@@ -70,7 +70,7 @@ Linear Logic acts as a low-level logic, where both intuitionistic and
 classical logics can be embedded. From its inception, Linear Logic
 has been recognised as corresponding to concurrent programming
 langaguages. Fleshing out this correspondance has given rise to 
-a long line of work @citep{}.
+a long line of work @citep{abramsky_computational_1993,wadler_propositions_2012,caires_linear_????,bellin_scott94}.
 
 Additionally, as Linear Logic is a ``low-level'' logic, it corresponds
 to a low-level programming language, where management of resources is
@@ -98,12 +98,13 @@ intuitionistic logic.
 
 @citet{wadler_propositions_2012} has recently given an interpretation of 
 classical linear logic by reference to the π-calculus. However,
-coming from a functional programming perspective, this indirect explanation seems 
-superfluous. Our aim is find the natural programming language corresponding
+coming from a functional programming perspective, this explanation seems 
+indirect. Our aim is find the natural programming language corresponding
 to LL, in the same way as λ-calculi correspond to intuitionistic logics.
 Furthermore, as much as possible, 
 we desire a design which follows ISWIM conventions @citep{landin_next_1966},
 in particular regarding syntax and the naming of intermediate values.
+Our aim is to fill the gap in the following correspondances:
 
 @dm(array[]("cc")(map (map (cmd "text")) [
   ["Simply-Typed λ-calculus", "Propositional Logic"],
