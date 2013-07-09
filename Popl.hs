@@ -186,7 +186,9 @@ We metasyntactic variables @math{x}, @math{y} and @math{z} range over variables 
 language; @alpha_ and @beta_ range over types; 
 @gamma_, @delta_ and @xi_ range over contexts. Contexts are unordered maps
 of variables to types, and these mappings are written @math{x : @tA}. Variable
-names in contexts are assumed distinct.
+names in contexts are assumed distinct. Contexts are used to enforce linearity.
+It is therefore important that when combining two contexts, the names in them
+are distinct. Variables are never implicitly dropped from a context.
 
 Terms are defined by the following grammar:
 @termFigure
@@ -194,7 +196,7 @@ Terms are defined by the following grammar:
 Name binding works as follows: in the two @connect_ constructs and in the @case_ 
 construct, @math{x} is 
 bound in @math{a} and @math{y} is bound in @math{b}. 
-In all the let constructs, all variables @math{x}, @math{z} and/or @alpha_ 
+In all the @let_ constructs, all variables @math{x}, @math{z} and/or @alpha_ 
 appearing to the left of the equals sign, are bound in @math{a}. In the @ignore_
 construct @math{z} is no longer in scope in @math{a}.
 

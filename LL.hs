@@ -360,7 +360,7 @@ cut n _ _ ty γ (Offer β w 0 b) (Alias β' 0 w' a) = alias β' (reverse [0..γ-
 cut n _ _ ty γ (SBot) (SOne β 0 a) = a
 
   -- Cut w w' ta 1 (What "arst" []) (What "qwft" [])
-cut n w w' ty γ a b | isPos b = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w w' (neg ty) (n-γ) b a)
+cut n w w' ty γ a b | positiveType ty = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w' w (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
 
 ignore β 0 a = a
