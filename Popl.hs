@@ -189,8 +189,8 @@ of variables to types, and these mappings are written @math{x : @tA}. Variable
 names in contexts are assumed distinct. Contexts are used to enforce linearity.
 It is therefore important that when combining two contexts, the names in them
 are distinct. Variables are never implicitly dropped from a context.
-
-Terms are defined by the following grammar:
+Terms are defined by the following grammar, where @math{a,b} and @math{c} range
+over terms.
 @termFigure
 
 Name binding works as follows: in the two @connect_ constructs and in the @case_ 

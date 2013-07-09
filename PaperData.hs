@@ -227,15 +227,17 @@ multicolumn n fmt c = cmdn_ "multicolumn" [tex (show n),tex fmt,c]
 
 typeTable = figure "Types. " $
     env "center" $ math $ do
-      array [] (textual "cccc") $
-        [ [ multicolumn 2 "c" (text "Positive"), multicolumn 2 "c" (text "Negative") ] ] ++
-        map (map element) 
+      array' [] "lcc@{\\hspace{2em}}cc" $
+--        [ [ multicolumn 2 "c" (text "Positive"), multicolumn 2 "c" (text "Negative") ] ] ++
+        zipWith (:) fragments $ map (map element) 
         [ [ tA ⊗ tB, One , tA ⅋ tB , Bot ]
         , [ tA ⊕ tB, Zero, tA & tB , Top ]
         , [ Forall "α" tAofAlpha , __ , Exists "α" tAofAlpha , __]
         , [ Bang tA, __, Quest tA , __]
           ]
   where __ = Meta True "" []
+        fragments = map text ["multiplicatives", "additives", "quantifiers", "exponentials"]
+
 
 ------------------------              
 -- Typing rules
@@ -317,15 +319,15 @@ multiSplit [] xs = [xs]
 multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
 
 termFigure = displayMath $ 
-  array [] "ll" $ 
-             [cmdn_ "multicolumn" ["2","l","a, b, c ::=", ""]] :
+  array' [] "ll" $ 
+             -- [cmdn_ "multicolumn" ["2","l","a, b, c ::=", ""]] :
              (concat $ map (map mkRow) allRules)
   where mkRow (x,_,short) = [programOneLine x, text short]
 
 --------------
 -- Reductions
 
-structFig = figure_ "Structural equivalences" $
+structFig = figure_ @"Structural equivalences: @cutSwap, @cutAssoc_ and @cutAx_ @" $
             env "center" $
             typesetEquivalences derivation structRules
 
