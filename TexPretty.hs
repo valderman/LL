@@ -131,10 +131,11 @@ texSeq showProg = foldSeq sf where
 
 
 keyword :: String -> TeX 
-keyword = mathsf . tex
+keyword = math . mathsf . tex
 let_ = keyword "let "
 case_ = keyword "case "
 connect_ = keyword "connect "
+ignore_ = keyword "ignore "
 [fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
 separator = cmd "hline" mempty
@@ -210,7 +211,7 @@ texProg'' what showTypes = foldSeq sf where
                        (keyword "inr " <> texVar v',t)]
       swith _ _ b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
-      sbot v = Final $ texVar v
+      sbot v = Final $ keyword "halt " <> texVar v
       szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
       sone _ w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t
@@ -218,7 +219,7 @@ texProg'' what showTypes = foldSeq sf where
       stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar v) (texVar w)  s
       soffer _ v w ty s = let'' (texVarT' w ty) (keyword "offer " <> texVar v)  s
       sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
-      signore w ty s = Instr (keyword "ignore " <> texVar w)  s
+      signore w ty s = Instr (ignore_ <> texVar w)  s
       salias _ w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
       swhat a ws fs = Final $ what a ws fs
       smem ty t tx = Final $ "MEM"

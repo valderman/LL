@@ -253,11 +253,11 @@ operationalRules =
   [multiplicatives
   ,additives
   ,[(botRule,"The closure is deleted."
-    ,"process termination"),
+    ,@"terminate@"),
     (oneRule False,"An entry of the environment is deleted."
-    ,"empty input")]  
+    ,"no op")]  
   ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system."
-    ,"empty choice")]
+    ,"crash")]
   ,[(forallRule False,@"An area in the heap of size @math{|@tAofB|} is allocated.
                   The representation of the concrete type @tB is written in the cell,
                   together with a pointer to the newly allocated area.
@@ -268,9 +268,9 @@ operationalRules =
   ,offerDemand,
    [(weakenRule False,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
                   The closure is deallocated if the count reached zero.@"
-    ,"drop reference")]
+    ,"decline a service")]
   ,[(contractRule False,"The the pointer is copied to a new environment entry, and the reference count incremented."
-    ,"duplicate reference")]
+    ,"duplicate service")]
   ] 
 
  where existComment = @"(In particular the closure waits if the cell pointed by @math{z} is empty.) 
@@ -283,27 +283,27 @@ multiplicatives = [(parRule, @"An additional process is spawned, hence we have o
                               which become the new environments of the new processes. A new variable is
                               added to each environment, which points respectively to either the @tA or @tB part
                               of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"
-                   ,"passive channel splitting"),
+                   ,"passive splitting"),
                   (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@"
-                  ,"active channel splitting")]
+                  ,"active splitting")]
 additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
                      not to be used (in this case @math{|@tB|-|@tA|}).@"
-             ,"left selection"),
+             ,"active (left) choice"),
              (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
                 A branch is then chosen according to the tag. The cell holding the tag is freed.@"
-             ,"choice")]
+             ,"passive choice")]
 offerDemand = [(questRule False,
   @"The pointer to the closure @math{a} is written to the cell pointed by @math{z}. 
     The environment of the new closure is the current environment, but where the 
     pointer @math{z} is replaced by the NULL pointer (represented by a cross below).
     The created closure not ready to run: the current process is then terminated.@",
-  "create a closure"),
+  "offer a service"),
                (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
                 cells, and spawn a new closure, which is obtained from copying that pointed by 
                  by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
                  The reference count of the cell is decremented. In the situation represented in the diagram, 
                  there is no other reference to that cell, so it should be deallocated.@",
-                "invoke the closure")]
+                "demand a service")]
   
 -- | Print all derivation rules               
 typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $

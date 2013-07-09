@@ -125,7 +125,7 @@ As concrete steps towards this goal, we make the following contributions:
        (redex,head normal form, etc.) generalize in linear logic.  (@outerSec)
 }
 
-@syntaxSec<-section{Syntax}
+@syntaxSec<-section{Syntax and Intuitions}
 
 This section presents the syntax of our language. The
 syntax is functional, and suggestive of the operational behaviour.
@@ -180,7 +180,7 @@ Using the above syntax, the linear arrow can be defined as follows:
 so far, having @math{x:A ⊸ B} means that if we provide the environment with @tA,
 we will get @tB. The processing order will be at the discretion of the environment.
 
-@subsection{Typing rules (with term assignment)}
+@subsection{Terms, Typings and Their Meaning}
 
 We metasyntactic variables @math{x}, @math{y} and @math{z} range over variables in our
 language; @alpha_ and @beta_ range over types; 
@@ -191,73 +191,81 @@ names in contexts are assumed distinct.
 Terms are defined by the following grammar:
 @termFigure
 
-Name binding works as follows: in the two @math{@mathsf{connect}} constructs and in the case 
+Name binding works as follows: in the two @connect_ constructs and in the @case_ 
 construct, @math{x} is 
 bound in @math{a} and @math{y} is bound in @math{b}. 
 In all the let constructs, all variables @math{x}, @math{z} and/or @alpha_ 
-appearing to the left of the equals sign, are bound in @math{a}. In the ignore
+appearing to the left of the equals sign, are bound in @math{a}. In the @ignore_
 construct @math{z} is no longer in scope in @math{a}.
 
-@rules shows the typing rules for our language. The judgement form 
-we use is a one-sided, Tait-style sequent calculus with only hypotheses. This 
-means that there is only hypotheses in our judgement, no conclusion. The program
+@rules shows the typing rules for our language. 
+We use a one-sided judgement form, with only hypotheses. 
+This means no conclusion: the program
 terms are the only thing occurring to the right of the turnstile. The judgement
-may look peculiar at first, in particular since the terms don't have any
-return types. However, it can be helpful to think of the programs as "returning"
-@Bot. (TODO CPS explanation)
+may look peculiar at first sight, in particular since the terms do not have any
+return type. However, it can be helpful to think of the programs as ``returning''
+@Bot, with the intuitive meaning that every program eventually terminates.
+
+This feature is reminiscent of continuation-passing style intermediate languages,
+often used as low-level intermediate representations in the compilation of functional
+languages.
+
+Thanks to duality, there is no need for constructors: constructing a value
+is implemented by eliminating its dual.
 
 @rules<-typeRules
 
-Similar to other languages based on linear logic, ours is also a concurrent
+Similarly to other languages based on linear logic, ours is also a concurrent
 language. Computation corresponds to communication over channels. Each variable 
-in the context corresponds to one end of a channel.
+in the context can be understood as a reference to one end of a channel, whose
+type expresses the protocol employed on the channel.
 
-We will now explain the different language constructs as found in
-@rules. The name of the rules reflect their logical meaning
-whereas the name of the language constructs are meant to suggest their 
-operational behaviour.
+We now explain the different language constructs. While the syntax suggests
+the operational behaviour, the rule names follow the convention found in the
+linear logic literature. In particular, elimination rules are simply named after
+the type constructor that they eliminate.
 
-The axiom rule connects two channels and exchange information. The types of the 
-channels must be duals such that one channel is a producer and the other a
-consumer. It also ends the current thread; there is nothing happening after
+The @ax_ rule connects two channels and exchange information. The types of the 
+channels must be duals, so that one channel provides what the other requires.
+It is also the last instruction on the current thread: there is nothing happening after
 the exchange.
 
 The @cut_ rule creates a new channel with two ends, @math{x} and @math{y}, which 
-are connected. The channels are used in two separate threads, @math{a} and 
-@math{b}, which run concurrently and in different, disjoint contexts. It is 
-worth noting that the two ends of the channel have different types which are 
-duals.
-
-There is a similar construct to the @cut_ rule which is the @par_ rule. The 
-difference is that the @par_ rule doesn't create a new channel, it splits the
-channel @math{z} of type @tA @par_ @tB and each of the parts are used in
+are connected and have dual types. The channels are used in two separate threads, 
+respectively running @math{a} and @math{b}. The threads concurrently and in different,
+disjoint contexts. 
+The @par_ construct is similar to @cut_. The 
+difference is that the @par_ rule does not create a new channel, but splits the
+channel @math{z} of type @tA @par_ @tB, and each of the parts are used in
 different processes. 
 Dual to the @par_ rule is the @tensor_ rule which also splits the channel but 
-uses the two parts, @math{x} and @math{y},  of the channel in the same process. 
-There is no order imposed on how @math{x} and @math{y} should be used. The
-order is dictated by how they are used inside the process @math{a}.
+uses the two parts, @math{x} and @math{y}, of the channel in a single process @math{a}. 
+The program @math{a} has complete freedom regarding the order in which  @math{x} and @math{y}
+are used. This means that, conversely, the @par_ rule must be able to honour 
+any order whatsoever between the subchannels. This is indeed enforced by having
+those two parts handled by separate processes.
 
-There are two symmetric rules for the @with_ type, only one is shown in the 
-figure. Given a channel of type @tA @with_ @tB, the rule @math{&_1} decides to
-send something of type @tA along the channel. That value is in turn produced in 
-the channel @math{x}. This rule realizes internal choice, the process decides 
-which choice to make. Dually, external choice is realized by the @plus_ rule 
-which examines the contents of the channel @math{z} and branches depending on
+Given a channel of type @id(tA :&: tB), the rule @math{&_1} commits to protocol @tA,
+naming the new channel @math{x}. This rule realizes active choice: the process decides 
+which choice to make. Dually, passive choice is realized by the @plus_ rule 
+which examines the choice expressed on the channel @math{z} and branches depending on
 the value.
 
 There are three rules for the neutral types @Bot, @One and @Zero. The types
 @Bot and @One corresponds to a singleton data type. The rule for
-@Bot effectively just ends evaluation of the current process and sends a single 
-value along the channel. The rule for @One 
-is essentially a noop, since it can only ever receive one value,
-denoted @diamond_ in the rules.
+@Bot effectively just terminates the current process. The reference to a channel
+of type @Bot ensures that some other process (connected at the other end) exists, 
+so that there will always be at least one process running.
+The dual rule for @One is a no op. Conceptually, it acknowledges that the process 
+connected to it is terminated. However, because this eventual termination is guaranteed
+by the system, we choose not to transmit any information. If explicit notification of
+termination is wanted, it can always be encoded by an explicit bit of info.
 
-The types @Zero and @Top corresponds to the empty data type. The @Zero rule 
-corresponds to eliminating the empty type, something which should never happen.
-Operationally it will crashes the entire machine, including all other 
-concurrently running processes. The @gamma_ in the dump construct is there for 
-formal reasons: every variable need to be used once. There is no rule for @Top
-as that would mean being able to construct an element of the empty type.
+The @Zero is empty: there is no rule eliminating its dual @Top, so it cannot
+be constructed. Accordingly, no value of type @Zero 
+can ever be eliminated, so the @Zero rule can safely be interpreted
+as crashing the machine. The @gamma_ in the dump construct is there for 
+formal reasons: every variable need to be used once. 
 
 The @forall_ and @exists_ rules deal with channels of polymorphic and 
 existential types. The rule @forall_ instantiates a polymorphic channel with a 
@@ -265,17 +273,16 @@ particular type @tB which means sending the type along the channel. The type is
 received in the @exists_ rule where the type is given the name @alpha_.
 
 Finally, there are four rules for dealing with exponentials, allowing values
-to be duplicated and ignored. The rule ? sends values which have no restriction
-on how many times they can be used.
-Since values are linear by default we must be careful how we construct such
-values. Notice that the context in the ? rule appears with a ! in front of them.
-This notation means that all the types in the context must themselves be
-exponentials. The ! rule extracts an unrestricted value so that it can used
+to be duplicated and ignored. The rule ? provides a protocol which can be 
+used an arbitrary number of times (a service).
+Because values are linear by default we must be careful how we construct such
+services: all protocols used to offer it must be services themselves.
+Formally, the context in the ? rule appears with a ! in front of it.
+This notation means that all the types in the context must be prefixed fith !.
+The ! rule extracts an unrestricted value so that it can used
 according to the linear rules.
-The rules Weaken and Contract allows for ignoring and duplicating values
+The rules @weaken_ and @contract_ allow for ignoring and duplicating values
 respectively.
-
-@subsection{Note CPS relation}
 
 @subsection{Examples}
 
