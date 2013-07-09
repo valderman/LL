@@ -369,14 +369,6 @@ ignore β n a = Ignore β 0 (ignore β (n-1) a)
 alias β [] a = a
 alias β (x:xs) a = Alias β x mempty $ alias β xs a
 
-isPos (Ax _) = True
-isPos (Exchange _ (Par _ _ _ _ _ _ _)) = True
-isPos (With _ _ _ _  _ _) = True
-isPos (Offer _ _ _ _) = True
-isPos (TApp _ _ _ _ _ _) = True
-isPos (SBot) = True
-isPos _ = False
-
 indexOf :: Eq a => a -> [a] -> Int
 indexOf _x [] = error "indexOf: not found"
 indexOf x (y:ys) | x == y = 0
