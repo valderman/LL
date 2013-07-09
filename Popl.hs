@@ -578,11 +578,11 @@ each subsystem waits for the other to be ready.
 Conceptually, an axiom does nothing:
 as we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
 However, merely removing axioms and adapting links is not an option if we want processes to
-behave asynchronously: the adaptation of links requires two-way synchronisation. 
+behave asynchronously: the adaptation of links requires two-way synchronisation.
 
 However, in the same way that one can implement polymorphic identity by explicit copy 
 of data, one can implement axioms by processes which explicitly interface between
-two dual protocols. That is, for the additive fragment, one can to case analysis on one 
+two dual protocols. That is, for the additive fragment, one can do case analysis on one 
 side, and send the information of which side is taken to the other side.
 For the multiplicative fragment, one can explicitly split the axiom into a pair of axioms,
 etc. The complete set of rules is show in @axiomRedsFig.
@@ -645,10 +645,10 @@ the new rule had a structural aspect to it (it embeds a virtual cut).
 This feature is made explicit in the diagram by drawing the virtual cut
 with a dotted edge.
 
-For the quantifiers fragment, a similar boson and set of reduction rule exists. The
+For the quantifiers fragment (see figure @bosonsFig), a similar boson and set of reduction rule exists. The
 only difference is that a type is being transmitted instead of a bit.
 
-For the multiplicative fragment, we examine two possible ways to encode asynchronicity,
+For the multiplicative fragment, we consider two possible ways to encode asynchronicity,
 to eventually settle on the second one.
 The first option is similar to what happens in the additive fragment: a ⅋ boson travels
 from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
@@ -770,7 +770,7 @@ The heap is an indexable sequence of cells. Each cell can evetually be used to
 transmit some piece of information between closure. Each cell starts its lifetime
 as empty (devoid of information). It may then contain some information, which will
 be eventually read. Then the cell is deallocated. (In a real system is should made 
-available for reuse, but we do bother do do so in this presentation.)
+available for reuse, but we do bother to do so in this presentation.)
 
 A number of contiguous cells is allocated for each channel in the heap. The number of
 cells allocated depends on the type of the channel. 
