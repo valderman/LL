@@ -65,7 +65,7 @@ sequent = deriv False
 -- | Render a derivation as a program (term)
 program (Deriv tvs vs s) = indentation (texProg tvs vs s)
 
-programOneLine (Deriv tvs vs s) = linearize (texProg tvs vs s)
+programOneLine (Deriv tvs vs s) = math $ linearize (texProg tvs vs s)
 
 programWithCtx (Deriv tvs vs s) = 
   array[] "l" [[texCtx True tvs vs <> "⊢"], [program (Deriv tvs vs s)]]
@@ -414,9 +414,6 @@ amRule' f h0 ((sequ,explanation,_):seqs) = do
 
 simpleEnv :: Deriv
 simpleEnv = Deriv [] [("x",tA),("y",tB),("z",neg tC)] whatA
-
-simpleCut :: Deriv
-simpleCut = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 whatA whatB 
 
 simpleCut' :: String -> String -> Deriv
 simpleCut' a b = Deriv [] [gamma,xi] $ Cut "x" "y" tA 1 (What a []) (What b [])

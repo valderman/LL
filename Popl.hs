@@ -202,16 +202,17 @@ construct @math{z} is no longer in scope in @math{a}.
 
 @rules<-typeRules
 @rules shows the typing rules for our language. 
-While the syntax suggests the operational behaviour, the rule names follow the convention found in the
-linear logic literature. In particular, elimination rules are simply named after
+While the syntax suggests the operational behaviour, the rule names follow the convention 
+of the linear logic literature. In particular, elimination rules are simply named after
 the type constructor that they eliminate.
-We use a one-sided judgement form, with only hypotheses. 
 
-This means no conclusion: the program
-terms are the only thing occurring to the right of the turnstile. The judgement
-may look peculiar at first sight, in particular since the terms do not have any
-return type. However, it can be helpful to think of the programs as ``returning''
-@Bot, with the intuitive meaning that every program eventually terminates.
+The convention usually used in linear logic literature is to have no
+hypotheses, and many conclusions. This style is however difficult to fit with a
+programmer's intuition of contexts and variables. In contrary, our judgement
+form has many hypotheses and no conclusion. The many hypotheses can be understood
+as a usual context. The lack of a conclusion means that terms have no apparent
+return type, but they can be thought as returning 
+@Bot making any imprecision. Indeed, ⊥ corresponds to a terminating value (not a diverging one!).
 
 Always returning ⊥ is reminiscent of continuation-passing style (CPS) intermediate 
 languages,
@@ -222,15 +223,15 @@ be similar to CPS programs.
 Similarly to other languages based on linear logic, ours is also a concurrent
 language. Computation corresponds to communication over channels. Each variable 
 in the context can be understood as a reference to one end of a channel, whose
-type expresses the protocol employed on the channel.
-
-The fact that the program @math{a} is working in a environment @math{Γ = x:A,y:B,z:C⟂} is
-usually represented by a judgement @derivation(simpleEnv). In the
-rest of the paper we also use the following graphical representation:
+type expresses the protocol employed on the channel. 
+The judgement @derivation(simpleEnv) expresses that @math{a} communicates on the channels @math{x,y} and @math{z},
+obeying respectively the protocols @tA, @tB and @neg(tC).
+To express the same thing, we also use the following graphical representation:
 we label a node with the program that it represents, and 
 connect edges to it to represent the environment.
 @simpleEnv
-Two remarks are worth making. First, the edges could be labeled explicitly with variable names, but in all
+Two remarks are worth making.
+First, the edges could be labeled explicitly with variable names, but in all
 the examples we use, the types alone are enough to lift any ambiguity.
 Second, the representation of @tA being in the environment of the program can be  
 either an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
@@ -243,39 +244,38 @@ The @ax_ rule connects two channels and exchange information. The types of the
 channels must be duals, so that one channel provides what the other requires.
 It is also the last instruction on the current thread: there is nothing happening after
 the exchange.
-
+@dm(couplingDiag axRule)
 Channels in our language are one-shot, meaning that they are
 only ever used for a single exchange, although that exchange can be arbitrarily
 complicated and communicate in both directions. This means that once the
-communication has happened the channel is eliminated, together with the corresponding @cut_.
+communication has happened the channel is eliminated (together with the corresponding @cut_,
+at the greatest satisfaction of the logician).
 
+@dm(derivation(cutRule))
 The @cut_ rule creates a new channel with two ends, @math{x} and @math{y}, which 
 are connected and have dual types. The channels are used in two separate threads, 
 respectively running @math{a} and @math{b}. The threads concurrently and in different,
-disjoint contexts: any communication must occur via the new channel.
-
-The @cut_ and @ax_ rules are deemed structrual, in that they represent the backbone of
-the communication structure of the program. A given communication structure can be 
-represented in many ways by these rules (we detail this point in @outerSec), all equivalent
-under the relation (@math{≡}) shown in @structEquivFig: @cut_ is commutative, associative, and @ax_ can be  
-inserted or deleted at everly @cut_ without changing the meaning of the program.
-
-Using this convention, we can then represent @cut_ by an edge between nodes. For example the derivation
-@dm(derivation(simpleCut))
-can be represented by
-@dm(couplingDiag(simpleCut))
-and
-@dm(sequent(doubleCut'))
-can be represented by
-@dm(couplingDiag(doubleCut'))
-It can be useful to think of a node as a process, 
-and an edge as a communication channel, whose label defines which 
-communication protocol which is employed on the channel.
+disjoint contexts: any communication must occur via the new channel. Using our graphical convention,
+we can represent @cut_ by an edge between nodes, and call such a representation a @emph{coupling diagram}.
+@dm(couplingDiag(cutRule))
 We emphasize that the direction of edges do @emph{not} represent the
 direction of flow of data; they are a mere convention which allows to
 know which side of the arrow interprets the label literally, 
 and which side interprets it as its dual.
-We call such a picture a @emph{coupling diagram}.
+
+The @cut_ and @ax_ rules are deemed structrual, because they represent the backbone of
+the communication structure of the program. A given communication structure can be 
+represented in many ways by these rules (we detail this point in @outerSec), all equivalent
+under the relation (@math{≡}) shown in @structEquivFig: @cut_ is commutative, associative, and @ax_ can be  
+inserted or deleted at everly @cut_ without changing the meaning of the program.
+Besides being more concise than derivations, coupling diagrams have the advantage that
+that equivalent programs are represented by 
+topologically equivalent diagrams.
+Consider for example the following derivation (we omit some terms to reduce clutter):
+@dm(sequent(doubleCut'))
+which it is represented by
+@dm(couplingDiag(doubleCut'))
+For each order of edges, and each possible direction, an equivalent program can be constructed.
 
 @outermostCut<-definition("Outermost Cut"){
 An instance of a @cut_ rule in a derivation tree is called an outermost cut if
@@ -286,11 +286,6 @@ As we have seen on the above examples, all outermost occurences of
 @cut_ can be represented graphically. We remark right away that, 
 because each @cut_ connects two subgraphs by exactly one edge, the coupling structure 
 of outermost cuts is necessarily a tree.
-
-Representing a @cut_ structure by a coupling diagram has two immediate advantages.
-First, it is a concise notation that relieves much notational burden compared to
-full derivations. Second, equivalent programs are represented by 
-topologically equivalent diagrams, making the equivalence intuitive.
 
 
 @subsection{Operational Rules}
@@ -308,34 +303,21 @@ The operational semantics of our language is given by the reduction rules of
 linear logic, where two @oper_ rules are connected by a @cut_ and reduce.
 From a programming language point of view we can understand this reduction
 as communication occuring between processes. All this rules are listed in @redFig, 
-and we group them under the @operationalRules_ name.
+and we place them in a class called @operationalRules_.
 
 @paragraph{Multiplicatives}
+A connection between the processes @programOneLine(leftChild cutParCross) and @programOneLine(rightChild cutParCross) 
+can be represented as follows (we abbreviate programs in the diagrams for concision):
+@dm(couplingDiag(cutParCross)). 
 
-The reduction  between tensor and par isn't so much communication as splitting the
+The reduction is not so much communication as splitting the
 channel and forking off a new thread. No information as such is transmitted
 during reduction.
-
-The @par_ construct is similar to @cut_. The 
-difference is that the @par_ rule does not create a new channel, but splits the
-channel @math{z} of type @tA @par_ @tB, and each of the parts are used in
-different processes. 
-Dual to the @par_ rule is the @tensor_ rule which also splits the channel but 
-uses the two parts, @math{x} and @math{y}, of the channel in a single process @math{a}. 
 The program @math{a} has complete freedom regarding the order in which  @math{x} and @math{y}
 are used. This means that, conversely, the @par_ rule must be able to honour 
 any order whatsoever between the subchannels. This is indeed enforced by having
-those two parts handled by separate processes.
-
-It may be enlightening to review cut reduction of the multiplicative fragment with this view.
-A multiplicative cut is represented by
-@dm(couplingDiag(cutParCross))
-and it reduces to
+those two parts handled by separate processes, as is obvious in the diagram of the reduct:
 @dm(couplingDiag(eval cutParCross))
-which makes plain that the reduction 
-splits the process on the @par_ side into two separate 
-processes, which may communicate only via the process
-coming from the @tensor_ side.
 
 
 The types
