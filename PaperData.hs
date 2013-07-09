@@ -98,7 +98,7 @@ graph2 = math "σ'"
 rho = "ρ"         
   
 -- To be used as rule names within the text. (some should probably be expanded).
-mix_,bicut_,ax_,cut_,with_,plus_,par_,tensor_,contract_,weaken_,offer_,demand_,mem_::TeX
+mix_,bicut_,ax_,cut_,with_,plus_,par_,tensor_,contract_,weaken_,offer_,demand_,mem_,oper_::TeX
 mix_ = ruleName "Mix"
 bicut_ = ruleName "BiCut"
 cut_ = ruleName "Cut"
@@ -112,6 +112,7 @@ weaken_ = ruleName "Weaken"
 offer_ = ruleName "Offer"
 demand_ = ruleName "Demand"
 mem_ = ruleName "BM"
+oper_ = ruleName "Oper"
 
 lollipop_ :: TeX
 lollipop_ = "⊸"
@@ -139,11 +140,12 @@ beta_  = "β"
 -------------------------------------
 -- Reductions
 
-operationalRules_, cutAssoc, cutSwap, cutAx_, explicitAxiom, commutingConversions :: TeX
+
+operationalRules_, cutAssoc_, cutSwap, cutAx_, explicitAxiom, commutingConversions :: TeX
 operationalRules_ = math $ text $ smallcaps "Oper/Oper"
 swapped x = x <> tex "^{∘}"
 bidir x = x ∪ swapped x 
-cutAssoc = math $ text $ smallcaps "CutAssoc"
+cutAssoc_ = math $ text $ smallcaps "CutAssoc"
 cutSwap = math $ text $ smallcaps "CutSwap"
 cutAx_ = math $ text $ smallcaps "CutAx"
 bosonBoson_ = math $ text $ smallcaps "Boson/Boson"
@@ -159,7 +161,7 @@ x ∪ y = x <> "∪" <> y
 redLL :: TeX
 redLL = math $ cmd0 "Longrightarrow"
 
-redLLDef_ = foldr1 (∪) [operationalRules_, cutAssoc, cutSwap, cutAx_, commutingConversions]
+redLLDef_ = foldr1 (∪) [operationalRules_, cutAssoc_, cutSwap, cutAx_, commutingConversions]
 
 redOM :: TeX
 redOM = math $ cmdn_ "stackrel" ["o", redLL]
@@ -187,7 +189,7 @@ redAM = math $ cmd0 "Rrightarrow"
 
 equivAM = math $ "≡" <> index "AM"
 
-equivAMDef_ = many $ foldr1 (∪) [cutAssoc, cutSwap, bidir bosonOper_, cut_ `cong` equivAM, boson_ `cong` equivAM]
+equivAMDef_ = many $ foldr1 (∪) [cutAssoc_, cutSwap, bidir bosonOper_, cut_ `cong` equivAM, boson_ `cong` equivAM]
                       
 many x = x ^^^ "*"
 
@@ -323,11 +325,11 @@ termFigure = displayMath $
 --------------
 -- Reductions
 
-structFig = figure_ "Structural cut equivalences" $
+structFig = figure_ "Structural equivalences" $
             env "center" $
             typesetEquivalences derivation structRules
 
-syncFig = figure_ "Reduction rules" $
+syncFig = figure_ @"@operationalRules_ rules@" $
           env "center" $
           typesetReductions programWithCtx syncRules
 

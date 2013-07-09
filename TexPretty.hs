@@ -136,6 +136,7 @@ let_ = keyword "let "
 case_ = keyword "case "
 connect_ = keyword "connect "
 ignore_ = keyword "ignore "
+dump_ = keyword "dump "
 [fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
 separator = cmd "hline" mempty
@@ -212,7 +213,7 @@ texProg'' what showTypes = foldSeq sf where
       swith _ _ b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
       sbot v = Final $ keyword "halt " <> texVar v
-      szero w vs  = Final $ keyword "dump " <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
+      szero w vs  = Final $ dump_ <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
       sone _ w t = let'' (cmd0 "diamond") (texVar w) t
       sxchg _ t = t
       stapp _ v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s

@@ -150,12 +150,12 @@ The answer depends on the type of @vX:
 @itemize{
 @item @id(tA ⊗ tB): both @tA and @tB. The program decides in what order to use them.
 @item @id(tA ⅋ tB): both @tA and @tB. The environment decides in what order to use them.
-@item @id(tA ⊕ tB): either @tA and @tB. The environment chooses which one.
 @item @id(tA & tB): either @tA and @tB. The program chooses which one.
-@item @id(Forall "α" tAofAlpha): @math{A[B]}. @tB of its chosen by the program.
-@item @id(Exists "α" tAofAlpha): @math{A[B]}. @tB of its chosen by the environment.
+@item @id(tA ⊕ tB): either @tA and @tB. The environment chooses which one.
+@item @id(Forall "α" tAofAlpha): @math{A[B]} where @tB is chosen by the program.
+@item @id(Exists "α" tAofAlpha): @math{A[B]} where @tB is chosen by the environment.
 @item @id(Bang tA): Can demand as many @tA 's as one wants.
-@item @id(Quest tA): Must prodvide as many @tA as the environment wants.
+@item @id(Quest tA): Must provide as many @tA as the environment wants.
 }
 Two aspects become obvious from this enumeration. First, having a variable in the
 environment is not all roses: it may provide something to the program, but it may
@@ -261,10 +261,10 @@ connected to it is terminated. However, because this eventual termination is gua
 by the system, we choose not to transmit any information. If explicit notification of
 termination is wanted, it can always be encoded by an explicit bit of info.
 
-The @Zero is empty: there is no rule eliminating its dual @Top, so it cannot
-be constructed. Accordingly, no value of type @Zero 
-can ever be eliminated, so the @Zero rule can safely be interpreted
-as crashing the machine. The @gamma_ in the dump construct is there for 
+The @Zero type is empty: there is no rule eliminating its dual @Top, so it cannot
+be constructed. Accordingly, the elimination rule for @Zero 
+can never trigger at runtime, so it can safely be interpreted
+as crashing the machine. The @gamma_ in the @dump_ construct is there for 
 formal reasons: every variable need to be used once. 
 
 The @forall_ and @exists_ rules deal with channels of polymorphic and 
@@ -316,29 +316,33 @@ the translation from direct to continuation-passing style.
 
 @redFig<-syncFig
 
-The meaning of our language is defined in terms of the reduction rules given in 
-figure @redFig. As is usual in logic, the reductions eliminates the use of the
-@cut_ rule. From a programming language point of view we can understand reduction
+The operational semantics of our language is given by the cut-elimination rules of
+linear logic. From a programming language point of view we can understand reduction
 as communication between processes. Channels in our language are one-shot, meaning that they are
 only ever used for a single exchange, although that exchange can be arbitrarily
 complicated and communicate in both directions. This means that once the
-communication has happened the channel can be eliminated and hence also the @cut_
-rule. However, not all reduction rules perform communication. Some reductions
-are administrative and in some cases there is no information to communicate.
+communication has happened the channel is eliminated, together with the corresponding @cut_.
+However, when working directly on the syntax, eliminating every @cut_ 
+cannot be done only with reduction rules which perform communication. Some administrative
+term-rewriting must also be done. The first category, which we call @operationalRules_,
+comprises the communication rules and somewhat agains convention, @weaken_ and @contract_ 
+as well. The second category is called structural equivalences, and expresses
+equivalent ways to connect processes together. This category is shown in @assocFig and 
+discussed in detail in 
+@outerSec.
+communication, and call that category  @operationalRules_ rules. These rules are listed in 
+@redFig. Lastly, the category of commuting conversions allows to push a @cut_ inside
+an eliminator rule, and are found in @commutingConvFig.
 
-First, there are the structural equivalences, show in figure @assocFig. The
-first equivalence implies that the @cut_ rule is associative. The second
-equivalence
-
-operationally, this equivalence corresponds to introducing and removing channel
-forwarding.
-
-The principal reduction rules are shown in figure @redFig.
-
+TODO: Structural equivalences, once fig. is done.
+@cutSwap Commutativity and @cutAssoc_ associativity of cut. @cutAx_ Insertion/deletion of Axiom does not change
+anytning.
 The first reduction rule deal with the axiom construct which forwards channels. 
 The process doing the forward transmits a new channel @math{w} and terminates. 
 The other process will continue and communicate with the new channel replaced 
 by the old one.
+
+TODO: should we attempt to merge these explanations in the previous subsection?
 
 Reduction between tensor and par isn't so much communication as splitting the
 channel and forking off a new thread. No information as such is transmitted
@@ -409,7 +413,7 @@ of outermost cuts is necessarily a tree.
 
 Representing a @cut_ structure by a coupling diagram has two immediate advantages.
 First, it is a concise notation that relieves much notational burden compared to
-full derivations. Second, equivalent sequents (by the @cutAssoc rule) are represented by 
+full derivations. Second, equivalent sequents (by the @cutAssoc_ rule) are represented by 
 topologically equivalent diagrams, making the equivalence intuitive.
 
 It may be enlightening to review cut reduction of the multiplicative fragment with this view.
@@ -1068,7 +1072,7 @@ have shown that no communication is necessary to implement it.
 
 
 @syncFig
-@pushFig
+@commutingConvFig<-pushFig
 
 @bosonBosonFig<-texBosonBoson
 @bosonOperFig<-texBosonOper
