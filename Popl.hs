@@ -194,7 +194,7 @@ Terms are defined by the following grammar:
 Name binding works as follows: in the two @connect_ constructs and in the @case_ 
 construct, @math{x} is 
 bound in @math{a} and @math{y} is bound in @math{b}. 
-In all the let constructs, all variables @math{x}, @math{z} and/or @alpha_ 
+In all the @let_ constructs, all variables @math{x}, @math{z} and/or @alpha_ 
 appearing to the left of the equals sign, are bound in @math{a}. In the @ignore_
 construct @math{z} is no longer in scope in @math{a}.
 

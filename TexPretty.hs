@@ -136,6 +136,7 @@ let_ = keyword "let "
 case_ = keyword "case "
 connect_ = keyword "connect "
 ignore_ = keyword "ignore "
+dump_ = keyword "dump_"
 [fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
 separator = cmd "hline" mempty
