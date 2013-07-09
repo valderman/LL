@@ -70,6 +70,10 @@ programOneLine (Deriv tvs vs s) = linearize (texProg tvs vs s)
 programWithCtx (Deriv tvs vs s) = 
   array[] "l" [[texCtx True tvs vs <> "⊢"], [program (Deriv tvs vs s)]]
 
+programOneLineWithCtx (Deriv tvs vs s) =
+--  array[] "l" [[texCtx True tvs vs <> "⊢"], [programOneLine (Deriv tvs vs s)]]
+  texCtx True tvs vs <> "⊢" <> programOneLine (Deriv tvs vs s)
+
 -- Element instances
 
 instance Element Type where
@@ -333,7 +337,7 @@ structFig = figure_ @"Structural equivalences: @cutSwap, @cutAssoc_ and @cutAx_ 
 
 syncFig = figure_ @"@operationalRules_ rules@" $
           env "center" $
-          typesetReductions programWithCtx syncRules
+          typesetReductions programOneLineWithCtx syncRules
 
 pushFig = figure_ "Commuting conversions" $
           env "center" $
@@ -352,15 +356,14 @@ typesetReductions = typesetRules redLL
 
 typesetEquivalences = typesetRules (cmd0 "equiv")
 
-typesetRules relation displayer reds = mathpar  [[
+typesetRules relation displayer reds = mathpar  [
       -- "name:" <> name
-      displayer input {- <> kern "-1em"-} <> relation <> displayer (eval input)
-    | (name,input) <- reds]]
-
+      [mathbox (displayer input {- <> kern "-1em"-}) <> relation <> mathbox (displayer (eval input))]
+    | (name,input) <- reds]
 
 --------------------
 -- Abstract Machine         
-         
+
 toMachine = oxford
 fromMachine x = oxford x ^^^ "-1"
 
