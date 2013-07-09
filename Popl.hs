@@ -186,7 +186,9 @@ We metasyntactic variables @math{x}, @math{y} and @math{z} range over variables 
 language; @alpha_ and @beta_ range over types; 
 @gamma_, @delta_ and @xi_ range over contexts. Contexts are unordered maps
 of variables to types, and these mappings are written @math{x : @tA}. Variable
-names in contexts are assumed distinct.
+names in contexts are assumed distinct. Contexts are used to enforce linearity.
+It is therefore important that when combining two contexts, the names in them
+are distinct. Variables are never implicitly dropped from a context.
 
 Terms are defined by the following grammar:
 @termFigure
