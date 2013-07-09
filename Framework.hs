@@ -103,6 +103,8 @@ mathpar :: [[TeX]] -> TeX
 mathpar = env "mathpar" . mkrows . map mk . filter (not . null)
  where mk = foldr1 (\x y -> x <> cmd0 "and" <> y) 
 
+mathbox = mbox . math
+
 newtheorem :: String -> TeX -> TeX
 newtheorem ident txt = cmd "newtheorem" (tex ident) >> braces txt
 
