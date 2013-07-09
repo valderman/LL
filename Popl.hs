@@ -64,7 +64,7 @@ as follows:
   ["Normalisation", "Evaluation"]
  ]))
 This correspondance is quite natural for intuitionistic logics, but
-not so much for classical ones. Motivated by this apparent mismatch,
+not so much for classical ones (TODO: ?). Motivated by this apparent mismatch,
 @citet{girard_linear_1987} has developed Linear Logic. 
 Linear Logic acts as a low-level logic, where both intuitionistic and
 classical logics can be embedded. From its inception, Linear Logic
@@ -420,6 +420,10 @@ the translation from direct to continuation-passing style.
 
 @outerSec<-section{Outermost Reduction}
 
+In this section we will show how to make the semantics of our linear logic 
+language more in line with standard evaluation strategies in the
+λ-calculus.
+
 @subsection{Outermost Evaluation Strategy}
 Equipped with coupling diagrams, we can describe the
 first step towards execution of linear logic proofs as
@@ -468,7 +472,7 @@ Remark first that if all outermost cuts are represented, then every node begins 
 or @contract_ or @weaken_. Therefore, every node is waiting on at least one variable.
 
 We proceed by induction on the size of the tree. If the tree has a single node, then
-all the edges are hypotheses. It must either be waiting on one of them, which is then ready.
+all the edges are hypotheses. The node must be waiting on one of them, which is then ready.
 
 For the inductive case, we assume two graphs @graph1 and @graph2 satisfying the induction hypothesis, 
 with an hypothesis @vX in @graph1 and an hypothesis @vX' in @graph2.
@@ -478,7 +482,8 @@ We have the following cases:
 
 @enumerate{
 @item @graph1 is waiting on @vX and @graph2 is waiting on @vX'. Then the new edge is ready.
-@item Either system is not waiting on the designated hypothesis. In this case, some other
+@item Either system is not waiting on the designated hypothesis. In this case, 
+due to the induction hypothesis, some other
    edge in that system must be ready, and it remains ready in the combined system.
 @qedhere
 }}
@@ -511,7 +516,7 @@ to the notion that programs are static entities. In both cases, it is possible t
 elimination of a @cut_ up to the point where direct interaction occurs.
 A ready edge corresponds to a lambda-calculus redex in head position. 
 Inner cuts correspond to redexes under lambdas. Operational rules correspond to constructors.
-A lambda term in head normal form corresponds to a linear program in with an hypothesis edge ready.
+A lambda term in head normal form corresponds to a linear program in which an hypothesis edge ready.
 
 The behaviour of the abstract machine of @citet{krivine_call-by-name_2007} is to traverse
 the spine of applications inwards and leftwards until it finds a redex, then reduce it. 
@@ -520,7 +525,7 @@ The reduction yields then another redex in the same position, or one must contin
 An abstract machine for linear logic must traverse the coupling structure, potentially considering all outermost
 cuts, to eventually find a one which is ready, and reduce it. The difficulty in the
 linear/concurrent case is that one cannot @italic{a priori} know where the ready cut is located. Furthermore,
-the next ready cut may not be in the neighborhood, so a working list of potentially ready cuts must 
+the next ready cut may be far away in the term, so a working list of potentially ready cuts must 
 be maintained.
 
 In this light, one understands commuting conversions as the ability to bring a waiting 
@@ -535,16 +540,18 @@ LL as concurrent processes. Namely, if one thinks of a node as a process,
 then every communication is synchronous. Indeed, when a cut-reduction rule
 fires, the processes at both ends change state simultaneously.
 
-This goes against at least two commonly admitted principles:
+This style of synchronous communication is unfortunate for two reasons:
 @itemize{
-@item On the programming side, processes writing in a channel 
+@item On the programming side, processes writing to a channel 
       typically can proceed without waiting 
-      for acknowledgement of the reader.
+      for acknowledgement of the reader. Using this kind asynchronous 
+      communication will enable more concurrency.
 @item On the logic side, it is generally admitted that the multiplicative fragment 
       represents connection between processes where no communication occurs.
+      (TODO: ref?)
 }
 
-We attack this shortcoming before taking a brief detour.
+We attack this shortcoming after taking a brief detour.
 
 @subsection{@mix_ and @bicut_}
 
