@@ -212,8 +212,10 @@ allPosTypesTable =
 allPosTypes = map fst allPosTypesTable
 
 
-texNegationTable = array [] (tex "c@{~=~}c")
-  [ map element [MetaNeg t, neg t] | t <- Meta True "A" [] : init allPosTypes]
+texNegationTable = displayMath $ 
+                   array [] (tex "c@{~=~}c")
+  [ map element [MetaNeg t, neg t] | t <- Meta True "α" [] : 
+                                          init allPosTypes]
   -- Note the last row (variable case) is dropped.
 
 layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
@@ -221,10 +223,10 @@ layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
 
 multicolumn n fmt c = cmdn_ "multicolumn" [tex (show n),tex fmt,c]
 
-typeTable = figure "Types " $
+typeTable = figure "Types. " $
     env "center" $ math $ do
       array [] (textual "cccc") $
-        [ [ multicolumn 2 "c" "Positive", multicolumn 2 "c" "Negative" ] ] ++
+        [ [ multicolumn 2 "c" (text "Positive"), multicolumn 2 "c" (text "Negative") ] ] ++
         map (map element) 
         [ [ tA ⊗ tB, One , tA ⅋ tB , Bot ]
         , [ tA ⊕ tB, Zero, tA & tB , Top ]
@@ -245,7 +247,7 @@ cutRules = [[(cutRule, @"It allocates @math{|@tA|} cells on the heap. The childr
              )]]
 
 structuralRules = cutRules ++ [[(axRule, "Copy the data between the closures; when it's ready."
-                                ,"channel forwarding")]]
+                                ,"forwarding")]]
 
 operationalRules = 
   [multiplicatives
@@ -281,9 +283,9 @@ multiplicatives = [(parRule, @"An additional process is spawned, hence we have o
                               which become the new environments of the new processes. A new variable is
                               added to each environment, which points respectively to either the @tA or @tB part
                               of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"
-                   ,"parallel channel splitting"),
+                   ,"passive channel splitting"),
                   (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@"
-                  ,"sequential channel splitting")]
+                  ,"active channel splitting")]
 additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
                      not to be used (in this case @math{|@tB|-|@tA|}).@"
              ,"left selection"),
@@ -312,7 +314,8 @@ typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style
 multiSplit [] xs = [xs]
 multiSplit (i:is) xs = let (l,r) = splitAt i xs in l : multiSplit is r
 
-termFigure = array [] "ll" $ 
+termFigure = displayMath $ 
+  array [] "ll" $ 
              [cmdn_ "multicolumn" ["2","l","a, b, c ::=", ""]] :
              (concat $ map (map mkRow) allRules)
   where mkRow (x,_,short) = [programOneLine x, text short]

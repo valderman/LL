@@ -97,85 +97,101 @@ of classical linear logic by using similar means as was used for explaining
 intuitionistic logic.
 
 @citet{wadler_propositions_2012} has recently given an interpretation of 
-classical linear logic by direct reference to the π-calculus. However,
-coming from a functional programming perspective, this reference appears 
-superflous: we are able to understand the computational aspect of linear logic 
-as a variant of the λ-calculus instead, and we aim to share this 
-understanding in this paper.
+classical linear logic by reference to the π-calculus. However,
+coming from a functional programming perspective, this indirect explanation seems 
+superfluous. Our aim is find the natural programming language corresponding
+to LL, in the same way as λ-calculi correspond to intuitionistic logics.
+Furthermore, as much as possible, 
+we desire a design which follows ISWIM conventions @citep{landin_next_1966},
+in particular regarding syntax and the naming of intermediate values.
 
-To do so, we present: 
+@dm(array[]("cc")(map (map (cmd "text")) [
+  ["Simply-Typed λ-calculus", "Propositional Logic"],
+  ["Polymorphic λ-calculus", "System F"],
+  ["?", "Classical Linear Logic"]
+ ]))
+
+As concrete steps towards this goal, we make the following contributions:
 @itemize{
  @item A term assignment for classical linear logic proofs @syntaxSec, with 
-       a functional syntax inspired from Landin's ISWIM @citep{landin_next_1966}. 
- @item An adaptation of standard concepts of lambda-calculus evaluation (head normal form, etc.)
-       to linear logic. 
- @item An abstract machine capable of running linear logic sequents in a concurrent manner.
-       This abstract machine is based on well-known concepts, such has closures and heap.
- @item We show that the execution steps of the abstract machine corresponds
+       a functional syntax inspired by ISWIM (@syntaxSec).
+ @item An abstract machine capable of running programs written in the above language (@amSec).
+       This abstract machine is concurrent, and based on time-tested concepts, 
+       such has closures and heap.
+ @item We show that the execution steps of the abstract machine correspond
        to proof normalisation steps. We do this by introducing a series of interconnected
-       reduction relations.
+       reduction relations (@redOMDef, @redAXDef, @redBODef, @redAMDef).
+ @item We show how standard concepts of lambda-calculus evaluation 
+       (redex,head normal form, etc.) generalize in linear logic.  (@outerSec)
 }
 
 @syntaxSec<-section{Syntax}
 
-This section will present our language based on  classical linear logic. The
-language has a functional syntax which is meant to be suggestive of the 
-operational behaviour.
+This section presents the syntax of our language. The
+syntax is functional, and suggestive of the operational behaviour.
 
 @subsection{Types}
 
 The types of our language are directly taken from classical linear logic.
-They are shown in @tytab. Variables @tA and @tB denotes types.
+They are shown in @tytab. The metasyntactic variables @tA,@tB and @tC range over types.
 
 @tytab<-typeTable
 
-We provide some intuition for how to understand these types.
-@itemize{
-@item @id(tA ⊗ tB): the tensor product provide both @tA and @tB at the same time. The program decides in what order to use them.
-@item @id(tA ⅋ tB): both @tA and @tB. The context chooses in what order they become available
-@item @id(tA ⊕ tB): either @tA and @tB. The context chooses which one.
-@item @id(tA & tB): either @tA and @tB. The program chooses which one.
-@item @id(Forall "α" tAofAlpha): Polymorphism
-@item @id(Exists "α" tAofAlpha): Existentials
-@item @id(Bang tA): As many @tA 's as one wants.
-@item @id(Quest tA): Must produce as many @tA as the context wants.
-}
 
-Four of the types come with neutral elements. In @tytab the 
+The binary type former all come with neutral elements. In @tytab the 
 neutral element are written to the right of their respective type. For example, 
 the tensor product has neutral element @One, which means that 
 @tA @tensor_ @One = @tA. 
 
-There is no type representing negation. Instead, negation is a defined notion 
-along the rules below. We only show half of the rule, the other half
-are demorgan duals. 
-
+We can provide immediately an intuition for how to understand these types, even
+if it is eventually refined by the operational semantics given in further sections. 
+Assuming a variable @vX in the context of a program, what can the program expect to obtain from @vX?
+The answer depends on the type of @vX:
+@itemize{
+@item @id(tA ⊗ tB): both @tA and @tB. The program decides in what order to use them.
+@item @id(tA ⅋ tB): both @tA and @tB. The environment decides in what order to use them.
+@item @id(tA ⊕ tB): either @tA and @tB. The environment chooses which one.
+@item @id(tA & tB): either @tA and @tB. The program chooses which one.
+@item @id(Forall "α" tAofAlpha): @math{A[B]}. @tB of its chosen by the program.
+@item @id(Exists "α" tAofAlpha): @math{A[B]}. @tB of its chosen by the environment.
+@item @id(Bang tA): Can demand as many @tA 's as one wants.
+@item @id(Quest tA): Must prodvide as many @tA as the environment wants.
+}
+Two aspects become obvious from this enumeration. First, having a variable in the
+environment is not all roses: it may provide something to the program, but it may
+also generate an obligation. For example, in @id(tA & tB), the program @emph{must}
+make a choice between @tA or @tB: ``I don't care'' is not an option. In essence, a variable
+means that there is a contract between the program and its environment.
+Second, one can see that the environment and the program are on equal footing:
+any constraint which can be imposed on an environment may be imposed on a program, 
+and @italic{vice versa}. The dual of a type @tA is written @neg(tA), and computes
+as follows:
 @texNegationTable
+(We only show half of the rule, the other half are demorgan duals.)
+Even though we often write @tA@texNeg(False) for the negation
+of a type, one should realise that dualisation is not represented in the syntax,
+except variables, in other cases it is evaluated as shown above. Hence the only concrete 
+representation of duals in the syntax is for variables: we have both α and α⟂.
+(When substituting a concrete type for α the dual computes further.)
+As expected, dualisation is an involutive: @math{(@tA^@Bot)^@Bot = @tA}.
 
-The syntax @tA@texNeg(False) will be used frequently to refer to the negation
-of a type.
-
-Negation is an involution: @math{(@tA^@Bot)^@Bot = @tA}.
-
-There is no type for linear functions.
-Functions can be defined using as 
-follows:
-@tA @lollipop_ @tB = @id(tA ⊸ tB)
+Using the above syntax, the linear arrow can be defined as follows:
+@tA @lollipop_ @tB = @id(tA ⊸ tB). That is, according the the intuitions built
+so far, having @math{x:A ⊸ B} means that if we provide the environment with @tA,
+we will get @tB. The processing order will be at the discretion of the environment.
 
 @subsection{Typing rules (with term assignment)}
 
-We will use @math{x}, @math{y} and @math{z} to refer to variables in our
-language. @alpha_ and @beta_ ranges over types.
-
-@gamma_, @delta_ and @xi_ will be used to denote contexts. Contexts maps 
-variables to types and these mappings are written @math{x : @tA}. Variable
+We metasyntactic variables @math{x}, @math{y} and @math{z} range over variables in our
+language; @alpha_ and @beta_ range over types; 
+@gamma_, @delta_ and @xi_ range over contexts. Contexts are unordered maps
+of variables to types, and these mappings are written @math{x : @tA}. Variable
 names in contexts are assumed distinct.
 
-Terms in the language are defined by the following grammar:
-
+Terms are defined by the following grammar:
 @termFigure
 
-Name binding works as follows: in the two connect constructs and in the case 
+Name binding works as follows: in the two @math{@mathsf{connect}} constructs and in the case 
 construct, @math{x} is 
 bound in @math{a} and @math{y} is bound in @math{b}. 
 In all the let constructs, all variables @math{x}, @math{z} and/or @alpha_ 
@@ -405,7 +421,7 @@ Equipped with coupling diagrams, we can describe the
 first step towards execution of linear logic proofs as
 concurrent processes.
 
-@definition("Outermost Evaluation"){
+@redOMDef<-definition("Outermost Evaluation"){
   We define outer evaluation (@redOM) by taking the union of
   the operational reduction rules (@operationalRules_), 
   their swapped version (@math(swapped operationalRules_)), 
@@ -567,7 +583,7 @@ It means however that @ax_ rules rules disappear only when they apply to unit ty
 This is problematic operationally (we discuss this issue in @axiomOptSec), but not 
 for formal purposes, because @cut_/@ax_ is an equivalence.
 
-@definition{@redAX}{
+@redAXDef<-definition{@redAX}{
 @math{@redAX = @redAXDef_}
 }
 
@@ -689,7 +705,7 @@ The @weaken_ rule behaves in a manner similar to @contract_.
 This concludes our description of bosons, whose complete list is shown in @bosonsFig
 @bosonsFig<-texBosons
 
-@definition{@redBO}{
+@redBODef<-definition{@redBO}{
   The asynchronous reduction, explained above, replaces the @operationalRules_ rules by
   boson emission and reception (@bosonOper_, @bosonOperFig) and @bosonBoson_ (@bosonBosonFig) interactions.
   The boson rules are also congruent for this relation.
@@ -721,7 +737,7 @@ an intermediate boson; rules firing concurrently have no bad effect.
 }
 
 
-@section{Abstract Machine}
+@amSec<-section{Abstract Machine}
 
 In this section we describe an abstract machine for execution of LL programs. The
 machine follows closely the refined reduction relation presented in the previous section.
@@ -774,7 +790,7 @@ laid out in sequence in the heap. Hence, there is no computation associated with
 the machine. Lastly, the commutativity and associativity of @cut_ corresponds to the 
 structure of the muliset of closures.
 
-@definition("Abstract Machine Evaluation"){
+@redAMDef<-definition("Abstract Machine Evaluation"){
 The evaluation relation for the abstract machine is written @redAM, and
 the rules for it are shown in @amRulesFig
 }
