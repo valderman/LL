@@ -234,7 +234,8 @@ texVarT [] t = t
 texVarT ('?':_) t = t
 texVarT v t = texVar v <> ":" <> t
        
-texVar :: String -> TeX              
+texVar :: String -> TeX
+texVar ['?','γ'] = "Γ"
 texVar ('_':nm) = cmd "bar" $ texVar nm
 texVar nm | length pre > 0 && length post > 1 = textual pre <> tex "_{" <> 
                                                 textual (tail post) <> tex "}"
