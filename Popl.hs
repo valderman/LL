@@ -1021,7 +1021,7 @@ of communication. We have also shed a new light to some poorly understood
 aspects of LL, such as the structural character of the multiplicative fragment: we
 have shown that no communication is necessary to implement it.
 
-@acks{This work is partially funded by some agency, which we cannot name for DBR.}
+@comment{@acks{This work is partially funded by some agency, which we cannot name for DBR.}}
 
 @bibliography
 
@@ -1041,3 +1041,7 @@ have shown that no communication is necessary to implement it.
 @texAmRulesExplanation(amRules)
 
 @"
+
+-- Local Variables:
+-- ispell-local-dictionary: "american"
+-- End:
