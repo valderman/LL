@@ -63,8 +63,7 @@ as follows:
   ["Verification", "Type-Checking"],
   ["Normalisation", "Evaluation"]
  ]))
-This correspondance is quite natural for intuitionistic logics, but
-not so much for classical ones (TODO: ?). Motivated by this apparent mismatch,
+In an effort to extend this corresponance, in particular to classical logic,
 @citet{girard_linear_1987} has developed Linear Logic. 
 Linear Logic acts as a low-level logic, where both intuitionistic and
 classical logics can be embedded. From its inception, Linear Logic
