@@ -55,7 +55,7 @@ outputTexMp fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
 @intro<-section{Intro}
 
 There is a strong relationship between evaluating programs and proofs.
-The correspondance is usually known as the Curry-Howard isomorphism, and goes
+The correspondence is usually known as the Curry-Howard isomorphism, and goes
 as follows:
 @dm(array[]("cc")(map (map (cmd "text")) [
   ["Propositions", "Types"],
@@ -63,12 +63,12 @@ as follows:
   ["Verification", "Type-Checking"],
   ["Normalisation", "Evaluation"]
  ]))
-In an effort to extend this corresponance, in particular to classical logic,
+In an effort to extend this correspondence, in particular to classical logic,
 @citet{girard_linear_1987} has developed Linear Logic. 
 Linear Logic acts as a low-level logic, where both intuitionistic and
 classical logics can be embedded. From its inception, Linear Logic
 has been recognised as corresponding to concurrent programming
-langaguages. Fleshing out this correspondance has given rise to 
+languages. Fleshing out this correspondence has given rise to 
 a long line of work @citep{abramsky_computational_1993,wadler_propositions_2012,caires_linear_????,bellin_scott94}.
 
 Additionally, as Linear Logic is a ``low-level'' logic, it corresponds
@@ -89,7 +89,7 @@ between input and output.
 
 The versions linear logic featuring this distinction are labeled @emph{intuitionistic}.
 (When one wants to emphasize that inputs and outputs are unified one sometimes 
-use the @emph{clasical} label.) However, as Girard points out, the classical version
+use the @emph{classical} label.) However, as Girard points out, the classical version
 is already grounded in computational intuitions, so the intuitionistic label
 appears unjustified. One of our aims is to explain the computational grounds
 of classical linear logic by using similar means as was used for explaining 
@@ -103,7 +103,7 @@ to LL, in the same way as λ-calculi correspond to intuitionistic logics.
 Furthermore, as much as possible, 
 we desire a design which follows ISWIM conventions @citep{landin_next_1966},
 in particular regarding syntax and the naming of intermediate values.
-Our aim is to fill the gap in the following correspondances:
+Our aim is to fill the gap in the following correspondences:
 
 @dm(array[]("cc")(map (map (cmd "text")) [
   ["Simply-Typed λ-calculus", "Propositional Logic"],
@@ -229,7 +229,7 @@ Two remarks are worth making.
 First, the edges could be labeled explicitly with variable names, but in all
 the examples we use, the types alone are enough to lift any ambiguity.
 Second, the representation of @tA being in the environment of the program can be  
-either an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
+either an ingoing edge labeled with an edge @tA or an outgoing edge labeled 
 with @neg(tA). 
 
 @subsection{Structural Rules}
@@ -257,11 +257,11 @@ direction of flow of data; they are a mere convention which allows to
 know which side of the arrow interprets the label literally, 
 and which side interprets it as its dual.
 
-The @cut_ and @ax_ rules are deemed structrual, because they represent the backbone of
+The @cut_ and @ax_ rules are deemed structural, because they represent the backbone of
 the communication structure of the program. A given communication structure can be 
 represented in many ways by these rules (we detail this point in @outerSec), all equivalent
 under the relation (@math{≡}) shown in @structEquivFig: @cut_ is commutative, associative, and @ax_ can be  
-inserted or deleted at everly @cut_ without changing the meaning of the program.
+inserted or deleted at every @cut_ without changing the meaning of the program.
 Besides being more concise than derivations, coupling diagrams have the advantage that
 that equivalent programs are represented by 
 topologically equivalent diagrams.
@@ -276,7 +276,7 @@ An instance of a @cut_ rule in a derivation tree is called an outermost cut if
 it is either the first rule in a derivation or if it is an outermost cut in a subderivation of
 an outermost cut.
 }
-As we have seen on the above examples, all outermost occurences of
+As we have seen on the above examples, all outermost occurrences of
 @cut_ can be represented graphically. We remark right away that, 
 because each @cut_ connects two subgraphs by exactly one edge, the coupling structure 
 of outermost cuts is necessarily a tree.
@@ -296,7 +296,7 @@ part of a program via @cut_ will dualise the type. (An example is given in @exam
 The operational semantics of our language is given by the reduction rules of
 linear logic, where two @oper_ rules are connected by a @cut_ and reduce.
 From a programming language point of view we can understand this reduction
-as synchronous communication occuring between processes. All these reduction rules are listed in @redFig, 
+as synchronous communication occurring between processes. All these reduction rules are listed in @redFig, 
 and we place them in a class called @operationalRules_.
 
 @paragraph{Additives}
@@ -347,7 +347,7 @@ a protocol which can be demanded an arbitrary number of times (a service).
 This means in particular that the service provider (?) has no choice but
 to depend on protocols which are themselves services. 
 (Formally, the context in the ? rule appears with a ! in front of it. 
-This notation means that all the types in the context must be prefixed fith !.)
+This notation means that all the types in the context must be prefixed with !.)
 
 The !-eliminator derelicts the service to a mere protocol, restoring symmetry with the connected process. 
 The @weaken_ rule declines to use the service, discarding the connected process,
@@ -366,7 +366,7 @@ we take a different route, beginning in @outerSec.
 
 The language presented above corresponds closely to continuation passing style
 (CPS). This connection should come as no surprise: linear logic is a "low-level"
-logic which can be used to respresent or explain other logic. Similarly, CPS
+logic which can be used to represent or explain other logic. Similarly, CPS
 has been used as a low-level language to compile and optimize programs 
 @citep{appel1992compiling}.
 
@@ -489,7 +489,7 @@ impredicativity, some extra care is necessary to ensure termination @citep{galli
 }
 
 In sum, the above theorems means that linear logic programs can be run in a way similar
-to usual ways of running the λ-calculus. In fact, the correspondance is deep: we can draw 
+to usual ways of running the λ-calculus. In fact, the correspondence is deep: we can draw 
 parallels between both sides for every concept used by the respective evaluators.
 
 A ready @cut_ corresponds to a redex. In both cases, the reduction of a top-level
@@ -614,7 +614,7 @@ follows:
 @dm(couplingDiag $ (eval' $ cutWithPlus True))
 @dm(couplingDiag $ eval $ eval' $ cutWithPlus True)
 The intermediate rule can be metaphorically seen
-as a particle travelling from left to right. 
+as a particle traveling from left to right. 
 By analogy with the elementary particles mediating physical 
 forces, we call such mediating rules bosons.
 In diagrams, we write them without a circle around them.
@@ -622,7 +622,7 @@ The diagrammatic representation of the & boson suggests to
 implements it as the rules
 @mathpar[map (sequent . chanPlusRuleBad) [True, False]]
 However, we make another choice: to represent it as a rule with the
-same premiss and conclusion as @with_, and merely consider the premiss
+same premise and conclusion as @with_, and merely consider the premise
 to be ready to run in our execution model (the rule is congruent for evaluation). 
 @mathpar[map (sequent . withRule True) [True, False]]
 In this sense, it is as if
@@ -656,7 +656,7 @@ encountered their children are ready to run.
 If we had chosen to represent bosons as rules a without structural component
 (eg. separated the @cut_ from the & boson as considered above), then the 
 emission of the ⊗ boson would have required the use of @bicut_. This requirement  
-explains our preferrence for the alternative, where the ⊗ boson has the
+explains our preference for the alternative, where the ⊗ boson has the
 same structure as the @tensor_ rule.
 
 The buffer for exponentials is different from the others: it does not merely hold data
@@ -749,13 +749,13 @@ The non-boson node from the above section are represented by a closure, and the 
 A closure is a triplet of a program (whose syntax is given in @syntaxSec),
 an environment associating each variable
 to a pointer in the heap, and a type-environment associating each type variable to a
-type representation. Each closure corresponds to a proccess, and each variable
+type representation. Each closure corresponds to a process, and each variable
 in its environment corresponds to a port of a channel.
 One step of execution of a closure corresponds to sending or receiving a boson, except for structural rules: @cut_ 
 spawns a process and @ax_ is handled as outlined in @axiomSec. Every execution step is
  implemented by interacting with the heap: no synchronisation primitive is assumed. 
 
-The heap is an indexable sequence of cells. Each cell can evetually be used to 
+The heap is an indexable sequence of cells. Each cell can eventually be used to 
 transmit some piece of information between closure. Each cell starts its lifetime
 as empty (devoid of information). It may then be populated with some information, which will
 be read if another process is connected to the corresponding channel.
@@ -784,7 +784,7 @@ hand, correspond to structural properties of the heap. For example, the interact
 the ⊗ and ⅋ boson correspond to the property that the components of ⊗ or ⅋ types are
 laid out in sequence in the heap. Hence, there is no computation associated with them in
 the machine. Lastly, the commutativity and associativity of @cut_ correspond to the 
-structure of the muliset of closures.
+structure of the multiset of closures.
 
 @redAMDef<-definition("Abstract Machine Evaluation"){
 The evaluation relation for the abstract machine is written @redAM, and
@@ -810,7 +810,7 @@ which we present in the rest of the section.
   represented by a type followed by a pointer to the monomorphic representation. The set of closures
   is prefixed by @math{C=}. A rule always acts on a single closure in the set and leaves the rest of
   the closures (ζ) untouched. A closure is represented by its code in braces, followed by an environment
-  in brackets. The environment is a map of variables to positions in the heap. Arbitarary subsets of 
+  in brackets. The environment is a map of variables to positions in the heap. Arbitrary subsets of 
   an environment are represented by metasyntactic variables @math{γ,δ,ξ}.
   }
 
@@ -889,20 +889,20 @@ efficient than it could be. It appears wasteful to have a process which
 copies data around, while this data is guaranteed to be produced and consumed
 exactly once. Indeed, it is possible to optimise axioms as follows. Consider
 first the exponentials and quantifiers. The current implementation of @ax_ 
-follows a pointer on one side, and re-creates an indirectinon the 
+follows a pointer on one side, and re-creates an indirection the 
 other side and recursively forward data between the pointed zones. Instead, 
 one can simply directly copy one pointer and be done. Consider second additives. Instead
 of transmitting a single bit, on could have as a possibility to transmit a pointer
 to a memory area. In the @plus_ rule, if this pointer is read, then the
 process proceeds with reading the bit from the pointed area. The implementation
-of axiom can then, insead of copying a potentially large amount of data, send a 
+of axiom can then, instead of copying a potentially large amount of data, send a 
 pointer to the source area and terminate immediately.
 
 @paragraph{Truely concurrent language}
 
 As we have seen, the coupling structure provided by linear logic
 is limited to tree topologies (even though we have seen that more
-complex strucutres can be dynamically created, the language itself mandates
+complex structures can be dynamically created, the language itself mandates
 tree structures). 
 This means for example that multiway communication between @math{n} processes
 must be mediated by a central server routing the messages.
@@ -920,7 +920,7 @@ wasteful: in real applications, where data is transmitted in larger chunks.
 Optimising communication in such a way is compatible with the framework presented.
 
 Another consequence of full concurrency is that a process is spawned at every 
-occurence of @par_ and @cut_. However, in many useful cases, one should be able to discover
+occurrence of @par_ and @cut_. However, in many useful cases, one should be able to discover
 that data flows in a particular direction (for example when the code comes from the
 translation of a functional program into LL). Again, this optimisation is compatible with
 the general framework. The only apparent issue is with polymorphism: an optimiser
@@ -932,7 +932,7 @@ add a construction for quantification over unidirectional protocols (pure data).
 
 @paragraph{Systems based on intuitionistic variants}
 
-Most presentations of LL for functional programming dualize the logic
+Most presentations of LL for functional programming dualise the logic
 @citep{hyland_full_1993,barber_dual_1996,benton_term_1993,caires_concurrent_2012}. 
 That is, every rule introduces a type former either on the left-hand-side or
 on the right-hand-side of the turnstile. 
@@ -948,10 +948,10 @@ to give it computational content.
 
 @paragraph{Session Types}
 
-A correspondance has recently been identified between linear logic
+A correspondence has recently been identified between linear logic
 propositions and session types @citep{wadler_propositions_2012,caires_linear_????,caires_concurrent_2012}.
 A proof of a proposition @tA can be
-identified with process obeying protocol @tA. This correspondance
+identified with process obeying protocol @tA. This correspondence
 departs from the usual linear logic in that the type @element(tA ⊗ tB) is
 interpreted as @tA then @tB, whereas the usual interpretation of the
 linear formula is symmetric with respect to time. Our interpretation
@@ -959,7 +959,7 @@ keeps the symmetry intact. The associated calculus is close to the
 π-calculus, which we observe is unintuitive to functional programmers
 in two respect. On a superficial level, we have anecdotal evidence that 
 they much prefer ISWIM-like
-syntaxes. On a semantic level, founding computation on the transmisson of channel names
+syntaxes. On a semantic level, founding computation on the transmission of channel names
 departs fundamentally from the tradition of functional programming.
 
 Another reason to interpret the multiplicative fragment as we do
@@ -979,11 +979,11 @@ To avoid sacrificing parallelism opportunities, one must go with the asynchronou
 
 Another small improvement of this presentation over that of @citet{wadler_propositions_2012}
 is that we have refined the notion of deadlock, separating it from starvation,
-which allows us to underline the strcutrual character of absence of deadlock in LL.
+which allows us to underline the structural character of absence of deadlock in LL.
 
 @paragraph{Graphical representations}
 
-Graphical representations of proofs in linear logic abund.
+Graphical representations of proofs in linear logic abound.
 Besides the proof nets of Girard, one find many categorically motivated 
 representations
 @citep{cockett_proof_1997,hirschowitz_topological_2008}.
@@ -993,10 +993,10 @@ outermost cut structure only. (The reification of a proof from a diagram
 has only to choose where to cut first.) Second, we believe that it is intuitive.
 Indeed, it is close to the component diagrams routinely used by software engineers.
 @comment{a principal difference is that in our diagrams the protocol between components is fully formalised by a type,
-intead of being an informal reference to some interface.}
+instead of being an informal reference to some interface.}
 
 The diagrams are also closely related to proof nets. Indeed,
-proof nets work best in multiplicative fragment, and in this fragment, all possible bosons can be emited. 
+proof nets work best in multiplicative fragment, and in this fragment, all possible bosons can be emitted. 
 If one writes 
 the coupling diagram with all such bosons represented, it is topologically equivalent to the proof net for
 the same proof. (The proof-net is laid out differently: all hypotheses are at the bottom, and bosons are oriented
@@ -1018,7 +1018,7 @@ outline in @outerSec. However, Abramsky's use of the CHAM concepts
 have some cost: he introduces a new syntax for proofs within the machine, and
 a system of names is employed to link proof terms together.
 This use of new concepts is superfluous: we are able to give an account of 
-our AM which relies soley on concepts coming straight from LL syntax.
+our AM which relies solely on concepts coming straight from LL syntax.
 
 @section{Conclusion}
 
