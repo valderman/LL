@@ -215,12 +215,6 @@ as a usual context. The lack of a conclusion means that terms have no apparent
 return type, but they can be thought as returning 
 @Bot making any imprecision. Indeed, ⊥ corresponds to a terminating value (not a diverging one!).
 
-Always returning ⊥ is reminiscent of continuation-passing style (CPS) intermediate 
-languages,
-often used as low-level intermediate representations in the compilation of functional
-languages. Indeed, we will see that programs written in our languages will
-be similar to CPS programs.
-
 Similarly to other languages based on linear logic, ours is also a concurrent
 language. Computation corresponds to communication over channels. Each variable 
 in the context can be understood as a reference to one end of a channel, whose
@@ -368,19 +362,33 @@ While the addition of commuting conversions gives @cut_-elimination for LL, they
 do not correspond closely to evaluations of concurrent processes, and therefore
 we take a different route, beginning in @outerSec.
 
+@subsection{Relation to CPS}
+
+The language presented above corresponds closely to continuation passing style
+(CPS). This connection should come as no surprise: linear logic is a "low-level"
+logic which can be used to respresent or explain other logic. Similarly, CPS
+has been used as a low-level language to compile and optimize programs 
+@citep{appel1992compiling}.
+
+Most terms in our language contain a subterm, a continuation, which is invoked 
+after the term is evaluated. Just as in CPS, expressions are evaluated for 
+their side-effect, not to return a value.
+On the type level, this is reflected by the fact that terms don't have a 
+return type, or, as noted above, implicitly return ⊥. This is similar to the
+@emph{answer type} in CPS @citep{thielecke2003control}.
 
 @exampleSec<-subsection{Example}
 
-To illustrate our language we give an example programs. Because the language is rather austere and 
+To illustrate our language we give an example program. Because the language is rather austere and 
 does not have much in the way of data types the examples are by necessity rather simple.
 
-The first example is a program to swap the values in a tensor product.
+The example is a program to swap the values in a tensor product.
 A natural approach for functional programmers is to start with the type 
 @swapType and try to inhabitate it. 
-However, however programs in our language all have type ⊥. We have then to take an approach
+However, programs in our language all have type ⊥. We have then to take an approach
 similar to CPS and invert the flow of control: we assume a variable swappee of type 
 @MetaNeg(swapType) = @neg(swapType), and eliminate it.
-@id(programWithCtx swap)
+@displayMath(programWithCtx swap)
 
 The swap program invokes the swapee to
 retrieve the channels to swap and reorders them accordingly. In order to type
@@ -388,7 +396,7 @@ our swap program the swapee occurs in the context and have a type which is dual
 to the type above @math{(@id(swapType))^⊥}. The type judgement for the
 swap program becomes as follows:
 
-@math(sequent swap)
+@displayMath(sequent swap)
 
 No programmer in their right mind will want to write programs in the above style.
 Indeed, we intend our language to be used as a low-level, intermediate representation;
