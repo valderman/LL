@@ -590,12 +590,12 @@ for formal purposes, because @cutAx_ is an equivalence.
 There is a standard trick to transform a synchronous communication into an asynchronous one:
 insert buffers between the communicating parties.  
 We apply this trick here.
-Notably, we perform this insertion of buffers within the framework of linear logic,
+A novel characteristic is that we perform this insertion of buffers within the framework of linear logic,
 merely adding new rules, and replacing the standard (synchronous) reduction rules by another 
 set of reductions which all involve an intermediate buffer.
 
 The idea is that buffers mediate the interaction between
-the non-structural rules. For example, when a @with_ rule is connected
+the @oper_ rules. For example, when a @with_ rule is connected
 to a @plus_ rule via a channel, the @with_ rule writes a bit of information
 to the channel indicating which side of the sum to take. The children of @with_ is 
 ready to run regardless of a @plus_ rule being ready to read. 
@@ -608,14 +608,14 @@ follows:
 The intermediate rule can be metaphorically seen
 as a particle travelling from left to right. 
 By analogy with the elementary particles mediating physical 
-forces, we will call such mediating rules bosons.
+forces, we call such mediating rules bosons.
 In diagrams, we write them without a circle around them.
 The diagrammatic representation of the & boson suggests to
 implements it as the rules
 @mathpar[map (sequent . chanPlusRuleBad) [True, False]]
 However, we make another choice: to represent it as a rule with the
 same premiss and conclusion as @with_, and merely consider the premiss
-to be ready to run in our execution model (the rule will be congruent for evaluation). 
+to be ready to run in our execution model (the rule is congruent for evaluation). 
 @mathpar[map (sequent . withRule True) [True, False]]
 In this sense, it is as if
 the new rule had a structural aspect to it (it embeds a virtual cut).
@@ -648,13 +648,13 @@ encountered their children are ready to run.
 If we had chosen to represent bosons as rules a without structural component
 (eg. separated the @cut_ from the & boson as considered above), then the 
 emission of the ⊗ boson would have required the use of @bicut_. This requirement  
-mainly explains our preferrence for the alternative, where the ⊗ boson has the
+explains our preferrence for the alternative, where the ⊗ boson has the
 same structure as the @tensor_ rule.
 
 The buffer for exponentials is different from the others: it does not merely hold data
 which is to be consumed one time, but many times. Hence, it is more proper to see it as
-a memory rather than a buffer. Technically, the 
-behaviour of exponentials borrow concepts from both additive and multiplicative fragment. 
+memory storage rather than a buffer. Technically, the 
+behaviour of exponentials borrow concepts from both additive and multiplicative fragments. 
 In a fashion similar to additives, a 'ready to run' boson (called @math{M} for memory) 
 propagates from @offer_ to @demand_. That is, @demand_ does not send a boson, 
 only receives one. This boson signals that the server obeying protocol @tA is ready 
@@ -664,7 +664,7 @@ an instance of the server process.
 The @contract_ rule behaves similarly to @tensor_: it sends a boson (@math{Con}) whose effect is to
 create a pointer to data. However, a difference in this case is that both new pointers
 point to the same thing, the pointer is duplicated. 
-Consider the following sequent as an example, where a server
+Consider the following program as an example, where a server
 is connected to a client, which we know actually connects to the server at least once.
 @dm(sequent $ exponentialSimple)
 The server is immediately ready, and this is represented by sending the @math{M} boson. 
@@ -677,11 +677,11 @@ not mimic the behaviour of regular rules. That is, we do not immediately
 duplicate the @math{M} boson. Indeed this would mean that a server instance is spawned, 
 however we wish to do this only when the @demand_ rule is executed.
 Instead, we wish to capture the intuition that we end up with multiple pointers to the same
-server. This is supported by the @math{M} boson, which can connect to multiple clients.
+service. This is supported by the @math{M} boson, which can connect to multiple clients.
 Hence, the interaction between bosons yields a system which is represented by the following
 diagram:
 @dm(couplingDiag $ eval' $ eval' $ exponentialSimple)
-Eventually, the client will start interacting with an instance of the server. This is done by 
+Eventually, the client will start interacting with an instance of the server (@demand_ rule). This is done by 
 duplicating its closure @math{a}, which we represent as follows. 
 @dm(couplingDiag $ eval' $ eval' $ eval' $ exponentialSimple)
 The new process needs to access the environment, which can be accessed by copying pointers
@@ -690,38 +690,42 @@ system, they require a more @italic{ad hoc} implementation, and multiple impleme
 are possible. Our choice of implementation is justified by our desire to represent the 
 exponential channel as a closure to a server which can be pointed at by many clients.
 The @weaken_ rule behaves in a manner similar to @contract_.
-This concludes our description of bosons, whose complete list is shown in @bosonsFig
+This concludes our description of bosons, whose complete list is shown in @bosonsFig. 
+The @bosonBoson_ and @bosonOper_ rules are shown in @bosonBosonFig and @bosonOperFig.
+To sum up, the asynchronous reduction, explained above, replaces the @operationalRules_ rules from
+the synchronous reduction by
+boson emission and reception (@bosonOper_ and @bosonBoson_) interactions.
+The boson rules are also congruent for this relation.
+
 @bosonsFig<-texBosons
 
-@redBODef<-definition{@redBO}{
-  The asynchronous reduction, explained above, replaces the @operationalRules_ rules by
-  boson emission and reception (@bosonOper_, @bosonOperFig) and @bosonBoson_ (@bosonBosonFig) interactions.
-  The boson rules are also congruent for this relation.
+@redBODef<-definition{}{
   @math{@redBO = @redBODef_}
 }
 
 The full asynchronous reduction is a refinement of the synchronous reduction with asynchronous
-axioms.
+axioms:
 
 @theorem(""){
-If @math{a @redOM a'} then @math{a @many(redBO) a'}
+If @math{a @redAX a'} then @math{a @many(redBO) a'}
 }{
   Base case analysis of each of the @operationalRules_.
   For additive, multiplicative and quantifiers fragments, this is immediate because the structure of
   bosons is the same as the original structure. 
 
-  For exponentials, one must use the memory boson in 
-  intermediate states.
+  For exponentials, one must use the memory boson in intermediate states.
 }
 
 
 @theorem(""){
-If @math{a @many(redBO) a'} and neither @math{a} or @math{b} contains a boson then @math{a @many(redOM) a'}.
-For each of the reductions using an intermediate state containing bosons, it is possible to find a direct
+If @math{a @many(redBO) a'} and neither @math{a} or @math{b} contains a boson then @math{a @many(redAX) a'}.
+That is, for each of the reductions using an intermediate state containing bosons, it is possible to find a direct
 route.
 }{
-By case analysis, as above. Additionally, one remarks that there is only one way to consume 
-an intermediate boson; rules firing concurrently have no bad effect.
+By case analysis, as above. 
+For additive, multiplicative and quantifiers fragments, there is only one way to consume an intermediate boson, 
+so the proof needs to take into account only one boson (pair) emission. For exponentials, one needs another induction
+to deal with the fact that any number of @contract_ and @ignore_ bosons must be considered.
 }
 
 

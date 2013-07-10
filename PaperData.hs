@@ -472,10 +472,10 @@ typesetBosonReds reds = env "center" $
       return ()
 -}
 
-texReductionFigure caption relation displayer rules = 
+texReductionFigure caption displayer rules = 
   figure_ caption $ mathpar [
                   [ displayer input <>
-                    relation <>
+                    cmd0 "Longrightarrow" <>
                     displayer (evaluator input)
                    | (evaluator,_name,input) <- rules ] 
                   ]
@@ -487,19 +487,19 @@ texBosonBoson =  texReductionFigure
                   but it exists for any @math{n≥1}.
                   Similarly the @mem_/@weaken_ rule is shown for arity 3.
                 @" 
-                redBO sequent bosonBoson
+                sequent bosonBoson
 
 texBosonOper :: Tex SortedLabel
 texBosonOper =  texReductionFigure 
                 @"@bosonOper_ rules.
                 @" 
-                redBO sequent bosonOper
+                sequent bosonOper
 
 
 texAxiomReds :: Tex SortedLabel
 texAxiomReds = texReductionFigure 
                @" @explicitAxiom Reductions@"
-               redAX sequent chanAxRedRules
+               sequent chanAxRedRules
 
 bosonBoson,bosonOper,chanAxRedRules :: [(Deriv -> Deriv, String, Deriv)]
 bosonBoson = 
