@@ -263,7 +263,7 @@ operationalRules =
   ,[(botRule,"The closure is deleted."
     ,@"terminate@"),
     (oneRule False,"An entry of the environment is deleted."
-    ,"no op")]  
+    ,"wait")]  
   ,[(zeroRule,"The rule represents a crashed system and can never be ready to run in a well-typed system."
     ,"crash")]
   ,[(forallRule False,@"An area in the heap of size @math{|@tAofB|} is allocated.

@@ -117,13 +117,14 @@ As concrete steps towards this goal, we make the following contributions:
  @item A term assignment for classical linear logic proofs @syntaxSec, with 
        a functional syntax inspired by ISWIM (@syntaxSec).
  @item An abstract machine capable of running programs written in the above language (@amSec).
-       This abstract machine is concurrent, and based on time-tested concepts, 
-       such has closures and heap.
+       This abstract machine combines many useful properties: concurrently running processes, 
+       asynchronous communication, reduction in the multiplicative fragment is communication-less,
+       and it is based on time-tested concepts, such has closures and heap.
  @item We show that the execution steps of the abstract machine correspond
-       to proof normalisation steps. We do this by introducing a series of interconnected
-       reduction relations (@redOMDef, @redAXDef, @redBODef, @redAMDef).
- @item We show how standard concepts of lambda-calculus evaluation 
-       (redex,head normal form, etc.) generalize in linear logic.  (@outerSec)
+       to proof normalisation steps. We do this by gradual refinement of cut-reduction for LL
+       (@redOMDef, @redAXDef, @redBODef, @redAMDef).
+ @item We explain how standard concepts of lambda-calculus evaluation 
+       (redex,head normal form, etc.) generalize in linear logic (@outerSec).
 }
 
 @syntaxSec<-section{Syntax and Intuitions}
@@ -155,8 +156,8 @@ The answer depends on the type of @vX:
 @item @id(tA ⊕ tB): either @tA and @tB. The environment chooses which one.
 @item @id(Forall "α" tAofAlpha): @math{A[B]} where @tB is chosen by the program.
 @item @id(Exists "α" tAofAlpha): @math{A[B]} where @tB is chosen by the environment.
-@item @id(Bang tA): Can demand as many @tA 's as one wants.
-@item @id(Quest tA): Must provide as many @tA as the environment wants.
+@item @id(Bang tA): As many @id(tA)'s as the program wants.
+@item @id(Quest tA): As many @id(tA)'s as the environment wants.
 }
 Two aspects become obvious from this enumeration. First, having a variable in the
 environment is not all roses: it may provide something to the program, but it may
@@ -306,51 +307,39 @@ From a programming language point of view we can understand this reduction
 as communication occuring between processes. All this rules are listed in @redFig, 
 and we place them in a class called @operationalRules_.
 
+@paragraph{Additives}
+The @case_ construction eliminates the type @id(tA ⊕ tB), waiting for a choice to be
+made between @tA and @tB. Conversely, the rule @math{&_1} chooses protocol @tA (Symmetrically
+rule @math{&_2} chooses protocol @tB; and we shall not mention this variant again.)
+The reduction of a connection between these two rules correspond to sending the choice (a bit of info)
+over the channel, yielding a connection on @tA between the direct subprograms.
+
+The @Zero corresponds to a choice which cannot be made: there is no rule eliminating its dual @Top,
+so there can never be an active connection involving @Zero.
+Accordingly, the elimination rule for @Zero 
+can never trigger at runtime, so it can safely be interpreted
+as crashing the machine. The @gamma_ in the @dump_ construct is there for 
+formal reasons: every variable need to be used exactly once. 
+
 @paragraph{Multiplicatives}
 A connection between the processes @programOneLine(leftChild cutParCross) and @programOneLine(rightChild cutParCross) 
-can be represented as follows (we abbreviate programs in the diagrams for concision):
+can be represented as follows (For concision, we label nodes only with the first rule of the program):
 @dm(couplingDiag(cutParCross)). 
 
 The reduction is not so much communication as splitting the
 channel and forking off a new thread. No information as such is transmitted
 during reduction.
-The program @math{a} has complete freedom regarding the order in which  @math{x} and @math{y}
+Noteworthy is that the program @math{a} has complete freedom regarding the order in which  @math{x} and @math{y}
 are used. This means that, conversely, the @par_ rule must be able to honour 
 any order whatsoever between the subchannels. This is indeed enforced by having
-those two parts handled by separate processes, as is obvious in the diagram of the reduct:
+those two parts handled by separate processes, which can communicate only via, 
+the subchannels, as can be clearly seen on the diagram of the reduct:
 @dm(couplingDiag(eval cutParCross))
 
 
-The types
-@Bot and @One corresponds to a singleton data type. The rule for
-@Bot effectively just terminates the current process. The reference to a channel
-of type @Bot ensures that some other process (connected at the other end) exists, 
-so that there will always be at least one process running.
-The dual rule for @One is a no op. Conceptually, it acknowledges that the process 
-connected to it is terminated. However, because this eventual termination is guaranteed
-by the system, we choose not to transmit any information. If explicit notification of
-termination is wanted, it can always be encoded by an explicit bit of info.
-
-Finally, reduction for @One and @Bot simply ends the @Bot process.
-
-@paragraph{Additives}
-Given a channel of type @id(tA :&: tB), the rule @math{&_1} commits to protocol @tA,
-naming the new channel @math{x}. This rule realizes active choice: the process decides 
-which choice to make. Dually, passive choice is realized by the @plus_ rule 
-which examines the choice expressed on the channel @math{z} and branches depending on
-the value.
-
-The @Zero type is empty: there is no rule eliminating its dual @Top, so it cannot
-be constructed. Accordingly, the elimination rule for @Zero 
-can never trigger at runtime, so it can safely be interpreted
-as crashing the machine. The @gamma_ in the @dump_ construct is there for 
-formal reasons: every variable need to be used once. 
-
-There are two rules for plus and with, one for each choice in the with 
-construct. During communication one bit will be sent from the with process
-which will determine which branch to choose in the plus process. After
-reduction the processes will continue and communicate over the chosen channel.
-
+The multiplicative units are @Bot and @One, and the corresponding communication corresponds 
+to notification of the termination of a process (@programOneLine(botRule)).
+(In @asyncSec, we do away with this unnecessary synchronisation.)
 
 @paragraph{Quantifiers}
 The @forall_ and @exists_ rules deal with channels of polymorphic and 
@@ -358,40 +347,24 @@ existential types. The rule @forall_ instantiates a polymorphic channel with a
 particular type @tB which means sending the type along the channel. The type is 
 received in the @exists_ rule where the type is given the name @alpha_.
 
-The rules for polymorphism and existentials means sending the type over the
-channel from the type application to the unpack construct.
-
-
 @paragraph{Exponentials}
-Finally, there are four rules for dealing with exponentials, allowing values
-to be duplicated and ignored. The rule ? provides a protocol which can be 
-used an arbitrary number of times (a service).
-Because values are linear by default we must be careful how we construct such
-services: all protocols used to offer it must be services themselves.
-Formally, the context in the ? rule appears with a ! in front of it.
-This notation means that all the types in the context must be prefixed fith !.
-The ! rule extracts an unrestricted value so that it can used
-according to the linear rules.
-The rules @weaken_ and @contract_ allow for ignoring and duplicating values
-respectively.
+Recall that the exponential type @Bang(tA) represents a number of copies of @tA, at the
+choosing of the program. 
+Hence, the eliminator for the dual (the ? rule) is at the mercy of its environment: it provides
+a protocol which can be demanded an arbitrary number of times (a service).
+This means in particular that the service provider (?) has no choice but
+to depend on protocols which are themselves services. 
+(Formally, the context in the ? rule appears with a ! in front of it. 
+This notation means that all the types in the context must be prefixed fith !.)
 
-The reduction rules for exponentials all involve the offer construct on one 
-end of the communication. When the other end is a demand construct, 
-the exponential will simply be dropped and the processes will continue 
-and communicate the value.
-
-When paired with alias, the offer process is
-duplicated and the new process will communicate over the new channel indicated
-by the alias construct.
-
-Finally, when paired with an ignore, the offer process will simply be dropped
-as it is no longer needed. Evaluation proceeds only in the ignore process.
-
-
+The !-eliminator derelicts the service to a mere protocol, restoring symmetry with the connected process. 
+The @weaken_ rule declines to use the service, discarding the connected process,
+and the @contract_ rule takes a copy of the service, forcing to request 
+a copy of every service it required by the connected process.
 
 @exampleSec<-subsection{Example}
 
-To illustrate our language we give some example programs. Because the language is rather austere and 
+To illustrate our language we give an example programs. Because the language is rather austere and 
 does not have much in the way of data types the examples are by necessity rather simple.
 
 The first example is a program to swap the values in a tensor product.
