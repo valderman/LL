@@ -183,7 +183,7 @@ we will get @tB. The processing order will be at the discretion of the environme
 
 @subsection{Terms and Typings}
 
-We metasyntactic variables @math{x}, @math{y} and @math{z} range over variables in our
+We let metasyntactic variables @math{x}, @math{y} and @math{z} range over variables in our
 language; @alpha_ and @beta_ range over types; 
 @gamma_, @delta_ and @xi_ range over contexts. Contexts are unordered maps
 of variables to types, and these mappings are written @math{x : @tA}. Variable
