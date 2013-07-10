@@ -193,7 +193,7 @@ redAM = math $ cmd0 "Rrightarrow"
 
 equivAM = math $ "≡" <> index "AM"
 
-equivAMDef_ = many $ foldr1 (∪) [cutAssoc_, cutSwap, bidir bosonOper_, cut_ `cong` equivAM, boson_ `cong` equivAM]
+equivAMDef_ = many $ foldr1 (∪) [cutAssoc_, cutSwap, bosonOper_, bosonOper_ ^^^ "-1", cut_ `cong` equivAM, boson_ `cong` equivAM]
                       
 many x = x ^^^ "*"
 
@@ -384,10 +384,10 @@ texAmRulesExplanation whichRules =
   sequence_ $ forAmRules whichRules $ \(sequ,explanation) sys0 sys1 -> do
     item
     @" Rule @seqName(derivSequent sequ).@"
-    @" The rule assumes an input heap of this form:@"
+    @" The rule assumes an input state of this form:@"
     displayMath $ diagSystem sys0
     explanation
-    @" The heap after execution is:@"
+    @" The state after execution is:@"
     displayMath $ diagSystem sys1
 
 forAmRules ::  [[(Deriv, t,s)]]  -> ((Deriv, t) -> System SymHeap -> System SymHeap -> b) -> [b]

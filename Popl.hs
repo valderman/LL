@@ -543,13 +543,14 @@ channels have been proposed.
 
 The @mix_ rule has been proposed by 
 @citet{girard_linear_1987}, and is a safe extension. Indeed, the proof of @noDeadlockThm remains
-valid: @mix_ corresponds to placing coupling diagrams side by side with no connection, which clearly preserves ready edges. However, @bicut_
+valid: @mix_ corresponds to placing coupling diagrams side by side with no connection, which 
+preserves ready edges. However, @bicut_
 is not safe: if two edges are created, then it is possible to connect the only ready edge in each system
 to another hypothesis in the other one, and no ready edge remains in the result.
 
 @asyncSec<-section{Asynchronous Outermost Reduction}
 
-@subsection{Explicit Axioms}
+@axiomSec<-subsection{Explicit Axioms}
 
 Conceptually, an axiom does nothing:
 as we have seen in @syntaxSec, a @cut_ with an axiom is equivalent to just a @cut_ link.
@@ -566,7 +567,7 @@ etc. The complete set of rules implementing this idea is show in @axiomRedsFig a
 @axiomRedsFig<-texAxiomReds
 
 Replacing the @cutAx_ rule by explicit forwarding does not change the meaning of programs.
-It means however that @ax_ rules rules disappear only when they apply to unit types. 
+It means however that @ax_ rules disappear only when they apply to unit types. 
 This is problematic operationally (we discuss this issue in @axiomOptSec), but not 
 for formal purposes, because @cutAx_ is an equivalence.
 
@@ -637,7 +638,7 @@ from @tensor_ to @par_.
 
 This observation leads us to a second and, in our opinion, preferable option to
 model asynchronicity. The solution is to send both bosons, and add a reduction rule between them.
-This means @par_ and @tensor_ behave completely asynchronously: as soon as they are
+This means @par_ and @tensor_ behave asynchronously: as soon as they are
 encountered their children are ready to run.
 
 @dm(couplingDiag(cutParCross))
@@ -687,7 +688,7 @@ The new process needs to access the environment, which can be accessed by copyin
 to it, thanks to the @math{Con} boson. Because exponentials are less regular than the rest of the 
 system, they require a more @italic{ad hoc} implementation, and multiple implementations 
 are possible. Our choice of implementation is justified by our desire to represent the 
-exponential channel as a closure to a server which can be pointed at by many clients.
+exponential channel as a closure to a server which can be pointed at by multiple clients.
 The @weaken_ rule behaves in a manner similar to @contract_.
 This concludes our description of bosons, whose complete list is shown in @bosonsFig. 
 The @bosonBoson_ and @bosonOper_ rules are shown in @bosonBosonFig and @bosonOperFig.
@@ -732,53 +733,49 @@ to deal with the fact that any number of @contract_ and @ignore_ bosons must be 
 
 In this section we describe an abstract machine for execution of LL programs. The
 machine follows closely the refined reduction relation presented in the previous section.
-It is similar in spirit to classical abstract machines for the lambda calculus, such as the 
+It is similar in spirit to classical abstract machines for the λ-calculus, such as the 
 SECD machine.
 
 The machine state is composed of a multiset of closures and a heap.
-The processes from the above section will be represented by closures, and the bosons by the heap.
-A closure is a sequent of LL, 
-together with an environment associating each variable
-to a pointer in the heap, and an environment associating each type variable to a
-a type representation. Each closure corresponds to a proccess, and each variable
-in its environment corresponds to a port into a channel.
-One step of execution of a closure corresponds to sending or receiving a boson, except for the @cut_ rule which 
-spawns a process. Every execution step is
+The non-boson node from the above section are represented by a closure, and the bosons are represented by the heap.
+A closure is a triplet of a program (whose syntax is given in @syntaxSec),
+an environment associating each variable
+to a pointer in the heap, and a type-environment associating each type variable to a
+type representation. Each closure corresponds to a proccess, and each variable
+in its environment corresponds to a port of a channel.
+One step of execution of a closure corresponds to sending or receiving a boson, except for structural rules: @cut_ 
+spawns a process and @ax_ is handled as outlined in @axiomSec. Every execution step is
  implemented by interacting with the heap: no synchronisation primitive is assumed. 
 
 The heap is an indexable sequence of cells. Each cell can evetually be used to 
 transmit some piece of information between closure. Each cell starts its lifetime
-as empty (devoid of information). It may then contain some information, which will
-be eventually read. Then the cell is deallocated. (In a real system is should made 
-available for reuse, but we do bother to do so in this presentation.)
+as empty (devoid of information). It may then be populated with some information, which will
+be read if another process is connected to the corresponding channel.
+Then the cell is deallocated. (In a real system is should made 
+available for reuse, but we do not describe this detail in this presentation.)
 
-A number of contiguous cells is allocated for each channel in the heap. The number of
-cells allocated depends on the type of the channel. 
-
-The number of cells allocated for a channel of type @tA 
-is computed by the function @norm(tA).
+A number of contiguous cells is allocated for each channel in the heap. 
+For a channel of type @tA, @norm(tA) cells are allocated.
 
 @definition("layout"){
-  The layout function maps a type to a number of cells, 
-  in an environment @rho  mapping type variables to type representations.
+  The layout function maps a type @tA and a type environment @rho to a number of cells @norm(tA).
   @dm(layoutTable)
 } 
 There will be exactly two closures pointing to each channel of non-exponential a type @tA. One
 of these will consider the channel as @tA and the other as @neg(tA), which 
 justifies @norm(tA) = @norm(neg $ tA).
-
 Neither @Zero nor @Top can ever occur in the execution of a program.
 We emphasize this fact by assigning them an infinite number of cells.
 
 @subsection{Reduction rules}
 
 Each rule in the @bosonOper_ category involves exactly one rule of the original logic. Hence
-each top rule in a proof can be interpreted as an instruction of the machine, whose
-meaning follows the asynchronous reduction. Rules in the @bosonBoson_ category, on the other
+each initial rule in a program can be interpreted as an instruction of the machine, whose
+meaning follows the asynchronous reduction relation. Rules in the @bosonBoson_ category, on the other
 hand, correspond to structural properties of the heap. For example, the interaction between
-the ⊗ and ⅋ boson correspond to the property that the components of a ⊗ or ⅋ types are
+the ⊗ and ⅋ boson correspond to the property that the components of ⊗ or ⅋ types are
 laid out in sequence in the heap. Hence, there is no computation associated with them in
-the machine. Lastly, the commutativity and associativity of @cut_ corresponds to the 
+the machine. Lastly, the commutativity and associativity of @cut_ correspond to the 
 structure of the muliset of closures.
 
 @redAMDef<-definition("Abstract Machine Evaluation"){
@@ -786,9 +783,9 @@ The evaluation relation for the abstract machine is written @redAM, and
 the rules for it are shown in @amRulesFig
 }
 
-The set of reduction rules in the machine is particularly tedious 
+The set of reduction rules for the machine is particularly tedious 
 to read in mathematical
-notation, but not difficult to understand using the usual memory layout diagrams,
+notation, but not difficult to understand using usual memory layout diagrams,
 which we present in the rest of the section.
 @amRulesFig<-texAmRules{
   Abstract Machine Rules.
@@ -812,43 +809,45 @@ which we present in the rest of the section.
 In each diagram, the set of closures is presented first (only the closures relevant to
 the rule are shown, and it is always the case that any number of other closures can be
 present and remain untouched by the rule). For each closure, its code is shown, followed 
-by its environment. Each element of the environment is a pointer into the heap, represented
+by its environment (the type environment is omitted). 
+Each element of the environment is a pointer into the heap, represented
 as an arrow pointing to some area of the heap, which is shown in the second row. 
 
-We proceed to explain a few important ones (multiplicatives, additives, @offer_ and @demand_); 
-the complete list of diagrams with explanation
-can be found in appendix. 
+We proceed to explain a few interesting rules: multiplicatives, additives, @offer_ and @demand_.
+The complete list of diagrams with explanation can be found in appendix. 
 To simplify diagrams, whenever an arbitrary context Γ can be handled, we write a single
 variable pointing to a memory area of type Γ.
 
 @texAmRulesExplanation[additives,multiplicatives,offerDemand]
 
-
 @subsection{Adequacy}
 
-We can show the adequacy of the abstract machine with respect to the @redBO reduction.
+The abstract machine adequately models the @redBO reduction, up to @bosonBoson_ reductions.
 
-@definition("Proof to Machine"){
-  One can map a proof to a machine with a single closure whose code point to the  
-  program, and whose each variable in the environment points to 
-  an area of the heap freshly allocated.
-}
+One can map a program @math{a} (possibly starting with bosons)
+to a machine state @math{@toMachine{a}}
+with a single closure whose code point to the 1st non boson rule in the
+program, and whose each variable in the environment points to 
+an area of the heap freshly allocated. If the program @math{a} starts with a 
+additive or quantifier boson, the contents is written at the appropriate place in
+the heap. If it starts with a @contract_ bosons, the pointer is duplicated, etc.
 
 @theorem{Soundness}{
   If @math{a @bosonOper_  b} then @math{@toMachine{a} @redAM @toMachine{b}}.
-  If @math{a @bosonBoson_ b} then @math{a = b}.
+  If @math{a @bosonBoson_ b} then @math{@toMachine{a} = @toMachine{b}}.
 }{
 By case analysis.
 }
 
-The boson-aware sequents are more fine-grained than the abstract machine:
-some distinct sequents will be represented by the same state of the abstract machine.
-For example, it is not possible to discover if multiplicative boson have 
-interacted or not.
+Conversely, one can map a machine state back to a program. Firstly, the outermost
+coupling structure can be recovered by analysing which closures point to which memory
+areas. Second, if the heap contains non-empty cells, these can be represented by 
+bosons associated with the appropriate closure.
 
-@definition("Machine to Proof"){
-  To map a machine state to a proof, one can recover the cut structure
-}
+The asynchronous reduction (@redBO) is more fine-grained than the abstract machine:
+some distinct states containing bosons will be represented by the same state of the machine.
+For example, it is not possible to discover if multiplicative bosons have 
+interacted or not.
 
 @definition{@equivAM}{
   @math{@equivAM = @equivAMDef_}
@@ -860,25 +859,14 @@ interacted or not.
 By case analysis.
 }
 
-The relation between equivalent sequents is a subset of the boson-reduction.
-@definition("Unobservable reductions"){
-  
-}
-
-@theorem("AM Adequacy"){
-- Operational rules are in clear one-to-one correspondance.
-}{
-
-}
-
-Combined with the above results, this shows that our abstract machine is sound and complete
+Together, the theorems 3 to 7 show that our abstract machine is sound and complete
 with respect to the outermost evaluation relation.
 
 @section{Discussion}
 
 @paragraph{Quantifiers}
 Our implementation of type-variables and quantifiers may be surprising. 
-It might seem natural to layour store a value of a type variable α as 
+It might seem natural to store a value of a type variable α in
 a single cell, at it is usual in functional programming languages,
 instead of having to lookup it size in an environment.
 
@@ -892,29 +880,19 @@ To simplify presentation, we have made our implementation of @ax_ less
 efficient than it could be. It appears wasteful to have a process which
 copies data around, while this data is guaranteed to be produced and consumed
 exactly once. Indeed, it is possible to optimise axioms as follows. Consider
-first the exponentials and quantifiers. Because these are represented by pointers,
-instead of opening the pointer on one side and re-creating an indirectinon the 
-other, one can simply directly copy pointers. Consider second additives. Instead
-of transmitting a single bit, on could have to possibility to transmit a pointer
+first the exponentials and quantifiers. The current implementation of @ax_ 
+follows a pointer on one side, and re-creates an indirectinon the 
+other side and recursively forward data between the pointed zones. Instead, 
+one can simply directly copy one pointer and be done. Consider second additives. Instead
+of transmitting a single bit, on could have as a possibility to transmit a pointer
 to a memory area. In the @plus_ rule, if this pointer is read, then the
 process proceeds with reading the bit from the pointed area. The implementation
 of axiom can then, insead of copying a potentially large amount of data, send a 
 pointer to the source area and terminate immediately.
 
-@paragraph{Asynchronicity}
-Furthermore, we eventually wish to develop low-level,
-efficient linear programming languages
-based on framework laid out in the above. 
-In such languages, one will typically represent large arrays by commensurably
-large tensors. With the synchronous view of multiplicatives, this would mean
-that the layout of an array itself has to be transmitted by @par_, and that @tensor_
-cannot proceed until it has received the blueprint. This means that, 
-to avoid sacrificing parallelism opportunities, one must go with the asynchronous view.
-
-
 @paragraph{Truely concurrent language}
 
-As we have seen, the coupling structure provided by linear logic is
+As we have seen, the coupling structure provided by linear logic
 is limited to tree topologies (even though we have seen that more
 complex strucutres can be dynamically created, the language itself mandates
 tree structures). 
@@ -928,33 +906,32 @@ is possible if connection points are guaranteed to be ready at the same time.
 @subsection{Future Work}
 
 @paragraph{Non-concurrent fragment}
-The language we have presented here is fully concurrent. 
-That is, at no point we assume that communication is uni-directional.
-This means that communication occurs at the bit level, This is obviously
-wasteful in real applications, where data is transmitted in larger chunks.
+The language we have presented here is fully concurrent,
+implying that communication occurs at the bit level. This is obviously
+wasteful: in real applications, where data is transmitted in larger chunks.
 Optimising communication in such a way is compatible with the framework presented.
 
 Another consequence of full concurrency is that a process is spawned at every 
-occurence of @par_ and @cut_. However, in many cases, one should be able to discover
+occurence of @par_ and @cut_. However, in many useful cases, one should be able to discover
 that data flows in a particular direction (for example when the code comes from the
 translation of a functional program into LL). Again, this optimisation is compatible with
 the general framework. The only apparent issue is with polymorphism: an optimiser
 will not be able to discover one-sided data flow in the presence of quantification over
-arbitrary protocols. The obvious solution, which we plan to investigate, is to 
-add a construction for quantification over one-sided protocols.
+arbitrary protocols. The obvious solution, which we plan to investigate in future work, is to 
+add a construction for quantification over unidirectional protocols (pure data).
 
 @subsection{Related Work}
 
 @paragraph{Systems based on intuitionistic variants}
 
-Many presentations of LL for functional programming dualize the logic
-@citep{hyland_full_1993,barber_dual_1996,benton_term_1993}. 
+Most presentations of LL for functional programming dualize the logic
+@citep{hyland_full_1993,barber_dual_1996,benton_term_1993,caires_concurrent_2012}. 
 That is, every rule introduces a type former either on the left-hand-side or
 on the right-hand-side of the turnstile. 
 
 An issue with this version of LL is that ⅋ does not have the same properties 
 as Girard's version of it @citep{hyland_full_1993}. Furthermore, 
-calling them intuitionistic variants is misleading: LL has good 
+calling them intuitionistic variants is misleading: classical LL already has good 
 computational behaviour.
 
 Our presentation is faithful to the spirit of Girard's LL:
@@ -962,36 +939,39 @@ LL is already intuitionistic, and there is no need to restrict it
 to give it computational content.
 
 @paragraph{Session Types}
-@citep{caires_concurrent_2012} (also ILL)
-
-@citet{wadler_propositions_2012}
 
 A correspondance has recently been identified between linear logic
-propositions and session types. A proof of a proposition @tA can be
+propositions and session types @citep{wadler_propositions_2012,caires_linear_????,caires_concurrent_2012}.
+A proof of a proposition @tA can be
 identified with process obeying protocol @tA. This correspondance
 departs from the usual linear logic in that the type @element(tA ⊗ tB) is
 interpreted as @tA then @tB, whereas the usual interpretation of the
 linear formula is symmetric with respect to time. Our interpretation
 keeps the symmetry intact. The associated calculus is close to the
 π-calculus, which we observe is unintuitive to functional programmers
-in two respect. On a superficial level, they much prefer ISWIM-like
-syntaxes. On a semantic level, the ability to transmit channel names,
+in two respect. On a superficial level, we have anecdotal evidence that 
+they much prefer ISWIM-like
+syntaxes. On a semantic level, founding computation on the transmisson of channel names
 departs fundamentally from the tradition of functional programming.
 
-@citet{wadler_propositions_2012} presents a translation from a 
-session-typed functional programming language into LL. However,
-this translation appears to be unnecessary, as LL combines all 
-the necessary properties. First, is expressive enough to
-directly program functionally: we have assigned functional syntax 
-to its proofs (however a large dose of syntactic sugar, the usual translation of intutionistic
-logics into LL, will be healthy
-to write non-trivial programs). Second, the types 
-of LL can express sessions directly. Indeed, 
-we have interpreted the type formers in these terms in @syntaxSec.
+Another reason to interpret the multiplicative fragment as we do
+is one of efficiency. While @citet{wadler_propositions_2012,caires_linear_????} 
+interpret the multiplicative fragment as
+the transmission of a channel name, which is fine from a logic and
+π-calculus perspective, this interpretation does not computationally efficient.
+
+We eventually wish to develop a low-level,
+efficient linear programming language
+based on framework laid out in the above. 
+In such a language, one will typically represent large arrays by commensurably
+large tensors. With the synchronous view of multiplicatives, this would mean
+that the layout of an array itself has to be transmitted by @par_, and that @tensor_
+cannot proceed until it has received the blueprint. 
+To avoid sacrificing parallelism opportunities, one must go with the asynchronous view.
 
 Another small improvement of this presentation over that of @citet{wadler_propositions_2012}
-is that we have refined the notion of deadlock (shaving off liveness) in LL, 
-underlining the strcutrual character of this property in LL.
+is that we have refined the notion of deadlock, separating it from starvation,
+which allows us to underline the strcutrual character of absence of deadlock in LL.
 
 @paragraph{Graphical representations}
 
@@ -1000,18 +980,19 @@ Besides the proof nets of Girard, one find many categorically motivated
 representations
 @citep{cockett_proof_1997,hirschowitz_topological_2008}.
 
-Our representation is motivated by simplicity. First, it is a direct 
-representation of sequents. The reification of a proof from a diagram
-has only to choose where to cut first. Second, we hope that it is intuitive: 
-it is very close to the component diagrams routinely used by software engineers. 
-A difference is that in our diagrams the protocol between components is fully formalised by a type,
-intead of being an informal reference to some interface.
+Our representation is motivated by simplicity: it aims to represent the 
+outermost cut structure only. (The reification of a proof from a diagram
+has only to choose where to cut first.) Second, we believe that it is intuitive.
+Indeed, it is close to the component diagrams routinely used by software engineers.
+@comment{a principal difference is that in our diagrams the protocol between components is fully formalised by a type,
+intead of being an informal reference to some interface.}
 
-The diagrams are also closely related to proof nets.
-Considers the multiplicative logic (MLL): then all possible bosons can be emited. If one writes 
-the coupling diagram with all bosons represented, it is topologically equivalent to the proof net for
-the same sequent. (In a proof-net all hypotheses are at the bottom, and bosons are represented 
-in a particular direction.)
+The diagrams are also closely related to proof nets. Indeed,
+proof nets work best in multiplicative fragment, and in this fragment, all possible bosons can be emited. 
+If one writes 
+the coupling diagram with all such bosons represented, it is topologically equivalent to the proof net for
+the same proof. (The proof-net is laid out differently: all hypotheses are at the bottom, and bosons are oriented
+with the composite arrow down.)
 
 @paragraph{Abstract Machines}
 We identify two serious attempts to provide abstract machines for linear logic.
@@ -1025,19 +1006,19 @@ we remain purely based on the syntax of CLL.
 @citet{abramsky_computational_1993} presents a linear version of the 
 Chemical Abstract Machine (CHAM) @citep{berry_chemical_1992}, which can handle
 CLL. Abramsky's machine appears to be similar to the execution scheme we
-outline in @outerSec. However, Abramsky's use of the CHAM's concepts
+outline in @outerSec. However, Abramsky's use of the CHAM concepts
 have some cost: he introduces a new syntax for proofs within the machine, and
 a system of names is employed to link proof terms together.
 This use of new concepts is superfluous: we are able to give an account of 
 our AM which relies soley on concepts coming straight from LL syntax.
 
-
 @section{Conclusion}
 
-In our journey to build an abstract machine for linear logic, we have encountered
+We have described abstract machine for linear logic. 
+In our journey to derive it from linear logic syntax, we have encountered
 two generally useful concepts: coupling diagrams, and rules for asynchronous mediation
 of communication. We have also shed a new light to some poorly understood
-aspects of LL, such as the structural character of the multiplicative fragment. We
+aspects of LL, such as the structural character of the multiplicative fragment: we
 have shown that no communication is necessary to implement it.
 
 @acks{This work is partially funded by some agency, which we cannot name for DBR.}
