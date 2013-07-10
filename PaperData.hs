@@ -54,7 +54,7 @@ deriv showProg (Deriv tvs vs s) = derivationTree' $ texSeq showProg tvs vs s
 
 derivationTree' x = do
    centerVertically $ 
-     derivationTreeMP [] x
+     derivationTreeMP ["scale=0.9"] x
    return ()
 -- "scale=0.1" can be passed as an option to compress things.
 

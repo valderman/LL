@@ -192,6 +192,7 @@ couplingDiag :: Deriv -> TeX
 couplingDiag d = do
   forM_ gv $ \l -> texLn $ "%" ++ l
   env' "tikzpicture" [">=latex","line join=bevel","auto","scale=0.6"] $ do
+    cmd0 "small"
     forM_ o $ texLn 
   forM_ e $ \l -> texLn $ "%" ++ l
   where (o,e) = dot2tex gv
