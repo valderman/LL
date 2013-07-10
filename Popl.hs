@@ -69,7 +69,7 @@ Linear Logic acts as a low-level logic, where both intuitionistic and
 classical logics can be embedded. From its inception, Linear Logic
 has been recognised as corresponding to concurrent programming
 languages. Fleshing out this correspondence has given rise to 
-a long line of work @citep{abramsky_computational_1993,wadler_propositions_2012,caires_linear_????,bellin_scott94}.
+a long line of work @citep{abramsky_computational_1993,wadler_propositions_2012,caires_linear_????,bellin_-calculus_1994}.
 
 Additionally, as Linear Logic is a ``low-level'' logic, it corresponds
 to a low-level programming language, where management of resources is
@@ -368,14 +368,14 @@ The language presented above corresponds closely to continuation passing style
 (CPS). This connection should come as no surprise: linear logic is a "low-level"
 logic which can be used to represent or explain other logic. Similarly, CPS
 has been used as a low-level language to compile and optimize programs 
-@citep{appel1992compiling}.
+@citep{appel_compiling_1992}.
 
 Most terms in our language contain a subterm, a continuation, which is invoked 
 after the term is evaluated. Just as in CPS, expressions are evaluated for 
 their side-effect, not to return a value.
 On the type level, this is reflected by the fact that terms don't have a 
 return type, or, as noted above, implicitly return ⊥. This is similar to the
-@emph{answer type} in CPS @citep{thielecke2003control}.
+@emph{answer type} in CPS @citep{thielecke_control_2003}.
 
 @exampleSec<-subsection{Example}
 
