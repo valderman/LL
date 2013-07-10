@@ -153,7 +153,7 @@ The answer depends on the type of @vX:
 @item @id(tA ⅋ tB): both @tA and @tB. The environment decides in what order to use them.
 @item @id(tA & tB): either @tA and @tB. The program chooses which one.
 @item @id(tA ⊕ tB): either @tA and @tB. The environment chooses which one.
-@item @id(Forall "α" tAofAlpha): @math{A[B]} where @tB is chosen by the program.
+@item @id(Farrell "α" tAofAlpha): @math{A[B]} where @tB is chosen by the program.
 @item @id(Exists "α" tAofAlpha): @math{A[B]} where @tB is chosen by the environment.
 @item @id(Bang tA): As many @id(tA)'s as the program wants.
 @item @id(Quest tA): As many @id(tA)'s as the environment wants.
@@ -1051,5 +1051,15 @@ have shown that no communication is necessary to implement it.
 @"
 
 -- Local Variables:
--- ispell-local-dictionary: "american"
+-- ispell-local-dictionary: "british"
 -- End:
+
+--  LocalWords:  GHC XTypeFamilies XTypeSynonymInstances XRecursiveDo
+--  LocalWords:  XOverloadedStrings pgmF marxup Popl MarXup Monoid dm
+--  LocalWords:  TexPretty GraphViz PaperData acmCategories cmdn cmd
+--  LocalWords:  acmKeywords mconcat env Landin's maketitle fmt citet
+--  LocalWords:  outputTexMp MPOutFormat renderToDisk latexDocument
+--  LocalWords:  Normalisation girard recognised citep abramsky emph
+--  LocalWords:  wadler caires bellin priori landin syntaxSec redex
+--  LocalWords:  redAXDef redBODef redAMDef tytab metasyntactic tC tA
+--  LocalWords:  typeTable vX tB demorgan
