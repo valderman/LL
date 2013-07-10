@@ -239,7 +239,6 @@ Second, the representation of @tA being in the environment of the program can be
 either an ingoing egde labeled with an edge @tA or an outgoing edge labeled 
 with @neg(tA). 
 
-
 @subsection{Structural Rules}
 
 The @ax_ rule connects two channels and exchange information. The types of the 
@@ -304,7 +303,7 @@ part of a program via @cut_ will dualise the type. (An example is given in @exam
 The operational semantics of our language is given by the reduction rules of
 linear logic, where two @oper_ rules are connected by a @cut_ and reduce.
 From a programming language point of view we can understand this reduction
-as communication occuring between processes. All this rules are listed in @redFig, 
+as synchronous communication occuring between processes. All these reduction rules are listed in @redFig, 
 and we place them in a class called @operationalRules_.
 
 @paragraph{Additives}
@@ -362,6 +361,15 @@ The @weaken_ rule declines to use the service, discarding the connected process,
 and the @contract_ rule takes a copy of the service, forcing to request 
 a copy of every service it required by the connected process.
 
+@paragraph{Commuting Conversions}
+The rules presented so far do not allow the elimination of every @cut_. To do so
+one needs to @cut_ inside an @oper_ rule, if the @oper_ rule does not operate on the channel
+introduced by the @cut_, so called commuting conversions. 
+While the addition of commuting conversions gives @cut_-elimination for LL, they
+do not correspond closely to evaluations of concurrent processes, and therefore
+we take a different route, beginning in @outerSec.
+
+
 @exampleSec<-subsection{Example}
 
 To illustrate our language we give an example programs. Because the language is rather austere and 
@@ -391,17 +399,12 @@ the translation from direct to continuation-passing style.
 @structEquivFig<-structFig
 @redFig<-syncFig
 
-@outerSec<-section{Outermost Reduction}
+@outerSec<-section{Synchronous Outermost Reduction}
 
-In this section we will show how to make the semantics of our linear logic 
-language more in line with standard evaluation strategies in the
-λ-calculus.
-
-@subsection{Outermost Evaluation Strategy}
-Equipped with coupling diagrams, we can describe the
-first step towards execution of linear logic proofs as
-concurrent processes.
-
+In this section we show how to interpret the @operationalRules_ and structural equivalences 
+to obtain an evaluation strategy similar to standard evaluation strategies of the
+λ-calculus. The strategy is expressed as is a small-step reduction relation, 
+which corresponding to synchronous communication of ready processes.
 @redOMDef<-definition("Outermost Evaluation"){
   We define outer evaluation (@redOM) by taking the union of
   the operational reduction rules (@operationalRules_), 
@@ -413,10 +416,6 @@ concurrent processes.
   In summary,
   @math(redOM <> " = " <> redOMDef_).
 }
-The main difference between this evaluation relation and @redLL is the  
-absence of commuting conversions. This means that top-level cuts are not 
-pushed under communicating primitives. Instead they remain part of the 
-outer coupling structure until communication can happen.
 
 The remainder of the section is devoted to showing that this  strategy of evaluation 
 is well-behaved, and corresponds to usual evaluation strategies of the λ-calculus.
@@ -425,32 +424,35 @@ is well-behaved, and corresponds to usual evaluation strategies of the λ-calcul
 We say that a program is @emph{waiting} on a variable @vX in its context if:
 @itemize{
  @item it is an axiom, or
- @item if starts with a @contract_ or @weaken_ rule acting on @vX, or
- @item if starts with an operational rule acting on @id(vX).
+ @item if starts with an @oper_ rule acting on @id(vX).
 }}
-
+We can make the notion of edge in a coupling diagram formal:
+@definition("Edge"){
+An edge is either an outermost @cut_ or a variable in the top-level context (an hypothesis).
+}
 @definition("Ready edge"){
 We call an edge @emph{ready} if all programs connected to it are waiting on the variables connected 
-to it. Recall that an edge either represents a @cut_ or a reference to the environment (an hypothesis). 
+to it. 
+}
 So in particular, 
 an hypothesis edge is ready if the single node  connected to it is  waiting on it,
 and a @cut_   edge is ready if both       nodes connected to it are waiting on it.
-}
 Remark that a ready @cut_ is reductible.
 
-@noDeadlockThm<-theorem("No deadlock"){In a coupling diagram where all outermost cuts are represented,
-           there is always at least an edge ready.
+@noDeadlockThm<-theorem("No deadlock"){
+           In every program, there is always at least one edge ready.
 }{
-Remark first that if all outermost cuts are represented, then every node begins either with an operational rule
-or @contract_ or @weaken_. Therefore, every node is waiting on at least one variable.
+The proof uses the coupling diagram representation of the program, where all outermost cuts are represented.
+Remark first that every node begins either with an @oper_ rule or an axiom. Therefore, every node is waiting 
+on at least one variable.
 
-We proceed by induction on the size of the tree. If the tree has a single node, then
+Because @cut_ links to subdiagrams by exactly one edge, the coupling diagram must be a tree.
+We proceed by induction on the size of that tree. If the tree has a single node, then
 all the edges are hypotheses. The node must be waiting on one of them, which is then ready.
 
 For the inductive case, we assume two graphs @graph1 and @graph2 satisfying the induction hypothesis, 
 with an hypothesis @vX in @graph1 and an hypothesis @vX' in @graph2.
-We show that the system obtained by connecting @vX and @vX' satisfies the theorem.
-
+We now show that the system obtained by connecting @vX and @vX' satisfies the theorem.
 We have the following cases:
 
 @enumerate{
@@ -467,33 +469,34 @@ one variable, and crucially that the coupling structure is a tree.
 
 
 @livenessThm<-theorem("No Starvation"){
-If the @cutAx_ rule is never used to create a @cut_, there is no infinite chain of reduction steps.
-This means that 
+If the @cutAx_ rule is never used to create a @cut_ (in the right to left direction),
+there is no infinite chain of reduction steps. This means that 
 outermost evaluation eventually yields a program waiting on one of the variables of its environment.
 In other words: every process eventually provides its environment with what it asks.
 }{
-The result is a consequence a classical result: cut-elimination in LL. 
-The proof is based on the observation that the products of @cut_ reduction are smaller than 
+The theorem is a corollary of a classical result: cut-elimination in LL. 
+One can re-do the proof based on the observation that the products of @cut_ reduction are smaller than 
 the initial @cut_. Two cases are non-obvious. First, the @offer_/@contract_ rule creates syntactically
 bigger trees, but the resulting contractions happen on smaller trees. Second, because of
 impredicativity, some extra care is necessary to ensure termination @citep{gallier_girards_1989}. 
 }
 
 In sum, the above theorems means that linear logic programs can be run in a way similar
-to usual ways of running the lambda calculus. In fact, the correspondance is deep: we can draw 
+to usual ways of running the λ-calculus. In fact, the correspondance is deep: we can draw 
 parallels between both sides for every concept used by the respective evaluators.
 
 A ready @cut_ corresponds to a redex. In both cases, the reduction of a top-level
 @cut_ (or redex) involves in-depth rewriting of the term, which is costly and does not correspond
 to the notion that programs are static entities. In both cases, it is possible to delay the 
 elimination of a @cut_ up to the point where direct interaction occurs.
-A ready edge corresponds to a lambda-calculus redex in head position. 
-Inner cuts correspond to redexes under lambdas. Operational rules correspond to constructors.
-A lambda term in head normal form corresponds to a linear program in which an hypothesis edge ready.
+A ready edge corresponds to a λ-calculus redex in head position. 
+Inner cuts correspond to redexes under λ. Elimination rules (at the exception of exponentials) 
+correspond to constructors.
+A λ-term in head normal form corresponds to a linear program in which all hypotheses edges are ready.
 
 The behaviour of the abstract machine of @citet{krivine_call-by-name_2007} is to traverse
 the spine of applications inwards and leftwards until it finds a redex, then reduce it. 
-(The SECD machine of @citet{landin_mechanical_1964} behaves likewise)
+(The SECD machine of @citet{landin_mechanical_1964} behaves likewise.)
 The reduction yields then another redex in the same position, or one must continue the traversal inwards and leftwards.
 An abstract machine for linear logic must traverse the coupling structure, potentially considering all outermost
 cuts, to eventually find a one which is ready, and reduce it. The difficulty in the
@@ -506,22 +509,22 @@ communication primitive to the front of a term --- a concept that is not meaning
 λ-calculus.
 
 The execution strategy outlined above is a direct generalisation of
-classical execution strategies for lambda calculi.
+classical execution strategies for λ-calculi.
  However this evaluation
 mechanism has an important shortcoming for the interpretation of
 LL as concurrent processes. Namely, if one thinks of a node as a process, 
-then every communication is synchronous. Indeed, when a cut-reduction rule
+then every communication is synchronous. Indeed, when a reduction rule
 fires, the processes at both ends change state simultaneously.
 
 This style of synchronous communication is unfortunate for two reasons:
 @itemize{
-@item On the programming side, processes writing to a channel 
+@item Processes writing to a channel 
       typically can proceed without waiting 
       for acknowledgement of the reader. Using this kind asynchronous 
-      communication will enable more concurrency.
-@item On the logic side, it is generally admitted that the multiplicative fragment 
-      represents connection between processes where no communication occurs.
-      (TODO: ref?)
+      communication enables more concurrency.
+@item Our interpretation of the multiplicative fragment is that no 
+      communication occurs at a reduction point. Hence implementing it with synchronisation 
+      appears twice as wasteful of concurrency opportunities as in other cases.
 }
 
 We attack this shortcoming after taking a brief detour.
@@ -531,18 +534,19 @@ We attack this shortcoming after taking a brief detour.
 The @cut_ rule allows two processes to communicate via exactly one channel. 
 Variants of the rule allowing zero (@mix_) two (@bicut_)
 channels have been proposed.
-  
-  @mathpar[[
+  @braces(
+  cmd0"small" <>
+  mathpar[[
   frac(@"Γ⊢ @hspace("2em") Δ⊢ @")(@"Γ,Δ⊢ @") <> mix_,
   frac(@"Γ,A,B⊢ @hspace("2em") A⟂,B⟂,Δ⊢ @")(@"Γ,Δ⊢ @") <> bicut_
-  ]]
+  ]])
 
 
 The @mix_ rule has been proposed by 
 @citet{girard_linear_1987}, and is a safe extension. Indeed, the proof of @noDeadlockThm remains
-valid: if a cut creates no edge then it is clear that ready edges are preserved. However, @bicut_
-is not safe: if two edges are created, then it is possible to create a symmetric situation where
-each subsystem waits for the other to be ready.
+valid: @mix_ corresponds to placing coupling diagrams side by side with no connection, which clearly preserves ready edges. However, @bicut_
+is not safe: if two edges are created, then it is possible to connect the only ready edge in each system
+to another hypothesis in the other one, and no ready edge remains in the result.
 
 @asyncSec<-section{Asynchronous Outermost Reduction}
 
@@ -554,20 +558,20 @@ However, merely removing axioms and adapting links is not an option if we want p
 behave asynchronously: the adaptation of links requires two-way synchronisation.
 
 However, in the same way that one can implement polymorphic identity by explicit copy 
-of data, one can implement axioms by processes which explicitly interface between
-two dual protocols. That is, for the additive fragment, one can do case analysis on one 
+of data, one can implement axioms by processes which explicitly forward messages. 
+That is, for the additive fragment, one can do case analysis on one 
 side, and send the information of which side is taken to the other side.
 For the multiplicative fragment, one can explicitly split the axiom into a pair of axioms,
-etc. The complete set of rules is show in @axiomRedsFig.
+etc. The complete set of rules implementing this idea is show in @axiomRedsFig and called @explicitAxiom.
 
 @axiomRedsFig<-texAxiomReds
 
-Replacing the @cut_/@ax_ rule by the conversions rule does not change the meaning of programs.
+Replacing the @cutAx_ rule by explicit forwarding does not change the meaning of programs.
 It means however that @ax_ rules rules disappear only when they apply to unit types. 
 This is problematic operationally (we discuss this issue in @axiomOptSec), but not 
-for formal purposes, because @cut_/@ax_ is an equivalence.
+for formal purposes, because @cutAx_ is an equivalence.
 
-@redAXDef<-definition{@redAX}{
+@redAXDef<-definition{}{
 @math{@redAX = @redAXDef_}
 }
 
@@ -918,13 +922,6 @@ However, the proof of @noDeadlockThm suggests ways to construct logics allowing
 graph structures while remaining deadlock free. For example: the connection by two edges
 is possible if connection points are guaranteed to be ready at the same time.
 
-@paragraph{Commuting Conversions}
-However, when working directly on the syntax, eliminating every @cut_ 
-cannot be done only with reduction rules which perform communication. Some administrative
-term-rewriting must also be done. 
-Lastly, the category of commuting conversions allows to push a @cut_ inside
-an eliminator rule, and are found in @commutingConvFig, and will not be discussed further.
-
 @subsection{Future Work}
 
 @paragraph{Non-concurrent fragment}
@@ -1049,9 +1046,7 @@ have shown that no communication is necessary to implement it.
 
 @section{Auxiliary reduction rules}
 
-
-
-@syncFig
+@syncFigLong
 @commutingConvFig<-pushFig
 
 @bosonBosonFig<-texBosonBoson

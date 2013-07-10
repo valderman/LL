@@ -339,9 +339,13 @@ syncFig = figure_ @"@operationalRules_ rules@" $
           env "center" $
           typesetReductions programOneLineWithCtx syncRules
 
+syncFigLong = figure_ @"@operationalRules_ rules (on proof syntax) @" $
+          env "center" $
+          typesetReductions sequent syncRules
+
 pushFig = figure_ "Commuting conversions" $
           env "center" $
-          typesetReductions program pushRules
+          typesetReductions sequent pushRules
 {-
 pushFig1 = figure_ "Auxiliary reduction rules I" $
            env "center" $
