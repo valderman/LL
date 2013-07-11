@@ -89,7 +89,7 @@ break the symmetry, and forcibly re-introduce the syntactic distinction
 between input and output.
 
 The versions of Linear Logic featuring this distinction are labeled @emph{intuitionistic} (or ILL).
-(When one wants to emphasize that inputs and outputs are unified one sometimes 
+(When one wants to emphasise that inputs and outputs are unified one sometimes 
 use the @emph{classical} label --- or CLL) However, as Girard points out, the classical version
 is already grounded in computational intuitions, so the intuitionistic restriction
 appears unnecessary. One of our aims is to explain the computational grounds
@@ -116,10 +116,10 @@ We make the following contributions:
 @itemize{
  @item We give a term assignment for classical linear logic proofs (@syntaxSec), with 
        a functional syntax inspired by ISWIM. We also show that a common graphical
-       notation to express coupling between software componenents can be used as 
+       notation to express coupling between software components can be used as 
        a semi-graphical representation for CLL programs.
  @item We explain how standard concepts of λ-calculus evaluation 
-       (redex,head normal form, etc.) generalize in linear logic (@outerSec).
+       (redex,head normal form, etc.) generalise in linear logic (@outerSec).
  @item We construct an abstract machine capable of running programs written 
        in the above language (@amSec).
        This abstract machine combines the following desirable features: 
@@ -257,7 +257,7 @@ respectively running @math{a} and @math{b}. The threads run concurrently and in 
 disjoint contexts: any communication must occur via the new channel. Using our graphical convention,
 we can represent @cut_ by an edge between nodes, and call such a representation a @emph{coupling diagram}.
 @dm(couplingDiag(cutRule))
-We emphasize that the direction of edges do @emph{not} represent the
+We emphasise that the direction of edges do @emph{not} represent the
 direction of flow of data; they are a mere convention which allows to
 know which side of the arrow interprets the label literally, 
 and which side interprets it as its dual.
@@ -373,7 +373,7 @@ The language presented above corresponds closely to functional programming in
 continuation passing style
 (CPS). This connection should come as no surprise: linear logic is a "low-level"
 logic which can be used to represent or explain other logics. Similarly, CPS
-has been used as a low-level language to compile and optimize programs 
+has been used as a low-level language to compile and optimise programs 
 @citep{appel_compiling_1992}.
 
 Most terms in our language contain a subterm, a continuation, which is invoked 
@@ -400,7 +400,7 @@ our swap program the swapee occurs in the context and have a type which is dual
 to the type above @math{(@id(swapType))^⊥}. 
 No programmer in their right mind should want to write programs in the above style.
 Indeed, we intend our language to be used as a low-level, intermediate representation
-and the bulk of concrete programs should be written using syntactic sugar mimicing direct style.
+and the bulk of concrete programs should be written using syntactic sugar mimicking direct style.
 (The desugaring follows closely
 the translation from direct to continuation-passing style.)
 
@@ -442,7 +442,7 @@ to it.
 So in particular, 
 an hypothesis edge is ready if the single node  connected to it is  waiting on it,
 and a @cut_   edge is ready if both       nodes connected to it are waiting on it.
-Remark that a ready @cut_ is reductible.
+Remark that a ready @cut_ is reducible.
 
 @noDeadlockThm<-theorem("No deadlock"){
            In every program, there is always at least one edge ready.
@@ -632,7 +632,7 @@ only difference is that a type is being transmitted instead of a bit.
 
 For the multiplicative fragment, we consider two possible ways to encode asynchronicity,
 to eventually settle on the second one.
-The first option is modeled after the same pattern as the additive fragment: a ⅋ boson travels
+The first option is modelled after the same pattern as the additive fragment: a ⅋ boson travels
 from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
 boson must connect two processes. The downside of this approach is that, until the
 @par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
@@ -674,7 +674,7 @@ is connected to a client, which we know actually demands the service at least on
 @dm(sequent $ exponentialSimple)
 The server is immediately ready, and this is represented by sending the @math{M} boson. 
 Likewise, copying the pointer using the @contract_ rule 
-requires no synchronization (a @math{Con} boson is emitted). This can be represented by the
+requires no synchronisation (a @math{Con} boson is emitted). This can be represented by the
 following diagram
 @dm(couplingDiag $ eval' $ exponentialSimple)
 As for multiplicatives, the bosons interact. In this case however, the behaviour of bosons does
@@ -702,7 +702,7 @@ The @bosonBoson_ and @bosonOper_ rules are shown in the appendix(@bosonBosonFig 
 To sum up, the asynchronous reduction, explained above, replaces the @operationalRules_ rules from
 the synchronous reduction by
 boson emission and reception (@bosonOper_ and @bosonBoson_) interactions.
-The @boson_-concruences are also available in this relation.
+The @boson_-congruences are also available in this relation.
 
 @bosonsFig<-texBosons
 
@@ -772,7 +772,7 @@ There are exactly two closures pointing to each channel of non-exponential a typ
 of these considers the channel as @tA and the other as @neg(tA), which 
 justifies @norm(tA) = @norm(neg $ tA).
 Neither @Zero nor @Top can ever occur in the execution of a program.
-We emphasize this fact by assigning them an infinite number of cells.
+We emphasise this fact by assigning them an infinite number of cells.
 
 @subsection{Reduction rules}
 
@@ -889,7 +889,7 @@ process proceeds with reading the bit from the pointed area. The implementation
 of axiom can then, instead of copying a potentially large amount of data, send a 
 pointer to the source area and terminate immediately.
 
-@paragraph{Truely concurrent language}
+@paragraph{Truly concurrent language}
 
 As we have seen, the coupling structure provided by linear logic
 is limited to tree topologies (even though we have seen that more
