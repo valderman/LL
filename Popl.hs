@@ -29,11 +29,12 @@ abstract = env "abstract" $ @"
 Girard's Linear Logic (LL) is a low-level logic: System F or Classical Logic can be 
 embedded into it. Thanks to the isomorphism between logics and programming
 languages, LL corresponds to a low-level programming language where management of resources
-is explicit, and concurrent aspects of programs can be expressed.
+is explicit, and concurrent aspects of programs can be explicitly specified.
 
 However, LL does not appear to be much used as such in the programming language
-research community. We make steps in this direction, 
-by giving computational presentation of LL. In particular, we describe an 
+research community, at least in its fully general (classical) version. 
+We hope to make classical linear logic more accessible 
+by giving it a new computational presentation. In particular, we describe an 
 abstract machine capable of one-sided sequent calculus proofs, interpreted as programs.
 The style of presentation
 is in the tradition of execution models for functional programming languages,
@@ -54,7 +55,7 @@ outputTexMp fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
 
 @intro<-section{Intro}
 
-There is a strong relationship between evaluating programs and proofs.
+There is a strong relationship between programs and proofs.
 The correspondence is usually known as the Curry-Howard isomorphism, and goes
 as follows:
 @dm(array[]("cc")(map (map (cmd "text")) [
@@ -64,16 +65,16 @@ as follows:
   ["Normalisation", "Evaluation"]
  ]))
 In an effort to extend this correspondence, in particular to classical logic,
-@citet{girard_linear_1987} has developed Linear Logic. 
+@citet{girard_linear_1987} has developed Linear Logic (LL). 
 Linear Logic acts as a low-level logic, where both intuitionistic and
-classical logics can be embedded. From its inception, Linear Logic
+classical logics can be embedded. From its inception, LL
 has been recognised as corresponding to concurrent programming
 languages. Fleshing out this correspondence has given rise to 
 a long line of work @citep{abramsky_computational_1993,wadler_propositions_2012,caires_linear_????,bellin_-calculus_1994}.
 
-Additionally, as Linear Logic is a ``low-level'' logic, it corresponds
+Additionally, as LL is a ``low-level'' logic, it corresponds
 to a low-level programming language, where management of resources is
-explicit. As such, we believe that a language based on linear logic 
+explicit. As such, we believe that a language based on LL
 would be ideal low-level functional programming language, with explicit
 management of resources, and where opportunities for concurrent execution
 can be expressed at a fine-grained level.
@@ -87,38 +88,43 @@ solidly anchored in PL research, and hence most attempts to integrate linearity
 break the symmetry, and forcibly re-introduce the syntactic distinction
 between input and output.
 
-The versions linear logic featuring this distinction are labeled @emph{intuitionistic}.
+The versions Linear Logic featuring this distinction are labeled @emph{intuitionistic} (or ILL).
 (When one wants to emphasize that inputs and outputs are unified one sometimes 
-use the @emph{classical} label.) However, as Girard points out, the classical version
-is already grounded in computational intuitions, so the intuitionistic label
-appears unjustified. One of our aims is to explain the computational grounds
-of classical linear logic by using similar means as was used for explaining 
-intuitionistic logic.
+use the @emph{classical} label --- or CLL) However, as Girard points out, the classical version
+is already grounded in computational intuitions, so the intuitionistic restriction
+appears unnecessary. One of our aims is to explain the computational grounds
+of CLL logic by using similar means as was used for explaining intuitionistic logics.
 
 @citet{wadler_propositions_2012} has recently given an interpretation of 
-classical linear logic by reference to the π-calculus. However,
+CLL logic by reference to the π-calculus. However,
 coming from a functional programming perspective, this explanation seems 
-indirect. Our aim is find the natural programming language corresponding
+indirect. Our aim is find a natural programming language corresponding directly
 to LL, in the same way as λ-calculi correspond to intuitionistic logics.
 Furthermore, as much as possible, 
 we desire a design which follows ISWIM conventions @citep{landin_next_1966},
 in particular regarding syntax and the naming of intermediate values.
+@comment{
+%Too arrogant.
 In sum we aim to fill the gap 
 in the following table:
 @dm(array[]("cc")(map (map (cmd "text")) [
   ["Simply-Typed λ-calculus", "Propositional Logic"],
   ["Polymorphic λ-calculus", "System F"],
   ["?", "Classical Linear Logic"]
- ]))
+ ]))}
 As concrete steps towards this goal, we make the following contributions:
 @itemize{
- @item A term assignment for classical linear logic proofs @syntaxSec, with 
-       a functional syntax inspired by ISWIM, and a new semi-graphical representation for LL proofs. (@syntaxSec).
- @item We explain how standard concepts of lambda-calculus evaluation 
+ @item A term assignment for classical linear logic proofs (@syntaxSec), with 
+       a functional syntax inspired by ISWIM. We also show that a common graphical
+       notation to express coupling between software componenents can be used as 
+       a semi-graphical representation for CLL programs.
+ @item We explain how standard concepts of λ-calculus evaluation 
        (redex,head normal form, etc.) generalize in linear logic (@outerSec).
  @item An abstract machine capable of running programs written in the above language (@amSec).
-       This abstract machine combines many useful properties: concurrently running processes, 
-       asynchronous communication, reduction in the multiplicative fragment is communication-less,
+       This abstract machine combines the following desirable features: 
+       concurrently running processes, 
+       asynchronous communication, 
+       the reduction in the multiplicative fragment is communication-less,
        and it is based on time-tested concepts, such has closures and heap.
  @item We show that the execution steps of the abstract machine correspond
        to proof normalisation steps. We do this by gradual refinement of cut-reduction for LL
