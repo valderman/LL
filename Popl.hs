@@ -103,27 +103,26 @@ to LL, in the same way as λ-calculi correspond to intuitionistic logics.
 Furthermore, as much as possible, 
 we desire a design which follows ISWIM conventions @citep{landin_next_1966},
 in particular regarding syntax and the naming of intermediate values.
-Our aim is to fill the gap in the following correspondences:
-
+In sum we aim to fill the gap 
+in the following table:
 @dm(array[]("cc")(map (map (cmd "text")) [
   ["Simply-Typed λ-calculus", "Propositional Logic"],
   ["Polymorphic λ-calculus", "System F"],
   ["?", "Classical Linear Logic"]
  ]))
-
 As concrete steps towards this goal, we make the following contributions:
 @itemize{
  @item A term assignment for classical linear logic proofs @syntaxSec, with 
-       a functional syntax inspired by ISWIM (@syntaxSec).
+       a functional syntax inspired by ISWIM, and a new semi-graphical representation for LL proofs. (@syntaxSec).
+ @item We explain how standard concepts of lambda-calculus evaluation 
+       (redex,head normal form, etc.) generalize in linear logic (@outerSec).
  @item An abstract machine capable of running programs written in the above language (@amSec).
        This abstract machine combines many useful properties: concurrently running processes, 
        asynchronous communication, reduction in the multiplicative fragment is communication-less,
        and it is based on time-tested concepts, such has closures and heap.
  @item We show that the execution steps of the abstract machine correspond
        to proof normalisation steps. We do this by gradual refinement of cut-reduction for LL
-       (@redOMDef, @redAXDef, @redBODef, @redAMDef).
- @item We explain how standard concepts of lambda-calculus evaluation 
-       (redex,head normal form, etc.) generalize in linear logic (@outerSec).
+       (@asyncSec and @redOMDef, @redAXDef, @redBODef, @redAMDef).
 }
 
 @syntaxSec<-section{Syntax and Intuitions}
