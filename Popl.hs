@@ -581,7 +581,7 @@ for formal purposes, because @cutAx_ is an equivalence.
 }
 
 @theorem(""){
- For any terms @math{a,b}, @math{a @many(redOM) b} iff @math{a @many(redAX) b}.
+ For any terms @math{a,b}, @hspace("1em")  @math{a @many(redOM) b} iff @math{a @many(redAX) b}.
 }{
  The proof proceeds by case analysis. For each type where @ax_ opers, 
  it can be shown that the evaluation via
@@ -602,7 +602,7 @@ set of reductions which all involve an intermediate buffer.
 The idea is that buffers mediate the interaction between
 the @oper_ rules. For example, when a @with_ rule is connected
 to a @plus_ rule via a channel, the @with_ rule writes a bit of information
-to the channel indicating which side of the sum to take. The children of @with_ is 
+to the channel indicating which side of the sum to take. The continuation of @with_ is 
 ready to run regardless of a @plus_ rule being ready to read. 
 The @plus_ rule reads the bit of info asynchronously as soon as 
 it becomes available. This execution process can be depicted using coupling diagrams as 
@@ -615,12 +615,12 @@ as a particle traveling from left to right.
 By analogy with the elementary particles mediating physical 
 forces, we call such mediating rules bosons.
 In diagrams, we write them without a circle around them.
-The diagrammatic representation of the & boson suggests to
+The above diagrammatic representation of the & boson suggests to
 implements it as the rules
 @mathpar[map (sequent . chanPlusRuleBad) [True, False]]
 However, we make another choice: to represent it as a rule with the
 same premise and conclusion as @with_, and merely consider the premise
-to be ready to run in our execution model (the rule is congruent for evaluation). 
+to be ready to run in our execution model (allow evaluation under that rule). 
 @mathpar[map (sequent . withRule True) [True, False]]
 In this sense, it is as if
 the new rule had a structural aspect to it (it embeds a virtual cut).
@@ -632,7 +632,7 @@ only difference is that a type is being transmitted instead of a bit.
 
 For the multiplicative fragment, we consider two possible ways to encode asynchronicity,
 to eventually settle on the second one.
-The first option is similar to what happens in the additive fragment: a ⅋ boson travels
+The first option is modeled after the same pattern as the additive fragment: a ⅋ boson travels
 from the @par_ rule to the @tensor_ rule. In this case however, on its 'left hand side' the 
 boson must connect two processes. The downside of this approach is that, until the
 @par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
@@ -644,7 +644,7 @@ from @tensor_ to @par_.
 This observation leads us to a second and, in our opinion, preferable option to
 model asynchronicity. The solution is to send both bosons, and add a reduction rule between them.
 This means @par_ and @tensor_ behave asynchronously: as soon as they are
-encountered their children are ready to run.
+encountered their continuations are ready to run.
 
 @dm(couplingDiag(cutParCross))
 @dm(couplingDiag(eval' $ cutParCross))
@@ -670,7 +670,7 @@ The @contract_ rule behaves similarly to @tensor_: it sends a boson (@math{Con})
 create a pointer to data. However, a difference in this case is that both new pointers
 point to the same thing, the pointer is duplicated. 
 Consider the following program as an example, where a server
-is connected to a client, which we know actually connects to the server at least once.
+is connected to a client, which we know actually demands the service at least once.
 @dm(sequent $ exponentialSimple)
 The server is immediately ready, and this is represented by sending the @math{M} boson. 
 Likewise, copying the pointer using the @contract_ rule 
@@ -687,20 +687,22 @@ Hence, the interaction between bosons yields a system which is represented by th
 diagram:
 @dm(couplingDiag $ eval' $ eval' $ exponentialSimple)
 Eventually, the client will start interacting with an instance of the server (@demand_ rule). This is done by 
-duplicating its closure @math{a}, which we represent as follows. 
+duplicating its closure @math{a}, which is represented as follows. 
 @dm(couplingDiag $ eval' $ eval' $ eval' $ exponentialSimple)
-The new process needs to access the environment, which can be accessed by copying pointers
-to it, thanks to the @math{Con} boson. Because exponentials are less regular than the rest of the 
+The new process needs to access the environment !Γ, which can be accessed by copying pointers
+to it, thanks to the @math{Con} boson. 
+The @weaken_ rule behaves in a manner similar to @contract_.
+
+Because exponentials are less regular than the rest of the 
 system, they require a more @italic{ad hoc} implementation, and multiple implementations 
 are possible. Our choice of implementation is justified by our desire to represent the 
 exponential channel as a closure to a server which can be pointed at by multiple clients.
-The @weaken_ rule behaves in a manner similar to @contract_.
 This concludes our description of bosons, whose complete list is shown in @bosonsFig. 
-The @bosonBoson_ and @bosonOper_ rules are shown in @bosonBosonFig and @bosonOperFig.
+The @bosonBoson_ and @bosonOper_ rules are shown in the appendix(@bosonBosonFig and @bosonOperFig).
 To sum up, the asynchronous reduction, explained above, replaces the @operationalRules_ rules from
 the synchronous reduction by
 boson emission and reception (@bosonOper_ and @bosonBoson_) interactions.
-The boson rules are also congruent for this relation.
+The @boson_-concruences are also available in this relation.
 
 @bosonsFig<-texBosons
 
@@ -714,7 +716,7 @@ axioms:
 @theorem(""){
 If @math{a @redAX a'} then @math{a @many(redBO) a'}
 }{
-  Base case analysis of each of the @operationalRules_.
+  By case analysis of each of the @operationalRules_.
   For additive, multiplicative and quantifiers fragments, this is immediate because the structure of
   bosons is the same as the original structure. 
 
