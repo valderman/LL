@@ -112,15 +112,16 @@ in the following table:
   ["Polymorphic λ-calculus", "System F"],
   ["?", "Classical Linear Logic"]
  ]))}
-As concrete steps towards this goal, we make the following contributions:
+We make the following contributions:
 @itemize{
- @item A term assignment for classical linear logic proofs (@syntaxSec), with 
+ @item We give a term assignment for classical linear logic proofs (@syntaxSec), with 
        a functional syntax inspired by ISWIM. We also show that a common graphical
        notation to express coupling between software componenents can be used as 
        a semi-graphical representation for CLL programs.
  @item We explain how standard concepts of λ-calculus evaluation 
        (redex,head normal form, etc.) generalize in linear logic (@outerSec).
- @item An abstract machine capable of running programs written in the above language (@amSec).
+ @item We construct an abstract machine capable of running programs written 
+       in the above language (@amSec).
        This abstract machine combines the following desirable features: 
        concurrently running processes, 
        asynchronous communication, 
