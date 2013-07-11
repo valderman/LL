@@ -275,6 +275,7 @@ Consider for example the following derivation (we omit some terms to reduce clut
 which it is represented by
 @dm(couplingDiag(doubleCut'))
 For every binarisation of the tree, program equivalent to the original can be constructed.
+@structEquivFig<-structFig
 
 @outermostCut<-definition("Outermost Cut"){
 An instance of a @cut_ rule in a derivation tree is called an outermost cut if
@@ -302,6 +303,7 @@ LL, where two @oper_ rules are connected by a @cut_ reduce.
 From a programming language point of view we can understand this reduction
 as synchronous communication occurring between processes. All these reduction rules are listed in @redFig, 
 and we place them in a class called @operationalRules_.
+@redFig<-syncFig
 
 @paragraph{Additives}
 The @case_ construction eliminates the type @id(tA ⊕ tB), waiting for a choice to be
@@ -402,20 +404,17 @@ and the bulk of concrete programs should be written using syntactic sugar mimici
 (The desugaring follows closely
 the translation from direct to continuation-passing style.)
 
-@structEquivFig<-structFig
-@redFig<-syncFig
-
 @outerSec<-section{Synchronous Outermost Reduction}
 
 In this section we show how to interpret the @operationalRules_ and structural equivalences 
 to obtain an evaluation strategy similar to standard evaluation strategies of the
 λ-calculus. The strategy is expressed as is a small-step reduction relation, 
-which corresponding to synchronous communication of ready processes.
+which corresponds to synchronous communication of ready processes.
 @redOMDef<-definition("Outermost Evaluation"){
   We define outer evaluation (@redOM) by taking the union of
   the operational reduction rules (@operationalRules_), 
   their swapped version (@math(swapped operationalRules_)), 
-  and the congruence of these rules with @cut_:
+  and the @cut_-congruences of these rules:
   if @math{a @redOM a'} and @math{b @redOM b'} then 
   @dm(sequent(simpleCut' "a" "b") <> redOM <> sequent (simpleCut' "a'" "b'"))
 
@@ -487,7 +486,7 @@ bigger trees, but the resulting contractions happen on smaller trees. Second, be
 impredicativity, some extra care is necessary to ensure termination @citep{gallier_girards_1989}. 
 }
 
-In sum, the above theorems means that linear logic programs can be run in a way similar
+In sum, the above theorems mean that LL can be run in a way similar
 to usual ways of running the λ-calculus. In fact, the correspondence is deep: we can draw 
 parallels between both sides for every concept used by the respective evaluators.
 
@@ -496,13 +495,13 @@ A ready @cut_ corresponds to a redex. In both cases, the reduction of a top-leve
 to the notion that programs are static entities. In both cases, it is possible to delay the 
 elimination of a @cut_ up to the point where direct interaction occurs.
 A ready edge corresponds to a λ-calculus redex in head position. 
-Inner cuts correspond to redexes under λ. Elimination rules (with the exception of exponentials) 
+Inner cuts correspond to redexes under λ. @oper_ rules (minus exponentials) 
 correspond to constructors.
 A λ-term in head normal form corresponds to a linear program in which all hypotheses edges are ready.
 
-The behaviour of the abstract machine of @citet{krivine_call-by-name_2007} is to traverse
+The behaviour of the call-by-name abstract machine of @citet{krivine_call-by-name_2007} is to traverse
 the spine of applications inwards and leftwards until it finds a redex, then reduce it. 
-(The SECD machine of @citet{landin_mechanical_1964} behaves likewise.)
+(The call-by-value SECD machine of @citet{landin_mechanical_1964} behaves likewise, but evaluates arguments first.)
 The reduction yields then another redex in the same position, or one must continue the traversal inwards and leftwards.
 An abstract machine for linear logic must traverse the coupling structure, potentially considering all outermost
 cuts, to eventually find a one which is ready, and reduce it. The difficulty in the
@@ -511,7 +510,7 @@ the next ready cut may be far away in the term, so a working list of potentially
 be maintained.
 
 In this light, one understands commuting conversions as the ability to bring a waiting 
-communication primitive to the front of a term --- a concept that is not meaningful in  
+communication primitive to the front of a term --- a concept which is not meaningful in  
 λ-calculus.
 
 The execution strategy outlined above is a direct generalisation of
@@ -521,7 +520,6 @@ mechanism has an important shortcoming for the interpretation of
 LL as concurrent processes. Namely, if one thinks of a node as a process, 
 then every communication is synchronous. Indeed, when a reduction rule
 fires, the processes at both ends change state simultaneously.
-
 This style of synchronous communication is unfortunate for two reasons:
 @itemize{
 @item Processes writing to a channel 
@@ -551,7 +549,7 @@ channels have been proposed.
 The @mix_ rule has been proposed by 
 @citet{girard_linear_1987}, and is a safe extension. Indeed, the proof of @noDeadlockThm remains
 valid: @mix_ corresponds to placing coupling diagrams side by side with no connection, which 
-preserves ready edges. However, @bicut_
+preserves ready edges. However, @bicut_ @citep{abramsky_interaction_1996}
 is not safe: if two edges are created, then it is possible to connect the only ready edge in each system
 to another hypothesis in the other one, and no ready edge remains in the result.
 
