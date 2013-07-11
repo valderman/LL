@@ -75,7 +75,7 @@ a long line of work @citep{abramsky_computational_1993,wadler_propositions_2012,
 Additionally, as LL is a ``low-level'' logic, it corresponds
 to a low-level programming language, where management of resources is
 explicit. As such, we believe that a language based on LL
-would be ideal low-level functional programming language, with explicit
+would be an ideal low-level functional programming language, with explicit
 management of resources, and where opportunities for concurrent execution
 can be expressed at a fine-grained level.
 
@@ -88,7 +88,7 @@ solidly anchored in PL research, and hence most attempts to integrate linearity
 break the symmetry, and forcibly re-introduce the syntactic distinction
 between input and output.
 
-The versions Linear Logic featuring this distinction are labeled @emph{intuitionistic} (or ILL).
+The versions of Linear Logic featuring this distinction are labeled @emph{intuitionistic} (or ILL).
 (When one wants to emphasize that inputs and outputs are unified one sometimes 
 use the @emph{classical} label --- or CLL) However, as Girard points out, the classical version
 is already grounded in computational intuitions, so the intuitionistic restriction
