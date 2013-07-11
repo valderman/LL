@@ -140,6 +140,8 @@ alpha_, beta_ :: TeX
 alpha_ = "α"
 beta_  = "β"
 
+dagger_ :: TeX
+dagger_ = "†"
 
 -------------------------------------
 -- Reductions
