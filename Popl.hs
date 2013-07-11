@@ -31,7 +31,7 @@ embedded into it. Thanks to the isomorphism between logics and programming
 languages, LL corresponds to a low-level programming language where management of resources
 is explicit, and concurrent aspects of programs can be expressed.
 
-However, LL does not appear to be very much used as such in the programming language
+However, LL does not appear to be much used as such in the programming language
 research community. We make steps in this direction, 
 by giving computational presentation of LL. In particular, we describe an 
 abstract machine capable of one-sided sequent calculus proofs, interpreted as programs.
@@ -176,7 +176,7 @@ representation of duals in the syntax is for variables: we have both α and α�
 As expected, dualisation is an involution: @math{(@tA^@Bot)^@Bot = @tA}.
 
 Using the above syntax, the linear arrow can be defined as follows:
-@tA @lollipop_ @tB = @id(tA ⊸ tB). That is, according the the intuitions built
+@tA @lollipop_ @tB = @id(tA ⊸ tB). That is, according the intuitions built
 so far, having @math{x:A ⊸ B} means that if we provide the environment with @tA,
 we will get @tB. The processing order will be at the discretion of the environment.
 
@@ -261,7 +261,7 @@ represented in many ways by these rules (we detail this point in @outerSec), all
 under the relation (@math{≡}) shown in @structEquivFig: @cut_ is commutative, associative, and @ax_ can be  
 inserted or deleted at every @cut_ without changing the meaning of the program.
 Besides being more concise than derivations, coupling diagrams have the advantage that
-that equivalent programs are represented by 
+equivalent programs are represented by 
 topologically equivalent diagrams.
 Consider for example the following derivation (we omit some terms to reduce clutter):
 @dm(sequent(doubleCut'))
@@ -323,7 +323,7 @@ Noteworthy is that the program @math{c} has complete freedom regarding the order
 are used. This means that, conversely, the @par_ rule must be able to honour 
 any order whatsoever between the subchannels. This is indeed enforced by having
 those two parts handled by separate processes, which can communicate only via
-the subchannels, as can be clearly seen on the diagram of the reduct:
+the subchannels, as can be seen on the diagram of the reduct:
 @dm(couplingDiag(eval cutParCross))
 
 
