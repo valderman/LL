@@ -139,6 +139,8 @@ dm = displayMath
 
 multiline' body = env "multline*" $ mkrows body
 
+space = tex "\\:"
+
 --------------------
 
 

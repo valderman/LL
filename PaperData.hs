@@ -270,9 +270,9 @@ operationalRules =
                   The representation of the concrete type @tB is written in the cell,
                   together with a pointer to the newly allocated area.
                 @"
-    ,"sending type")
+    ,"sending a type")
    ,(existsRule,existComment
-    ,"receiving type")]
+    ,"receiving a type")]
   ,offerDemand,
    [(weakenRule False,@"The reference count of the cell pointed by @math{z} is decremented, and the pointer discarded. 
                   The closure is deallocated if the count reached zero.@"
@@ -497,9 +497,18 @@ texBosonOper =  texReductionFigure
 
 
 texAxiomReds :: Tex SortedLabel
+{-
 texAxiomReds = texReductionFigure 
                @" @explicitAxiom Reductions@"
                sequent chanAxRedRules
+-}
+texAxiomReds =  figure @" @explicitAxiom Reductions@" $ mathpar [
+                  [ sequent input <>
+                    cmd0 "Longrightarrow" <>
+                    sequent (evaluator input)
+                   | (evaluator,_name,input) <- chanAxRedRules ] 
+                  ]
+
 
 bosonBoson,bosonOper,chanAxRedRules :: [(Deriv -> Deriv, String, Deriv)]
 bosonBoson = 

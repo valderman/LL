@@ -133,12 +133,12 @@ syntax is functional, and suggestive of the operational behaviour.
 @subsection{Types}
 
 The types of our language are directly taken from classical linear logic.
-They are shown in @tytab. The metasyntactic variables @tA,@tB and @tC range over types.
+They are shown in @tytab. The metasyntactic variables @tA,@tB and @tC range over types, and we use @alpha_ and @beta_ for type variables.
 
 @tytab<-typeTable
 
 
-The binary type former all come with neutral elements. In @tytab the 
+The binary type formers all come with neutral elements. In @tytab the 
 neutral element are written to the right of their respective type. For example, 
 the tensor product has neutral element @One, which means that 
 @tA @tensor_ @One = @tA. 
@@ -173,7 +173,7 @@ of a type, one should realise that dualisation is not represented in the syntax,
 except variables, in other cases it is evaluated as shown above. Hence the only concrete 
 representation of duals in the syntax is for variables: we have both α and α⟂.
 (When substituting a concrete type for α the dual computes further.)
-As expected, dualisation is an involutive: @math{(@tA^@Bot)^@Bot = @tA}.
+As expected, dualisation is an involution: @math{(@tA^@Bot)^@Bot = @tA}.
 
 Using the above syntax, the linear arrow can be defined as follows:
 @tA @lollipop_ @tB = @id(tA ⊸ tB). That is, according the the intuitions built
@@ -183,8 +183,7 @@ we will get @tB. The processing order will be at the discretion of the environme
 @subsection{Terms and Typings}
 
 We let metasyntactic variables @math{x}, @math{y} and @math{z} range over variables in our
-language; @alpha_ and @beta_ range over types; 
-@gamma_, @delta_ and @xi_ range over contexts. Contexts are unordered maps
+language; @gamma_, @delta_ and @xi_ range over contexts. Contexts are unordered maps
 of variables to types, and these mappings are written @math{x : @tA}. Variable
 names in contexts are assumed distinct. Contexts are used to enforce linearity.
 It is therefore important that when combining two contexts, the names in them
@@ -208,11 +207,11 @@ the type constructor that they eliminate.
 
 The convention usually used in linear logic literature is to have no
 hypotheses, and many conclusions. This style is however difficult to fit with a
-programmer's intuition of contexts and variables. In contrary, our judgement
+programmer's intuition of contexts and variables. In contrast, our judgement
 form has many hypotheses and no conclusion. The many hypotheses can be understood
 as a usual context. The lack of a conclusion means that terms have no apparent
-return type, but they can be thought as returning 
-@Bot making any imprecision. Indeed, ⊥ corresponds to a terminating value (not a diverging one!).
+return type, but they can be thought of as returning 
+@Bot. Indeed, ⊥ corresponds to a terminating value (not a diverging one!).
 
 Similarly to other languages based on linear logic, ours is also a concurrent
 language. Computation corresponds to communication over channels. Each variable 
@@ -247,7 +246,7 @@ at the greatest satisfaction of the logician).
 @dm(derivation(cutRule))
 The @cut_ rule creates a new channel with two ends, @math{x} and @math{y}, which 
 are connected and have dual types. The channels are used in two separate threads, 
-respectively running @math{a} and @math{b}. The threads concurrently and in different,
+respectively running @math{a} and @math{b}. The threads run concurrently and in different,
 disjoint contexts: any communication must occur via the new channel. Using our graphical convention,
 we can represent @cut_ by an edge between nodes, and call such a representation a @emph{coupling diagram}.
 @dm(couplingDiag(cutRule))
@@ -313,17 +312,17 @@ as crashing the machine. The @gamma_ in the @dump_ construct is there for
 formal reasons: every variable need to be used exactly once. 
 
 @paragraph{Multiplicatives}
-A connection between the processes @programOneLine(leftChild cutParCross) and @programOneLine(rightChild cutParCross) 
+A connection between the multiplicative processes @programOneLine(leftChild cutParCross) and @programOneLine(rightChild cutParCross) 
 can be represented as follows (For concision, we label nodes only with the first rule of the program):
 @dm(couplingDiag(cutParCross)). 
 
 The reduction is not so much communication as splitting the
 channel and forking off a new thread. No information as such is transmitted
 during reduction.
-Noteworthy is that the program @math{a} has complete freedom regarding the order in which  @math{x} and @math{y}
+Noteworthy is that the program @math{c} has complete freedom regarding the order in which  @math{x} and @math{y}
 are used. This means that, conversely, the @par_ rule must be able to honour 
 any order whatsoever between the subchannels. This is indeed enforced by having
-those two parts handled by separate processes, which can communicate only via, 
+those two parts handled by separate processes, which can communicate only via
 the subchannels, as can be clearly seen on the diagram of the reduct:
 @dm(couplingDiag(eval cutParCross))
 
@@ -373,15 +372,13 @@ Most terms in our language contain a subterm, a continuation, which is invoked
 after the term is evaluated. Just as in CPS, expressions are evaluated for 
 their side-effect, not to return a value.
 On the type level, this is reflected by the fact that terms don't have a 
-return type, or, as noted above, implicitly return ⊥. This is similar to the
+return type, or, as noted above, implicitly return ⊥. This is corresponds to the
 @emph{answer type} in CPS @citep{thielecke_control_2003}.
 
 @exampleSec<-subsection{Example}
 
-To illustrate our language we give an example program. Because the language is rather austere and 
-does not have much in the way of data types the examples are by necessity rather simple.
-
-The example is a program to swap the values in a tensor product.
+To illustrate our language we give an example program, which 
+swaps the values in a tensor product.
 A natural approach for functional programmers is to start with the type 
 @swapType and try to inhabitate it. 
 However, programs in our language all have type ⊥. We have then to take an approach
@@ -392,11 +389,7 @@ similar to CPS and invert the flow of control: we assume a variable swappee of t
 The swap program invokes the swapee to
 retrieve the channels to swap and reorders them accordingly. In order to type
 our swap program the swapee occurs in the context and have a type which is dual
-to the type above @math{(@id(swapType))^⊥}. The type judgement for the
-swap program becomes as follows:
-
-@displayMath(sequent swap)
-
+to the type above @math{(@id(swapType))^⊥}. 
 No programmer in their right mind will want to write programs in the above style.
 Indeed, we intend our language to be used as a low-level, intermediate representation;
 concrete programs can be written in direct style, whose desugaring follows closely
@@ -430,7 +423,7 @@ is well-behaved, and corresponds to usual evaluation strategies of the λ-calcul
 We say that a program is @emph{waiting} on a variable @vX in its context if:
 @itemize{
  @item it is an axiom, or
- @item if starts with an @oper_ rule acting on @id(vX).
+ @item it starts with an @oper_ rule acting on @id(vX).
 }}
 We can make the notion of edge in a coupling diagram formal:
 @definition("Edge"){
@@ -496,7 +489,7 @@ A ready @cut_ corresponds to a redex. In both cases, the reduction of a top-leve
 to the notion that programs are static entities. In both cases, it is possible to delay the 
 elimination of a @cut_ up to the point where direct interaction occurs.
 A ready edge corresponds to a λ-calculus redex in head position. 
-Inner cuts correspond to redexes under λ. Elimination rules (at the exception of exponentials) 
+Inner cuts correspond to redexes under λ. Elimination rules (with the exception of exponentials) 
 correspond to constructors.
 A λ-term in head normal form corresponds to a linear program in which all hypotheses edges are ready.
 
@@ -761,7 +754,7 @@ be read if another process is connected to the corresponding channel.
 Then the cell is deallocated. (In a real system is should made 
 available for reuse, but we do not describe this detail in this presentation.)
 
-A number of contiguous cells is allocated for each channel in the heap. 
+A number of contiguous cells are allocated for each channel in the heap. 
 For a channel of type @tA, @norm(tA) cells are allocated.
 
 @definition("layout"){
@@ -840,8 +833,8 @@ additive or quantifier boson, the contents is written at the appropriate place i
 the heap. If it starts with a @contract_ bosons, the pointer is duplicated, etc.
 
 @theorem{Soundness}{
-  If @math{a @bosonOper_  b} then @math{@toMachine{a} @redAM @toMachine{b}}.
-  If @math{a @bosonBoson_ b} then @math{@toMachine{a} = @toMachine{b}}.
+  If @math{a @space @bosonOper_ @space b} then @math{@toMachine{a} @redAM @toMachine{b}}.
+  If @math{a @space @bosonBoson_ @space b} then @math{@toMachine{a} = @toMachine{b}}.
 }{
 By case analysis.
 }
@@ -891,7 +884,7 @@ first the exponentials and quantifiers. The current implementation of @ax_
 follows a pointer on one side, and re-creates an indirection the 
 other side and recursively forward data between the pointed zones. Instead, 
 one can simply directly copy one pointer and be done. Consider second additives. Instead
-of transmitting a single bit, on could have as a possibility to transmit a pointer
+of transmitting a single bit, one could have as a possibility to transmit a pointer
 to a memory area. In the @plus_ rule, if this pointer is read, then the
 process proceeds with reading the bit from the pointed area. The implementation
 of axiom can then, instead of copying a potentially large amount of data, send a 
@@ -1050,5 +1043,15 @@ have shown that no communication is necessary to implement it.
 @"
 
 -- Local Variables:
--- ispell-local-dictionary: "american"
+-- ispell-local-dictionary: "british"
 -- End:
+
+--  LocalWords:  GHC XTypeFamilies XTypeSynonymInstances XRecursiveDo
+--  LocalWords:  XOverloadedStrings pgmF marxup Popl MarXup Monoid dm
+--  LocalWords:  TexPretty GraphViz PaperData acmCategories cmdn cmd
+--  LocalWords:  acmKeywords mconcat env Landin's maketitle fmt citet
+--  LocalWords:  outputTexMp MPOutFormat renderToDisk latexDocument
+--  LocalWords:  Normalisation girard recognised citep abramsky emph
+--  LocalWords:  wadler caires bellin priori landin syntaxSec redex
+--  LocalWords:  redAXDef redBODef redAMDef tytab metasyntactic tC tA
+--  LocalWords:  typeTable vX tB demorgan
