@@ -1034,15 +1034,13 @@ have shown that no communication is necessary to implement it.
 @cmd0("newpage")
 @cmd0("appendix")
 
-@section{Auxiliary reduction rules}
+@section{Lists of reduction rules}
 
 @syncFigLong
 @commutingConvFig<-pushFig
 
 @bosonBosonFig<-texBosonBoson
 @bosonOperFig<-texBosonOper
-
-@section{Abstract Machine Reduction: all diagrams}
 
 @texAmRulesExplanation(amRules)
 
