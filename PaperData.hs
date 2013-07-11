@@ -314,7 +314,9 @@ offerDemand = [(questRule False,
                 "demand a service")]
   
 -- | Print all derivation rules               
-typeRules = figure_ "Typing rules of Classical Linear Logic, with an ISWIM-style term assignment." $
+typeRules = figure_ 
+            @"Typing rules of Classical Linear Logic, with an ISWIM-style term assignment. 
+            (The rule @math{& @index{2}} is symmetric to @math{& @index{1}} and omitted) @" $
             mathpar $ multiSplit [2,2,2,3,2,2] $
             concat $ map (map deriv'') allRules 
   where deriv'' (x,_,_) = derivation x

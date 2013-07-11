@@ -149,8 +149,7 @@ neutral element are written to the right of their respective type. For example,
 the tensor product has neutral element @One, which means that 
 @tA @tensor_ @One ≅ @tA. 
 
-We can provide immediately an intuition for how to understand these types, even
-if it is eventually refined by the operational semantics given in further sections. 
+We can provide immediately an intuition for how to understand these types.
 Assuming a variable @vX in the context of a program, what can the program expect to obtain from @vX?
 The answer depends on the type of @vX:
 @itemize{
@@ -167,7 +166,7 @@ Two aspects become obvious from this enumeration. First, having a variable in th
 environment is not all roses: it may provide something to the program, but it may
 also generate an obligation. For example, in @id(tA & tB), the program @emph{must}
 make a choice between @tA or @tB: ``I don't care'' is not an option. In essence, a variable
-means that there is a contract between the program and its environment.
+represents a contract between the program and its environment, given by its type.
 Second, one can see that the environment and the program are on equal footing:
 any constraint which can be imposed on an environment may be imposed on a program, 
 and @italic{vice versa}. The dual of a type @tA is written @neg(tA), and computes
@@ -176,7 +175,7 @@ as follows:
 (We only show half of the rule, the other half are demorgan duals.)
 Even though we often write @tA@texNeg(False) for the negation
 of a type, one should realise that dualisation is not represented in the syntax,
-except variables, in other cases it is evaluated as shown above. Hence the only concrete 
+except for variables, in other cases it is evaluated as shown above. Hence the only concrete 
 representation of duals in the syntax is for variables: we have both α and α⟂.
 (When substituting a concrete type for α the dual computes further.)
 As expected, dualisation is an involution: @math{(@tA^@Bot)^@Bot = @tA}.
@@ -193,16 +192,18 @@ language; @gamma_, @delta_ and @xi_ range over contexts. Contexts are unordered 
 of variables to types, and these mappings are written @math{x : @tA}. Variable
 names in contexts are assumed distinct. Contexts are used to enforce linearity.
 It is therefore important that when combining two contexts, the names in them
-are distinct. Variables are never implicitly dropped from a context.
+are distinct. For the same reason, variables are never implicitly dropped from a context.
 Terms are defined by the following grammar, where @math{a,b} and @math{c} range
 over terms.
 @termFigure
+(There is also an active right choice construction, which we consistently omit for reasons of space).
 
 Name binding works as follows: in the two @connect_ constructs and in the @case_ 
 construct, @math{x} is 
 bound in @math{a} and @math{y} is bound in @math{b}. 
 In all the @let_ constructs, all variables @math{x}, @math{z} and/or @alpha_ 
-appearing to the left of the equals sign, are bound in @math{a}. In the @ignore_
+appearing to the left of the equals sign, are bound in @math{a}. Whenever a variable is
+mentioned, it is no longer available for use in subcomputations, except for @alias_. For example, in the @ignore_
 construct @math{z} is no longer in scope in @math{a}.
 
 @rules<-typeRules
@@ -213,8 +214,8 @@ the type constructor that they eliminate.
 
 The convention usually used in linear logic literature is to have no
 hypotheses, and many conclusions. This style is however difficult to fit with a
-programmer's intuition of contexts and variables. In contrast, our judgement
-form has many hypotheses and no conclusion. The many hypotheses can be understood
+programmer's intuition of contexts and variables. Therefore, we choose to use the dual: 
+our judgements have many hypotheses and no conclusion. The many hypotheses can be understood
 as a usual context. The lack of a conclusion means that terms have no apparent
 return type, but they can be thought of as returning 
 @Bot. Indeed, ⊥ corresponds to a terminating value (not a diverging one!).
@@ -273,7 +274,7 @@ Consider for example the following derivation (we omit some terms to reduce clut
 @dm(sequent(doubleCut'))
 which it is represented by
 @dm(couplingDiag(doubleCut'))
-For each order of edges, and each possible direction, an equivalent program can be constructed.
+For every binarisation of the tree, program equivalent to the original can be constructed.
 
 @outermostCut<-definition("Outermost Cut"){
 An instance of a @cut_ rule in a derivation tree is called an outermost cut if
@@ -289,16 +290,15 @@ of outermost cuts is necessarily a tree.
 @subsection{Operational Rules}
 
 The rest of the constructions transmit or receive information along the channels laid out
-by @cut_. We group them all in a class which we call @oper_ rules, including @weaken_ and
-@contract_ (contrary to convention).
+by @cut_. We group them all in a class which we call @oper_ rules, which includes (contrary to convention) @weaken_ and @contract_.
 
-Thanks to duality, linear logic is economical: we need no constructors in the language,
+Thanks to duality, CLL is economical: we need no constructors in the language,
 eliminators suffice. Indeed, constructing a value
-is implemented by eliminating its dual. Indeed, connecting an eliminator to some other 
-part of a program via @cut_ dualises the type. (An example is given in @exampleSec.)
+is implemented by eliminating its dual, and connecting that eliminator to some other 
+part of a program via @cut_ provides the type. (An example is given in @exampleSec.)
 
 The operational semantics of our language is given by the reduction rules of
-linear logic, where two @oper_ rules are connected by a @cut_ and reduce.
+LL, where two @oper_ rules are connected by a @cut_ reduce.
 From a programming language point of view we can understand this reduction
 as synchronous communication occurring between processes. All these reduction rules are listed in @redFig, 
 and we place them in a class called @operationalRules_.
@@ -307,10 +307,10 @@ and we place them in a class called @operationalRules_.
 The @case_ construction eliminates the type @id(tA ⊕ tB), waiting for a choice to be
 made between @tA and @tB. Conversely, the rule @math{&_1} chooses protocol @tA (Symmetrically
 rule @math{&_2} chooses protocol @tB; and we shall not mention this variant again.)
-The reduction of a connection between these two rules correspond to sending the choice (a bit of info)
+The reduction of a @cut_ between these two rules correspond to sending the choice (a bit of info)
 over the channel, yielding a connection on @tA between the direct subprograms.
 
-The @Zero corresponds to a choice which cannot be made: there is no rule eliminating its dual @Top,
+The @Zero type corresponds to a choice which cannot be made: there is no rule eliminating its dual @Top,
 so there can never be an active connection involving @Zero.
 Accordingly, the elimination rule for @Zero 
 can never trigger at runtime, so it can safely be interpreted
@@ -320,8 +320,7 @@ formal reasons: every variable need to be used exactly once.
 @paragraph{Multiplicatives}
 A connection between the multiplicative processes @programOneLine(leftChild cutParCross) and @programOneLine(rightChild cutParCross) 
 can be represented as follows (For concision, we label nodes only with the first rule of the program):
-@dm(couplingDiag(cutParCross)). 
-
+@dm(couplingDiag(cutParCross))
 The reduction is not so much communication as splitting the
 channel and forking off a new thread. No information as such is transmitted
 during reduction.
@@ -344,10 +343,10 @@ particular type @tB which means sending the type along the channel. The type is
 received in the @exists_ rule where the type is given the name @alpha_.
 
 @paragraph{Exponentials}
-Recall that the exponential type @Bang(tA) represents a number of copies of @tA, at the
-choosing of the program. 
+Recall that the exponential type @Bang(tA) represents a number of copies of @tA, and 
+the number is chosen by the program. 
 Hence, the eliminator for the dual (the ? rule) is at the mercy of its environment: it provides
-a protocol which can be demanded an arbitrary number of times (a service).
+a protocol which can be demanded an arbitrary number of times (a @emph{service}).
 This means in particular that the service provider (?) has no choice but
 to depend on protocols which are themselves services. 
 (Formally, the context in the ? rule appears with a ! in front of it. 
@@ -360,24 +359,25 @@ a copy of every service it required by the connected process.
 
 @paragraph{Commuting Conversions}
 The rules presented so far do not allow the elimination of every @cut_. To do so
-one needs to @cut_ inside an @oper_ rule, if the @oper_ rule does not operate on the channel
-introduced by the @cut_, so called commuting conversions. 
+one needs to push a @cut_ inside an @oper_ rule, if the @oper_ rule does not operate on the channel
+introduced by the @cut_. (A so called commuting conversion.) 
 While the addition of commuting conversions gives @cut_-elimination for LL, they
 do not correspond closely to evaluations of concurrent processes, and therefore
 we take a different route, beginning in @outerSec.
 
 @subsection{Relation to CPS}
 
-The language presented above corresponds closely to continuation passing style
+The language presented above corresponds closely to functional programming in 
+continuation passing style
 (CPS). This connection should come as no surprise: linear logic is a "low-level"
-logic which can be used to represent or explain other logic. Similarly, CPS
+logic which can be used to represent or explain other logics. Similarly, CPS
 has been used as a low-level language to compile and optimize programs 
 @citep{appel_compiling_1992}.
 
 Most terms in our language contain a subterm, a continuation, which is invoked 
 after the term is evaluated. Just as in CPS, expressions are evaluated for 
 their side-effect, not to return a value.
-On the type level, this is reflected by the fact that terms don't have a 
+On the type level, this is reflected by the fact that terms do not have a 
 return type, or, as noted above, implicitly return ⊥. This is corresponds to the
 @emph{answer type} in CPS @citep{thielecke_control_2003}.
 
@@ -397,9 +397,10 @@ retrieve the channels to swap and reorders them accordingly. In order to type
 our swap program the swapee occurs in the context and have a type which is dual
 to the type above @math{(@id(swapType))^⊥}. 
 No programmer in their right mind should want to write programs in the above style.
-Indeed, we intend our language to be used as a low-level, intermediate representation;
-concrete programs can be written in direct style, whose desugaring follows closely
-the translation from direct to continuation-passing style.
+Indeed, we intend our language to be used as a low-level, intermediate representation
+and the bulk of concrete programs should be written using syntactic sugar mimicing direct style.
+(The desugaring follows closely
+the translation from direct to continuation-passing style.)
 
 @structEquivFig<-structFig
 @redFig<-syncFig

@@ -137,6 +137,7 @@ case_ = keyword "case "
 connect_ = keyword "connect "
 ignore_ = keyword "ignore "
 dump_ = keyword "dump "
+alias_ = keyword "alias " 
 [fst_,snd_] = map keyword ["fst ","snd "]
 separator :: TeX
 separator = cmd "hline" mempty
@@ -221,7 +222,7 @@ texProg'' what showTypes = foldSeq sf where
       soffer _ v w ty s = let'' (texVarT' w ty) (keyword "offer " <> texVar v)  s
       sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
       signore w ty s = Instr (ignore_ <> texVar w)  s
-      salias _ w w' ty s = let'' (texVarT' w' ty) (keyword "alias " <> texVar w)  s 
+      salias _ w w' ty s = let'' (texVarT' w' ty) (alias_ <> texVar w)  s 
       swhat a ws fs = Final $ what a ws fs
       smem ty t tx = Final $ "MEM"
       let'' w    v t = Instr (let_ <> w <> "=" <> v) t
