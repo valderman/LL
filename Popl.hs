@@ -799,13 +799,13 @@ which we present in the rest of the section.
   The execution of the @ax_ rule merely involves updating the code in its closure 
   when the type where it operates becomes concrete (when it is not just a type variable). 
   This is done using rules
-  shown in @axiomRedsFig, which we do not repeat here.
+  shown in @axiomRedsFig.
   The notation is as follows. The heap is prefixed by @math{H=}. To reduce clutter, we 
   do not name the parts of the heap which are untouched be rules, but use a wildcard (…) for them.
   Position in the heap can be named using the notation @math{name ↦}.
-  A new cell is represented by a square (□). A deallocated cell is represented by a dagger. A tag 
+  A new cell is represented by a square (□). A deallocated cell is represented by @dagger_. A tag 
   (for additives) is represented by either 0 or 1. A server (for exponentials) is represented by a 
-  closure in braces, followed by a natural (reference count). A polymorphic value (for quantifiers) is
+  closure in braces, followed by a number (reference count). A polymorphic value (for quantifiers) is
   represented by a type followed by a pointer to the monomorphic representation. The set of closures
   is prefixed by @math{C=}. A rule always acts on a single closure in the set and leaves the rest of
   the closures (ζ) untouched. A closure is represented by its code in braces, followed by an environment
