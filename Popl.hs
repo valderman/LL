@@ -796,13 +796,9 @@ notation, but not difficult to understand using usual memory layout diagrams,
 which we present in the rest of the section.
 @amRulesFig<-texAmRules{
   Abstract Machine Rules.
-  The execution of the @ax_ rule merely involves updating the code in its closure 
-  when the type where it operates becomes concrete (when it is not just a type variable). 
-  This is done using rules
-  shown in @axiomRedsFig.
   The notation is as follows. The heap is prefixed by @math{H=}. To reduce clutter, we 
   do not name the parts of the heap which are untouched be rules, but use a wildcard (…) for them.
-  Position in the heap can be named using the notation @math{name ↦}.
+  A position in the heap can be named using the notation @math{name ↦}.
   A new cell is represented by a square (□). A deallocated cell is represented by @dagger_. A tag 
   (for additives) is represented by either 0 or 1. A server (for exponentials) is represented by a 
   closure in braces, followed by a number (reference count). A polymorphic value (for quantifiers) is
@@ -811,6 +807,9 @@ which we present in the rest of the section.
   the closures (ζ) untouched. A closure is represented by its code in braces, followed by an environment
   in brackets. The environment is a map of variables to positions in the heap. Arbitrary subsets of 
   an environment are represented by metasyntactic variables @math{γ,δ,ξ}.
+  The execution of the @ax_ rule merely involves updating the code in its closure 
+  when the type where it operates becomes concrete (when it is not just a type variable). 
+  This is done using rules shown in @axiomRedsFig.
   }
 
 In each diagram, the set of closures is presented first (only the closures relevant to
@@ -870,9 +869,9 @@ It might seem natural to store a value of a type variable α in
 a single cell, at it is usual in functional programming languages,
 instead of having to lookup it size in an environment.
 
-Our choice is dictated by our not wanting to box every value. This is consistent
+Our choice is dictated by our not wanting to box every value. This choice is consistent
 with the view that a linear programming language is low level, and
-that pointers should be introduced by exponentials only. 
+that pointers should be introduced by exponentials or polymorphism only. 
 
 
 @axiomOptSec<-paragraph{Optimising @ax_}
@@ -896,8 +895,9 @@ As we have seen, the coupling structure provided by linear logic
 is limited to tree topologies (even though we have seen that more
 complex structures can be dynamically created, the language itself mandates
 tree structures). 
-This means for example that multiway communication between @math{n} processes
-must be mediated by a central server routing the messages.
+This restriction implies for example that multiway communication between @math{n} processes
+must be mediated by a central server routing the messages: peer to peer communication is 
+forbidden.
 
 However, the proof of @noDeadlockThm suggests ways to construct logics allowing
 graph structures while remaining deadlock free. For example: the connection by two edges
@@ -905,18 +905,19 @@ is possible if connection points are guaranteed to be ready at the same time.
 
 @subsection{Future Work}
 
-@paragraph{Non-concurrent fragment}
+@paragraph{Taming concurrency costs}
 The language we have presented here is fully concurrent,
-implying that communication occurs at the bit level. This is obviously
-wasteful: in real applications, where data is transmitted in larger chunks.
-Optimising communication in such a way is compatible with the framework presented.
+implying that communication occurs at the bit level. Such a fine-grained communication is 
+wasteful: in real applications data is transmitted in larger chunks. In
+future work, we to allow the programmer to opt out of concurrency.
 
 Another consequence of full concurrency is that a process is spawned at every 
 occurrence of @par_ and @cut_. However, in many useful cases, one should be able to discover
 that data flows in a particular direction (for example when the code comes from the
-translation of a functional program into LL). Again, this optimisation is compatible with
-the general framework. The only apparent issue is with polymorphism: an optimiser
-cannot discover one-sided data flow in the presence of quantification over
+translation of a functional program into LL). Again, it appears to be possible to support
+this optimisation by opting out of concurrency in relevant cases.
+The only apparent issue is with polymorphism: one cannot opt out of concurrency
+in the presence of quantification over
 arbitrary protocols. The obvious solution, which we plan to investigate in future work, is to 
 add a construction for quantification over unidirectional protocols (pure data).
 
@@ -942,24 +943,25 @@ to give it computational content.
 
 A correspondence has recently been identified between linear logic
 propositions and session types @citep{wadler_propositions_2012,caires_linear_????,caires_concurrent_2012}.
-A proof of a proposition @tA can be
-identified with process obeying protocol @tA. This correspondence
-departs from the usual linear logic in that the type @element(tA ⊗ tB) is
-interpreted as @tA then @tB, whereas the usual interpretation of the
-linear formula is symmetric with respect to time. Our interpretation
-keeps the symmetry intact. The associated calculus is close to the
+A proof of a proposition @tA can be identified with process following the session protocol @tA. 
+
+The calculus associated with interpretation of propositions as sessions is close to the
 π-calculus, which we observe is unintuitive to functional programmers
-in two respect. On a superficial level, we have anecdotal evidence that 
+in two respects. On a superficial level, we have anecdotal evidence that 
 they much prefer ISWIM-like
 syntaxes. On a semantic level, founding computation on the transmission of channel names
 departs fundamentally from the tradition of functional programming.
 
+Further, the correspondence between types and sessions
+departs from the usual linear logic in that the type @element(tA ⊗ tB) is
+interpreted as @tA @emph{then} @tB, whereas the usual interpretation of the
+linear formula is symmetric. (Our interpretation
+keeps the symmetry intact.) 
 Another reason to interpret the multiplicative fragment as we do
 is one of efficiency. While @citet{wadler_propositions_2012,caires_linear_????} 
 interpret the multiplicative fragment as
 the transmission of a channel name, which is fine from a logic and
 π-calculus perspective, this interpretation does not computationally efficient.
-
 We eventually wish to develop a low-level,
 efficient linear programming language
 based on framework laid out in the above. 
@@ -969,7 +971,7 @@ that the layout of an array itself has to be transmitted by @par_, and that @ten
 cannot proceed until it has received the blueprint. 
 To avoid sacrificing parallelism opportunities, one must go with the asynchronous view.
 
-Another small improvement of this presentation over that of @citet{wadler_propositions_2012}
+Another small improvement of our presentation over that of @citet{wadler_propositions_2012}
 is that we have refined the notion of deadlock, separating it from starvation,
 which allows us to underline the structural character of absence of deadlock in LL.
 
@@ -981,18 +983,20 @@ representations
 @citep{cockett_proof_1997,hirschowitz_topological_2008}.
 
 Our representation is motivated by simplicity: it aims to represent the 
-outermost cut structure only. (The reification of a proof from a diagram
-has only to choose where to cut first.) Second, we believe that it is intuitive.
+outermost @cut_ structure only. (The reification of a proof from a diagram
+has only to choose where to cut.) Second, we believe that it is intuitive.
 Indeed, it is close to the component diagrams routinely used by software engineers.
 @comment{a principal difference is that in our diagrams the protocol between components is fully formalised by a type,
 instead of being an informal reference to some interface.}
 
-The diagrams are also closely related to proof nets. Indeed,
-proof nets work best in multiplicative fragment, and in this fragment, all possible bosons can be emitted. 
-If one writes 
-the coupling diagram with all such bosons represented, it is topologically equivalent to the proof net for
-the same proof. (The proof-net is laid out differently: all hypotheses are at the bottom, and bosons are oriented
-with the composite arrow down.)
+Our diagrams are also closely related to proof nets. Indeed,
+proof nets work best in multiplicative fragment, and in this fragment, 
+all possible bosons can be emitted. 
+If one writes the coupling diagram with all such bosons represented, 
+it is topologically equivalent to the proof net for
+the same proof. (The proof-net is laid out differently: 
+all hypotheses are at the bottom, and bosons are oriented
+with the composite edge down.)
 
 @paragraph{Abstract Machines}
 We identify two serious attempts to provide abstract machines for linear logic.
@@ -1014,8 +1018,9 @@ our AM which relies solely on concepts coming straight from LL syntax.
 
 @section{Conclusion}
 
-We have described abstract machine for linear logic. 
-In our journey to derive it from linear logic syntax, we have encountered
+We have described an ISWIM-like language based on CLL, and abstract machine capable
+of running it.
+In our journey to derive the abstract machine from the syntax, we have encountered
 two generally useful concepts: coupling diagrams, and rules for asynchronous mediation
 of communication. We have also shed a new light to some poorly understood
 aspects of LL, such as the structural character of the multiplicative fragment: we
