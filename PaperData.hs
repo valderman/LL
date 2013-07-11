@@ -162,38 +162,44 @@ x `cong` y = x <> paren y
 (∪) :: TeX -> TeX -> TeX
 x ∪ y = x <> "∪" <> y
 
+doubleArrow = cmd0 "Longrightarrow"
+
+stackrel x y = cmdn_ "stackrel" [x,y]
+
+{-
 redLL :: TeX
 redLL = math $ cmd0 "Longrightarrow"
 
 redLLDef_ = foldr1 (∪) [operationalRules_, cutAssoc_, cutSwap, cutAx_, commutingConversions]
+-}
 
-redOM :: TeX
-redOM = math $ cmdn_ "stackrel" ["o", redLL]
-
-redOMDef_ :: TeX
+redOM,redOMDef_ :: TeX
+redOM = math $ stackrel "s" doubleArrow
 redOMDef_ = foldr1 (∪) [bidir operationalRules_, cutAx_, cut_ `cong` redOM ]
 
-redAX :: TeX
-redAX = math $ cmdn_ "stackrel" [ax_, redLL]
+redAX,redAXDef_ :: TeX
+redAX = math $ stackrel ax_ doubleArrow
 redAXDef_ = foldr1 (∪) [bidir operationalRules_, explicitAxiom, cut_ `cong` redAX ]
 
-redBO :: TeX
-redBO = math $ cmdn_ "stackrel" ["oa", redLL]
+redBO,redBODef_ :: TeX
+redBO = math $ stackrel "a" doubleArrow
 redBODef_ = foldr1 (∪) [bidir bosonBoson_, bidir bosonOper_, explicitAxiom, cut_ `cong` redBO, boson_ `cong` redBO ]
 
 
+                    {-
 redHeap :: TeX
 redHeap = math $ cmdn_ "stackrel" [cdot, redBO]
 
 redHeapDef_ :: TeX
 redHeapDef_ = foldr1 (∪) [bidir bosonBoson_, cut_ `cong` redHeap, boson_ `cong` redHeap ]
-
+-}
+                    
 redAM :: TeX
 redAM = math $ cmd0 "Rrightarrow"
 
 equivAM = math $ "≡" <> index "AM"
 
-equivAMDef_ = many $ foldr1 (∪) [cutAssoc_, cutSwap, bosonOper_, bosonOper_ ^^^ "-1", cut_ `cong` equivAM, boson_ `cong` equivAM]
+equivAMDef_ = foldr1 (∪) [cutAssoc_, cutSwap, bosonOper_, bosonOper_ ^^^ "-1", cut_ `cong` equivAM, boson_ `cong` equivAM]
                       
 many x = x ^^^ "*"
 
@@ -249,7 +255,7 @@ typeTable = figure "Types. " $
 allRules, structuralRules, operationalRules, cutRules :: [[(Deriv, TeX, TeX)]]
 allRules = structuralRules ++ operationalRules
 
-cutRules = [[(cutRule, @"It allocates @math{|@tA|} cells on the heap. The children become new closures, each with an additional 
+cutRules = [[(cutRule, @"It allocates @math{|@tA|} cells on the heap. The continuations become new closures, each with an additional 
                          entry in the environment pointing to the newly allocated area.@"
                        , "parallel execution"
              )]]
@@ -283,11 +289,11 @@ operationalRules =
 
  where existComment = @"(In particular the closure waits if the cell pointed by @math{z} is empty.) 
                  One copies the type representation found in the cell to the type environment. 
-                 The cell is then freed, and one proceeds with the execution of the child.@"
+                 The cell is then freed, and one proceeds with the execution of the continuation.@"
 
 multiplicatives, additives, offerDemand :: [(Deriv, TeX, TeX)]
 multiplicatives = [(parRule, @"An additional process is spawned, hence we have one process for each
-                              of the children of the rule. The original environment is split into two parts,
+                              of the continuations of the rule. The original environment is split into two parts,
                               which become the new environments of the new processes. A new variable is
                               added to each environment, which points respectively to either the @tA or @tB part
                               of the heap. The pointer to the second part is computed by @math{z + @mkLayout(tA)}.@"
@@ -307,7 +313,7 @@ offerDemand = [(questRule False,
     The created closure not ready to run: the current process is then terminated.@",
   "offer a service"),
                (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
-                cells, and spawn a new closure, which is obtained from copying that pointed by 
+                cells, and spawns a new closure, which is obtained from copying that pointed by 
                  by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
                  The reference count of the cell is decremented. In the situation represented in the diagram, 
                  there is no other reference to that cell, so it should be deallocated.@",
@@ -358,7 +364,7 @@ pushFig2 = figure_ "Auxiliary reduction rules II" $
            typesetReductions program (drop 7 pushRules)
 -}
 
-typesetReductions = typesetRules redLL
+typesetReductions = typesetRules doubleArrow
 
 typesetEquivalences = typesetRules (cmd0 "equiv")
 

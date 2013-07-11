@@ -744,7 +744,7 @@ It is similar in spirit to classical abstract machines for the λ-calculus, such
 SECD machine.
 
 The machine state is composed of a multiset of closures and a heap.
-The non-boson node from the above section are represented by a closure, and the bosons are represented by the heap.
+The @oper_ nodes from the above section are represented by a closure, and the bosons are represented by the heap.
 A closure is a triplet of a program (whose syntax is given in @syntaxSec),
 an environment associating each variable
 to a pointer in the heap, and a type-environment associating each type variable to a
@@ -839,29 +839,22 @@ an area of the heap freshly allocated. If the program @math{a} starts with a
 additive or quantifier boson, the contents is written at the appropriate place in
 the heap. If it starts with a @contract_ bosons, the pointer is duplicated, etc.
 
+The asynchronous reduction (@redBO) is more fine-grained than the abstract machine:
+some distinct states containing bosons are represented by the same state of the machine.
 @theorem{Soundness}{
-  If @math{a @space @bosonOper_ @space b} then @math{@toMachine{a} @redAM @toMachine{b}}.
-  If @math{a @space @bosonBoson_ @space b} then @math{@toMachine{a} = @toMachine{b}}.
+  If @math{a @space @stackrel(bosonOper_)(doubleArrow) @space b} then @math{@toMachine{a} @redAM @toMachine{b}}.
+  If @math{a @space @stackrel(bosonBoson_)(doubleArrow) @space b} then @math{@toMachine{a} = @toMachine{b}}.
 }{
 By case analysis.
 }
 
-Conversely, one can map a machine state back to a program. Firstly, the outermost
+Conversely, one can map a machine state σ back to a program @math{@fromMachine{σ}}. Firstly, the outermost
 coupling structure can be recovered by analysing which closures point to which memory
 areas. Second, if the heap contains non-empty cells, these can be represented by 
 bosons associated with the appropriate closure.
 
-The asynchronous reduction (@redBO) is more fine-grained than the abstract machine:
-some distinct states containing bosons are represented by the same state of the machine.
-For example, it is not possible to discover if multiplicative bosons have 
-interacted or not.
-
-@definition{@equivAM}{
-  @math{@equivAM = @equivAMDef_}
-}
-
 @theorem{Completeness}{
-  If @math{a @redAM b} then @math{@fromMachine{a} @equivAM @fromMachine{b}}
+  If @math{σ @redAM σ'} then @math{@fromMachine{σ} @many(redBO) @fromMachine{σ'}}
 }{
 By case analysis.
 }
