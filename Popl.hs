@@ -173,7 +173,6 @@ any constraint which can be imposed on an environment may be imposed on a progra
 and @italic{vice versa}. The dual of a type @tA is written @neg(tA), and computes
 as follows:
 @texNegationTable
-(We only show half of the rule, the other half are demorgan duals.)
 Even though we often write @tA@texNeg(False) for the negation
 of a type, one should realise that dualisation is not represented in the syntax,
 except for variables, in other cases it is evaluated as shown above. Hence the only concrete 

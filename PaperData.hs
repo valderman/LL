@@ -225,11 +225,19 @@ allPosTypesTable =
 
 allPosTypes = map fst allPosTypesTable
 
+posToNeg Zero         = Top
+posToNeg One          = Bot
+posToNeg (x :⊗: y)    = x :|: y
+posToNeg (x :⊕: y)    = x :&: y
+posToNeg (Bang x)     = Quest x
+posToNeg (Forall a t) = Exists a t
+posToNeg (Meta b x s) = Meta (not b) x s
 
 texNegationTable = displayMath $ 
-                   array [] (tex "c@{~=~}c")
-  [ map element [MetaNeg t, neg t] | t <- Meta True "α" [] : 
-                                          init allPosTypes]
+                   array [] (tex "r@{~=~}lr@{~=~}l")
+  [ map element [MetaNeg t, neg t,MetaNeg (posToNeg t), neg (posToNeg t)]
+  | t <- Meta True "α" [] : 
+         init allPosTypes]
   -- Note the last row (variable case) is dropped.
 
 layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
