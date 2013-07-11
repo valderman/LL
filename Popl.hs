@@ -139,7 +139,7 @@ syntax is functional, and suggestive of the operational behaviour.
 @subsection{Types}
 
 The types of our language are directly taken from classical linear logic.
-They are shown in @tytab. The metasyntactic variables @tA,@tB and @tC range over types, and we use @alpha_ and @beta_ for type variables.
+They are shown in @tytab. The metasyntactic variables @tA, @tB and @tC range over types, and we use @alpha_ and @beta_ for type variables.
 
 @tytab<-typeTable
 
@@ -147,7 +147,7 @@ They are shown in @tytab. The metasyntactic variables @tA,@tB and @tC range over
 The binary type formers all come with neutral elements. In @tytab the 
 neutral element are written to the right of their respective type. For example, 
 the tensor product has neutral element @One, which means that 
-@tA @tensor_ @One = @tA. 
+@tA @tensor_ @One ≅ @tA. 
 
 We can provide immediately an intuition for how to understand these types, even
 if it is eventually refined by the operational semantics given in further sections. 
@@ -183,8 +183,8 @@ As expected, dualisation is an involution: @math{(@tA^@Bot)^@Bot = @tA}.
 
 Using the above syntax, the linear arrow can be defined as follows:
 @tA @lollipop_ @tB = @id(tA ⊸ tB). That is, according the intuitions built
-so far, having @math{x:A ⊸ B} means that if we provide the environment with @tA,
-we will get @tB. The processing order will be at the discretion of the environment.
+so far, having @math{x:A ⊸ B} means that if the program provides the environment with @tA,
+it will get @tB in return. The processing order is be at the discretion of the environment.
 
 @subsection{Terms and Typings}
 
@@ -238,7 +238,7 @@ with @neg(tA).
 
 @subsection{Structural Rules}
 
-The @ax_ rule connects two channels and exchange information. The types of the 
+The @ax_ rule connects two channels and forwards information. The types of the 
 channels must be duals, so that one channel provides what the other requires.
 It is also the last instruction on the current thread: there is nothing happening after
 the exchange.
@@ -295,7 +295,7 @@ by @cut_. We group them all in a class which we call @oper_ rules, including @we
 Thanks to duality, linear logic is economical: we need no constructors in the language,
 eliminators suffice. Indeed, constructing a value
 is implemented by eliminating its dual. Indeed, connecting an eliminator to some other 
-part of a program via @cut_ will dualise the type. (An example is given in @exampleSec.)
+part of a program via @cut_ dualises the type. (An example is given in @exampleSec.)
 
 The operational semantics of our language is given by the reduction rules of
 linear logic, where two @oper_ rules are connected by a @cut_ and reduce.
@@ -396,7 +396,7 @@ The swap program invokes the swapee to
 retrieve the channels to swap and reorders them accordingly. In order to type
 our swap program the swapee occurs in the context and have a type which is dual
 to the type above @math{(@id(swapType))^⊥}. 
-No programmer in their right mind will want to write programs in the above style.
+No programmer in their right mind should want to write programs in the above style.
 Indeed, we intend our language to be used as a low-level, intermediate representation;
 concrete programs can be written in direct style, whose desugaring follows closely
 the translation from direct to continuation-passing style.
@@ -638,7 +638,7 @@ from the @par_ rule to the @tensor_ rule. In this case however, on its 'left han
 boson must connect two processes. The downside of this approach is that, until the
 @par_ rule is ready, the @tensor_ must wait. This is sub-optimal because the @tensor_ rule
 does not actually need to wait for any information: the behaviour of the continuation does
-not depend on anything that the @par_ rule @emph{itself} will provide. In fact, one might
+not depend on anything that the @par_ rule @emph{itself} provides. In fact, one might
 just as well imagine that a ⊗ boson should travel in the other direction, 
 from @tensor_ to @par_.
 
@@ -767,8 +767,8 @@ For a channel of type @tA, @norm(tA) cells are allocated.
   The layout function maps a type @tA and a type environment @rho to a number of cells @norm(tA).
   @dm(layoutTable)
 } 
-There will be exactly two closures pointing to each channel of non-exponential a type @tA. One
-of these will consider the channel as @tA and the other as @neg(tA), which 
+There are exactly two closures pointing to each channel of non-exponential a type @tA. One
+of these considers the channel as @tA and the other as @neg(tA), which 
 justifies @norm(tA) = @norm(neg $ tA).
 Neither @Zero nor @Top can ever occur in the execution of a program.
 We emphasize this fact by assigning them an infinite number of cells.
@@ -851,7 +851,7 @@ areas. Second, if the heap contains non-empty cells, these can be represented by
 bosons associated with the appropriate closure.
 
 The asynchronous reduction (@redBO) is more fine-grained than the abstract machine:
-some distinct states containing bosons will be represented by the same state of the machine.
+some distinct states containing bosons are represented by the same state of the machine.
 For example, it is not possible to discover if multiplicative bosons have 
 interacted or not.
 
@@ -922,7 +922,7 @@ occurrence of @par_ and @cut_. However, in many useful cases, one should be able
 that data flows in a particular direction (for example when the code comes from the
 translation of a functional program into LL). Again, this optimisation is compatible with
 the general framework. The only apparent issue is with polymorphism: an optimiser
-will not be able to discover one-sided data flow in the presence of quantification over
+cannot discover one-sided data flow in the presence of quantification over
 arbitrary protocols. The obvious solution, which we plan to investigate in future work, is to 
 add a construction for quantification over unidirectional protocols (pure data).
 
@@ -969,7 +969,7 @@ the transmission of a channel name, which is fine from a logic and
 We eventually wish to develop a low-level,
 efficient linear programming language
 based on framework laid out in the above. 
-In such a language, one will typically represent large arrays by commensurably
+In such a language, one typically represents large arrays by commensurably
 large tensors. With the synchronous view of multiplicatives, this would mean
 that the layout of an array itself has to be transmitted by @par_, and that @tensor_
 cannot proceed until it has received the blueprint. 

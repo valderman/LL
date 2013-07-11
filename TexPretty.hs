@@ -63,7 +63,7 @@ seqName' ctx s = case s of
 seqLab :: Seq -> String 
 seqLab s = case s of
    (Exchange _ s)      -> "X"
-   (Ax _ )             -> "Ax"
+   (Ax _ )             -> "↔"
    (Cut _ _ _ _ _ _)   -> "Cut"
    (Cross β _ _ _ _ _) -> "⊗"
    (Par β _ _ _ _ _ _) -> "⅋"
