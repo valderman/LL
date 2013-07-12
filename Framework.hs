@@ -146,6 +146,8 @@ multiline' body = env "multline*" $ mkrows body
 
 space = tex "\\:"
 
+mkIf str = tex "\\newif" <> tex ("\\if" ++ str)
+
 --------------------
 
 
