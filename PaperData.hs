@@ -380,7 +380,10 @@ pushFig2 = figure_ "Auxiliary reduction rules II" $
 
 typesetReductions = typesetRules doubleArrow
 
-typesetReductions' = typesetRules' doubleArrow programOneLineWithCtx
+typesetReductions' reds = specTab $ 
+      [
+        math $ mathbox (programOneLineWithCtx input) <> doubleArrow <> mathbox (programOneLine (eval input))
+      | (name,input) <- reds]
 
 typesetEquivalences = typesetRules (cmd0 "equiv")
 
@@ -389,10 +392,6 @@ typesetRules relation displayer reds = mathpar  [
       [mathbox (displayer input {- <> kern "-1em"-}) <> relation <> mathbox (displayer (eval input))]
     | (name,input) <- reds]
                                        
-typesetRules' relation displayer reds = specTab $ 
-      [
-        math $ mathbox (displayer input) <> relation <> mathbox (displayer (eval input))
-      | (name,input) <- reds]
 
 --------------------
 -- Abstract Machine         
