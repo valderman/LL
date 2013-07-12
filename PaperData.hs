@@ -144,6 +144,9 @@ beta_  = "β"
 dagger_ :: TeX
 dagger_ = "†"
 
+null_ :: TeX
+null_ = math $ cmd "mathsf" "NULL"
+
 -------------------------------------
 -- Reductions
 
@@ -246,7 +249,7 @@ layoutTable = array [] (tex "c@{~=~}c@{~=~}c")
 
 multicolumn n fmt c = cmdn_ "multicolumn" [tex (show n),tex fmt,c]
 
-typeTable = figure "Types. " $
+typeTable = figure "Types" $
     env "center" $ math $ do
       array' [] "lcc@{\\hspace{2em}}cc" $
 --        [ [ multicolumn 2 "c" (text "Positive"), multicolumn 2 "c" (text "Negative") ] ] ++
@@ -311,21 +314,21 @@ multiplicatives = [(parRule, @"An additional process is spawned, hence we have o
                    ,"passive splitting"),
                   (crossRule, @"It adds an entry in the environment for @math{y}, pointing to @math{z + @mkLayout(tA)}.@"
                   ,"active splitting")]
-additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap. If applicable, it deallocates the memory which is known 
-                     not to be used (in this case @math{|@tB|-|@tA|}).@"
+additives = [(withRule False True,@"It writes a tag (in the depicted heap 1) to the heap.@"
              ,"active (left) choice"),
              (plusRule,@"In particular the tag must have been written, otherwise the execution cannot proceed. 
-                A branch is then chosen according to the tag. The cell holding the tag is freed.@"
+                A branch is then chosen according to the tag. The cell holding the tag is deallocated. If applicable, it deallocates the memory which is known 
+                     not to be used (in this case @math{|@tB|-|@tA|}).@"
              ,"passive choice")]
 offerDemand = [(questRule False,
   @"The pointer to the closure @math{a} is written to the cell pointed by @math{z}. 
     The environment of the new closure is the current environment, but where the 
-    pointer @math{z} is replaced by the NULL pointer (represented by a cross below).
-    The created closure not ready to run: the current process is then terminated.@",
+    pointer @math{z} is replaced by the @null_ pointer (represented by a cross below).
+    The created closure is not ready to run: the current process is then terminated.@",
   "offer a service"),
                (bangRule,@"The process can run only when a closure can be found in the cell pointed by @vX. Then it allocates @math{|@tA|} 
                 cells, and spawns a new closure, which is obtained from copying that pointed by 
-                 by @math{x:!A}. The null pointer in that closure's environment is replaced by a pointed to @math{x}. 
+                 by @math{x:!A}. The @null_ pointer in that closure's environment is replaced by a pointer to @math{x}. 
                  The reference count of the cell is decremented. In the situation represented in the diagram, 
                  there is no other reference to that cell, so it should be deallocated.@",
                 "demand a service")]
@@ -333,7 +336,7 @@ offerDemand = [(questRule False,
 -- | Print all derivation rules               
 typeRules = figure_ 
             @"Typing rules of Classical Linear Logic, with an ISWIM-style term assignment. 
-            (The rule @math{& @index{2}} is symmetric to @math{& @index{1}} and omitted) @" $
+            (The rule @math{& @index{0}} is symmetric to @math{& @index{1}} and omitted) @" $
             mathpar $ multiSplit [2,2,2,3,2,2] $
             concat $ map (map deriv'') allRules 
   where deriv'' (x,_,_) = derivation x

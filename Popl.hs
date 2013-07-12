@@ -35,7 +35,7 @@ However, LL does not appear to be much used as such in the programming language
 research community, at least in its fully general (classical) version. 
 We hope to make classical linear logic more accessible 
 by giving it a new computational presentation. In particular, we describe an 
-abstract machine capable of one-sided sequent calculus proofs, interpreted as programs.
+abstract machine capable of reducing one-sided sequent calculus proofs, interpreted as programs.
 The style of presentation
 is in the tradition of execution models for functional programming languages,
 typically those following Landin's ISWIM. By using time-tested
@@ -53,7 +53,7 @@ outputTexMp :: MPOutFormat -> String -> IO ()
 outputTexMp fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
 @header
 
-@intro<-section{Intro}
+@intro<-section{Introduction}
 
 There is a strong relationship between programs and proofs.
 The correspondence is usually known as the Curry-Howard isomorphism, and goes
@@ -72,7 +72,7 @@ has been recognised as corresponding to concurrent programming
 languages. Fleshing out this correspondence has given rise to 
 a long line of work @citep{abramsky_computational_1993,wadler_propositions_2012,caires_linear_????,bellin_-calculus_1994}.
 
-Additionally, as LL is a ``low-level'' logic, it corresponds
+Additionally, as LL is a low-level logic, it corresponds
 to a low-level programming language, where management of resources is
 explicit. As such, we believe that a language based on LL
 would be an ideal low-level functional programming language, with explicit
@@ -98,7 +98,7 @@ of CLL logic by using similar means as was used for explaining intuitionistic lo
 @citet{wadler_propositions_2012} has recently given an interpretation of 
 CLL logic by reference to the π-calculus. However,
 coming from a functional programming perspective, this explanation seems 
-indirect. Our aim is find a natural programming language corresponding directly
+indirect. Our aim is to find a natural programming language corresponding directly
 to LL, in the same way as λ-calculi correspond to intuitionistic logics.
 Furthermore, as much as possible, 
 we desire a design which follows ISWIM conventions @citep{landin_next_1966},
@@ -126,7 +126,7 @@ We make the following contributions:
        concurrently running processes, 
        asynchronous communication, 
        the reduction in the multiplicative fragment is communication-less,
-       and it is based on time-tested concepts, such has closures and heap.
+       and it is based on time-tested concepts, such as closures and heap.
  @item We show that the execution steps of the abstract machine correspond
        to proof normalisation steps. We do this by gradual refinement of cut-reduction for LL
        (@asyncSec and in particular @redOMDef, @redAXDef, @redBODef and @redAMDef).
@@ -156,8 +156,8 @@ The answer depends on the type of @vX:
 @itemize{
 @item @id(tA ⊗ tB): both @tA and @tB. The program decides in what order to use them.
 @item @id(tA ⅋ tB): both @tA and @tB. The environment decides in what order to use them.
-@item @id(tA & tB): either @tA and @tB. The program chooses which one.
-@item @id(tA ⊕ tB): either @tA and @tB. The environment chooses which one.
+@item @id(tA & tB): either @tA or @tB. The program chooses which one.
+@item @id(tA ⊕ tB): either @tA or @tB. The environment chooses which one.
 @item @id(Forall "α" tAofAlpha): @math{A[B]} where @tB is chosen by the program.
 @item @id(Exists "α" tAofAlpha): @math{A[B]} where @tB is chosen by the environment.
 @item @id(Bang tA): As many @id(tA)'s as the program wants.
@@ -183,7 +183,7 @@ As expected, dualisation is an involution: @math{(@tA^@Bot)^@Bot = @tA}.
 Using the above syntax, the linear arrow can be defined as follows:
 @tA @lollipop_ @tB = @id(tA ⊸ tB). That is, according the intuitions built
 so far, having @math{x:A ⊸ B} means that if the program provides the environment with @tA,
-it will get @tB in return. The processing order is be at the discretion of the environment.
+it will get @tB in return. The processing order is at the discretion of the environment.
 
 @subsection{Terms and Typings}
 
@@ -274,7 +274,7 @@ Consider for example the following derivation (we omit some terms to reduce clut
 @dm(sequent(doubleCut'))
 which it is represented by
 @dm(couplingDiag(doubleCut'))
-For every binarisation of the tree, program equivalent to the original can be constructed.
+For every binarisation of the tree, a program equivalent to the original can be constructed.
 @structEquivFig<-structFig
 
 @outermostCut<-definition("Outermost Cut"){
@@ -354,10 +354,9 @@ to depend on protocols which are themselves services.
 (Formally, the context in the ? rule appears with a ! in front of it. 
 This notation means that all the types in the context must be prefixed with !.)
 
-The !-eliminator derelicts the service to a mere protocol, restoring symmetry with the connected process. 
+The !-eliminator demotes (derelicts) the service to a mere protocol, restoring symmetry with the connected process. 
 The @weaken_ rule declines to use the service, discarding the connected process,
-and the @contract_ rule takes a copy of the service, forcing to request 
-a copy of every service it required by the connected process.
+and the @contract_ rule takes a copy of the service, forcing a copy of every service required by the connected process.
 
 @paragraph{Commuting Conversions}
 The rules presented so far do not allow the elimination of every @cut_. To do so
@@ -371,7 +370,7 @@ we take a different route, beginning in @outerSec.
 
 The language presented above corresponds closely to functional programming in 
 continuation passing style
-(CPS). This connection should come as no surprise: linear logic is a "low-level"
+(CPS). This connection should come as no surprise: linear logic is a low-level
 logic which can be used to represent or explain other logics. Similarly, CPS
 has been used as a low-level language to compile and optimise programs 
 @citep{appel_compiling_1992}.
@@ -536,7 +535,7 @@ We attack this shortcoming after taking a brief detour.
 @subsection{@mix_ and @bicut_}
 
 The @cut_ rule allows two processes to communicate via exactly one channel. 
-Variants of the rule allowing zero (@mix_) two (@bicut_)
+Variants of the rule allowing zero (@mix_) or two (@bicut_)
 channels have been proposed.
   @braces(
   cmd0"small" <>
@@ -716,7 +715,7 @@ axioms:
 @theorem(""){
 If @math{a @redAX a'} then @math{a @many(redBO) a'}
 }{
-  By case analysis of each of the @operationalRules_.
+  By case analysis of each of the @operationalRules_ rules.
   For additive, multiplicative and quantifiers fragments, this is immediate because the structure of
   bosons is the same as the original structure. 
 
@@ -725,7 +724,7 @@ If @math{a @redAX a'} then @math{a @many(redBO) a'}
 
 
 @theorem(""){
-If @math{a @many(redBO) a'} and neither @math{a} or @math{b} contains a boson then @math{a @many(redAX) a'}.
+If @math{a @many(redBO) a'} and neither @math{a} or @math{a'} contains a boson then @math{a @many(redAX) a'}.
 That is, for each of the reductions using an intermediate state containing bosons, it is possible to find a direct
 route.
 }{
@@ -755,7 +754,7 @@ spawns a process and @ax_ is handled as outlined in @axiomSec. Every execution s
  implemented by interacting with the heap: no synchronisation primitive is assumed. 
 
 The heap is an indexable sequence of cells. Each cell can eventually be used to 
-transmit some piece of information between closure. Each cell starts its lifetime
+transmit some piece of information between closures. Each cell starts its lifetime
 as empty (devoid of information). It may then be populated with some information, which will
 be read if another process is connected to the corresponding channel.
 Then the cell is deallocated. (In a real system is should made 
@@ -768,7 +767,7 @@ For a channel of type @tA, @norm(tA) cells are allocated.
   The layout function maps a type @tA and a type environment @rho to a number of cells @norm(tA).
   @dm(layoutTable)
 } 
-There are exactly two closures pointing to each channel of non-exponential a type @tA. One
+There are exactly two closures pointing to each channel of a non-exponential type @tA. One
 of these considers the channel as @tA and the other as @neg(tA), which 
 justifies @norm(tA) = @norm(neg $ tA).
 Neither @Zero nor @Top can ever occur in the execution of a program.
@@ -776,9 +775,9 @@ We emphasise this fact by assigning them an infinite number of cells.
 
 @subsection{Reduction rules}
 
-Each rule in the @bosonOper_ category involves exactly one rule of the original logic. Hence
+Each rule in the @bosonOper_ class involves exactly one rule of the original logic. Hence
 each initial rule in a program can be interpreted as an instruction of the machine, whose
-meaning follows the asynchronous reduction relation. Rules in the @bosonBoson_ category, on the other
+meaning follows the asynchronous reduction relation. Rules in the @bosonBoson_ class, on the other
 hand, correspond to structural properties of the heap. For example, the interaction between
 the ⊗ and ⅋ boson correspond to the property that the components of ⊗ or ⅋ types are
 laid out in sequence in the heap. Hence, there is no computation associated with them in
@@ -820,7 +819,7 @@ Each element of the environment is a pointer into the heap, represented
 as an arrow pointing to some area of the heap, which is shown in the second row. 
 
 We proceed to explain a few interesting rules: multiplicatives, additives, @offer_ and @demand_.
-The complete list of diagrams with explanation can be found in appendix. 
+The complete list of diagrams with explanation can be found in the appendix. 
 To simplify diagrams, whenever an arbitrary context Γ can be handled, we write a single
 variable pointing to a memory area of type Γ.
 
@@ -869,7 +868,7 @@ It might seem natural to store a value of a type variable α in
 a single cell, at it is usual in functional programming languages,
 instead of having to lookup it size in an environment.
 
-Our choice is dictated by our not wanting to box every value. This choice is consistent
+Our choice is dictated by not wanting to box every value. This choice is consistent
 with the view that a linear programming language is low level, and
 that pointers should be introduced by exponentials or polymorphism only. 
 
@@ -880,7 +879,7 @@ efficient than it could be. It appears wasteful to have a process which
 copies data around, while this data is guaranteed to be produced and consumed
 exactly once. Indeed, it is possible to optimise axioms as follows. Consider
 first the exponentials and quantifiers. The current implementation of @ax_ 
-follows a pointer on one side, and re-creates an indirection the 
+follows a pointer on one side, and re-creates an indirection on the 
 other side and recursively forward data between the pointed zones. Instead, 
 one can simply directly copy one pointer and be done. Consider second additives. Instead
 of transmitting a single bit, one could have as a possibility to transmit a pointer
@@ -905,11 +904,10 @@ is possible if connection points are guaranteed to be ready at the same time.
 
 @subsection{Future Work}
 
-@paragraph{Taming concurrency costs}
 The language we have presented here is fully concurrent,
 implying that communication occurs at the bit level. Such a fine-grained communication is 
 wasteful: in real applications data is transmitted in larger chunks. In
-future work, we to allow the programmer to opt out of concurrency.
+future work, we plan to allow the programmer to opt out of concurrency.
 
 Another consequence of full concurrency is that a process is spawned at every 
 occurrence of @par_ and @cut_. However, in many useful cases, one should be able to discover
@@ -961,10 +959,10 @@ Another reason to interpret the multiplicative fragment as we do
 is one of efficiency. While @citet{wadler_propositions_2012,caires_linear_????} 
 interpret the multiplicative fragment as
 the transmission of a channel name, which is fine from a logic and
-π-calculus perspective, this interpretation does not computationally efficient.
+π-calculus perspective, this interpretation is not computationally efficient.
 We eventually wish to develop a low-level,
 efficient linear programming language
-based on framework laid out in the above. 
+based on the framework laid out in this paper. 
 In such a language, one typically represents large arrays by commensurably
 large tensors. With the synchronous view of multiplicatives, this would mean
 that the layout of an array itself has to be transmitted by @par_, and that @tensor_
@@ -990,7 +988,7 @@ Indeed, it is close to the component diagrams routinely used by software enginee
 instead of being an informal reference to some interface.}
 
 Our diagrams are also closely related to proof nets. Indeed,
-proof nets work best in multiplicative fragment, and in this fragment, 
+proof nets work best in the multiplicative fragment, and in this fragment, 
 all possible bosons can be emitted. 
 If one writes the coupling diagram with all such bosons represented, 
 it is topologically equivalent to the proof net for
