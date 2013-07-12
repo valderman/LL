@@ -33,6 +33,7 @@ preamble inMetaPost = do
     -- usepackage "dot2texi" []
     usepackage "tikz" []
     cmd "usetikzlibrary" $ tex "shapes,arrows"
+    usepackage "tabularx" [] 
         
     title "Linear Logic: I See What It Means!"
     authorinfo SIGPlan [("Anonymous","email(s)","institution(s)")]
@@ -355,7 +356,7 @@ structFig = figure_ @"Structural equivalences: @cutSwap, @cutAssoc_ and @cutAx_ 
 
 syncFig = figure_ @"@operationalRules_ rules@" $
           env "center" $
-          typesetReductions programOneLineWithCtx syncRules
+          typesetReductions' syncRules
 
 syncFigLong = figure_ @"@operationalRules_ rules (on proof syntax) @" $
           env "center" $
@@ -376,12 +377,19 @@ pushFig2 = figure_ "Auxiliary reduction rules II" $
 
 typesetReductions = typesetRules doubleArrow
 
+typesetReductions' = typesetRules' doubleArrow programOneLineWithCtx
+
 typesetEquivalences = typesetRules (cmd0 "equiv")
 
 typesetRules relation displayer reds = mathpar  [
       -- "name:" <> name
       [mathbox (displayer input {- <> kern "-1em"-}) <> relation <> mathbox (displayer (eval input))]
     | (name,input) <- reds]
+                                       
+typesetRules' relation displayer reds = specTab $ 
+      [
+        math $ mathbox (displayer input) <> relation <> mathbox (displayer (eval input))
+      | (name,input) <- reds]
 
 --------------------
 -- Abstract Machine         

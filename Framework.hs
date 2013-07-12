@@ -8,13 +8,14 @@ import MarXup.Tex
 import Control.Applicative
 import MarXup.MultiRef
 import Data.Monoid
-
+import Data.List (intersperse)
 
 return' :: a -> Tex a
 return' = return
 
 ----------
 -- Basics
+
 
 
 -- | Environment with options
@@ -29,7 +30,11 @@ env'' e opts body = do
 
 ----------
 -- Text
-
+  
+specTab x = env "tabularx" $ do 
+    braces $ tex "\\textwidth"
+    braces $ tex ">{\\centering}X"
+    mconcat $ intersperse (newline <> vspace "1ex") x
 -- Should replace array
 array' :: [String] -> String -> [[TeX]] -> TeX
 array' opts format bod = math $ do
