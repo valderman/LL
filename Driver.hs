@@ -22,18 +22,27 @@ importExternalFile what = do
 svgRender :: IO ()
 svgRender = do
   system "rm -f *.eps *.svg *.mps *-proof.tex *.mpx *.mp"
-  outputTexMp SVG name
+  outputTexMp True SVG name
   system "mpost paper.mp"
   system "pdflatex --shell-escape paper"
   return ()
 
 main :: IO ()
 main = do
-  outputTexMp EPS name
+  outputTexMp True EPS name
   cake empty $ do 
     importExternalFile "../gitroot/bibtex/jp.bib"
     importExternalFile "../gitroot/latex/unicodedefs.tex"
     pdflatexMarxup name
-  
+
+mainSansAppendix :: IO ()
+mainSansAppendix = do
+  outputTexMp False EPS name
+  cake empty $ do 
+    importExternalFile "../gitroot/bibtex/jp.bib"
+    importExternalFile "../gitroot/latex/unicodedefs.tex"
+    pdflatexMarxup name
+
+
 name :: String  
 name = "paper"

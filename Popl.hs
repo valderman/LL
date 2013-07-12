@@ -49,8 +49,8 @@ header = do
   acmCategories
   acmKeywords
 
-outputTexMp :: MPOutFormat -> String -> IO ()
-outputTexMp fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
+outputTexMp :: Bool -> MPOutFormat -> String -> IO ()
+outputTexMp includeAppendix fmt name = renderToDisk' fmt name $ latexDocument preamble $ @"
 @header
 
 @intro<-section{Introduction}
@@ -1034,6 +1034,12 @@ have shown that no communication is necessary to implement it.
 
 @bibliography
 
+@mkIf("appendix")
+
+@id(if includeAppendix then cmd0 "appendixtrue" else cmd0 "appendixfalse")
+
+@cmd0("ifappendix")
+
 @cmd0("newpage")
 @cmd0("appendix")
 
@@ -1046,6 +1052,7 @@ have shown that no communication is necessary to implement it.
 @bosonOperFig<-texBosonOper
 
 @texAmRulesExplanation(amRules)
+@cmd0("fi")
 
 @"
 
