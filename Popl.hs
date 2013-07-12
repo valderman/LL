@@ -87,7 +87,7 @@ to our knowledge none properly support duality: typically the ⅋ operator is no
 and the system is less symmetric or economical than it could be.
 
 The versions of Linear Logic featuring distinction between inputs and outputs are 
-abeled @emph{intuitionistic} (or ILL).
+labelled @emph{intuitionistic} (or ILL).
 (When one wants to emphasise that inputs and outputs are unified one sometimes 
 use the @emph{classical} label --- or CLL) However, as Girard points out, the classical version
 is already grounded in computational intuitions, so the intuitionistic restriction
@@ -147,7 +147,7 @@ range over types, and we use @alpha_ and @beta_ for type variables.
 
 
 Type-formers are divided into four fragments:
-multiplicative, additive, quantifers and exponentials.
+multiplicative, additive, quantifiers and exponentials.
 The binary type formers all come with neutral elements. In @tytab the 
 neutral element are written to the right of corresponding binary operator. For example, 
 the tensor product has neutral element @One, which means that 
@@ -1061,4 +1061,7 @@ have shown that no communication is necessary to implement it.
 --  LocalWords:  Normalisation girard recognised citep abramsky emph
 --  LocalWords:  wadler caires bellin priori landin syntaxSec redex
 --  LocalWords:  redAXDef redBODef redAMDef tytab metasyntactic tC tA
---  LocalWords:  typeTable vX tB demorgan
+--  LocalWords:  typeTable vX tB demorgan CLL itemize redOMDef Forall
+
+
+
