@@ -413,10 +413,6 @@ texAmRulesExplanation whichRules =
     let isQuest = case sequ of
                        Deriv _ [_,(_,Quest _)] _ -> True
                        _ -> False 
-    if isQuest
-      then do cmd0 "vfill"
-              cmd0 "eject"
-      else return ()
     item
     @" Rule @seqName(derivSequent sequ).@"
     @" The rule assumes an input state of this form:@"
@@ -424,13 +420,9 @@ texAmRulesExplanation whichRules =
     displayMath $ diagSystem sys0
     explanation
     @" The state after execution is:@"
-    cmd "vspace" (if isQuest then @"-5 mm@" else @"-2 mm@")
+    cmd "vspace" (if isQuest then @"-10 mm@" else @"-2 mm@")
     displayMath $ diagSystem sys1
     cmd "vspace" @"-2 mm@"
-    if isQuest
-      then do cmd0 "vfill"
-              cmd0 "eject"
-      else return ()
 
 forAmRules ::  [[(Deriv, t,s)]]  -> ((Deriv, t) -> System SymHeap -> System SymHeap -> b) -> [b]
 forAmRules rules f = concatMap (amRule f) rules
