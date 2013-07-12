@@ -31,6 +31,9 @@ env'' e opts body = do
 ----------
 -- Text
   
+anon :: TeX -> TeX
+anon x = "(Anonymised) "  
+  
 specTab x = env "tabularx" $ do 
     braces $ tex "\\textwidth"
     braces $ tex ">{\\centering}X"

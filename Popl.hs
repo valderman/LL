@@ -1029,7 +1029,8 @@ of communication. We have also shed a new light to some poorly understood
 aspects of LL, such as the structural character of the multiplicative fragment: we
 have shown that no communication is necessary to implement it.
 
-@comment{@acks{This work is partially funded by some agency, which we cannot name for DBR.}}
+@acks{This work is partially funded by @anon{SSF}, under grant @anon{RAWFP}. 
+@anon{Anders Persson and Michal Palka} gave useful feedback on drafts of this review.}
 
 @bibliography
 
