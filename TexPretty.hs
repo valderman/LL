@@ -206,12 +206,12 @@ texProg'' what showTypes = foldSeq sf where
                                             (texVarT' v'  vt ) t
       scross _ w v vt v' vt' t = Instr (let_ <> texVar v <> "," <> texVar v' <> " = " <> texVar w) t
       spar _ w v vt v' vt' s t = connect (keyword "via " <> texVar w) 
-                        (texVarT' v  vt ) s
-                        (texVarT' v' vt') t
+                        (texVarNoT' v  vt ) s
+                        (texVarNoT' v' vt') t
       splus w v vt v' vt' s t = Split (case_ <> texVar w <> keyword " of")
                       [(keyword "inl " <> texVar v,s),
                        (keyword "inr " <> texVar v',t)]
-      swith _ _ b w v' ty s = let'' (texVarT' v' ty) (c <> texVar w) s
+      swith _ _ b w v' ty s = let'' (texVarNoT' v' ty) (c <> texVar w) s
          where c = if b then fst_ else snd_
       sbot v = Final $ keyword "halt " <> texVar v
       szero w vs  = Final $ dump_ <> whenShowTypes (texCtx' True vs) <> keyword " in " <> texVar w
@@ -219,15 +219,16 @@ texProg'' what showTypes = foldSeq sf where
       sxchg _ t = t
       stapp _ v _ w tyB s = let'' (texVar w) (texVar v <> cmd0 "bullet" <> tyB)  s
       stunpack tw w v s = let'' (whenShowTypes (texVar tw) <> "," <> texVar v) (texVar w)  s
-      soffer _ v w ty s = let'' (texVarT' w ty) (keyword "offer " <> texVar v)  s
-      sdemand v w ty s = let'' (texVarT' w ty) (keyword "demand " <> texVar v)  s
+      soffer _ v w ty s = let'' (texVarNoT' w ty) (keyword "offer " <> texVar v)  s
+      sdemand v w ty s = let'' (texVarNoT' w ty) (keyword "demand " <> texVar v)  s
       signore w ty s = Instr (ignore_ <> texVar w)  s
-      salias _ w w' ty s = let'' (texVarT' w' ty) (alias_ <> texVar w)  s 
+      salias _ w w' ty s = let'' (texVarNoT' w' ty) (alias_ <> texVar w)  s 
       swhat a ws fs = Final $ what a ws fs
       smem ty t tx = Final $ "MEM"
       let'' w    v t = Instr (let_ <> w <> "=" <> v) t
    texVarT' x y | showTypes = texVarT x y
                 | otherwise = texVar x                            
+   texVarNoT' x y = texVar x                            
    whenShowTypes | showTypes = id                            
                  | otherwise = const "?"
      
