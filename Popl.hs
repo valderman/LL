@@ -79,16 +79,15 @@ would be an ideal low-level functional programming language, with explicit
 management of resources, and where opportunities for concurrent execution
 can be expressed at a fine-grained level.
 
-Whereas linear types have made incursions into the world of programming
-languages, some fundamental ideas present in Girard's work have not percolated
-to the area of programming language research. Notably, duality is a central notion
+Duality is a central notion
 of linear logic: every type has a dual, which means that there is no @italic{a priori}
-distinction between input and outputs. However this distinction appears to be 
-solidly anchored in PL research, and hence most attempts to integrate linearity
-break the symmetry, and forcibly re-introduce the syntactic distinction
-between input and output.
+distinction between input and outputs, making the system symmetric and economical.
+While some programming languages use linear types to manage resources,
+to our knowledge none properly support duality: typically the ⅋ operator is not supported,
+and the system is less symmetric or economical than it could be.
 
-The versions of Linear Logic featuring this distinction are labeled @emph{intuitionistic} (or ILL).
+The versions of Linear Logic featuring distinction between inputs and outputs are 
+abeled @emph{intuitionistic} (or ILL).
 (When one wants to emphasise that inputs and outputs are unified one sometimes 
 use the @emph{classical} label --- or CLL) However, as Girard points out, the classical version
 is already grounded in computational intuitions, so the intuitionistic restriction
@@ -97,7 +96,7 @@ of CLL logic by using similar means as was used for explaining intuitionistic lo
 
 @citet{wadler_propositions_2012} has recently given an interpretation of 
 CLL logic by reference to the π-calculus. However,
-coming from a functional programming perspective, this explanation seems 
+coming from a functional programming perspective, the π-calculus route is
 indirect. Our aim is to find a natural programming language corresponding directly
 to LL, in the same way as λ-calculi correspond to intuitionistic logics.
 Furthermore, as much as possible, 
@@ -139,14 +138,18 @@ syntax is functional, and suggestive of the operational behaviour.
 
 @subsection{Types}
 
-The types of our language are directly taken from classical linear logic.
-They are shown in @tytab. The metasyntactic variables @tA, @tB and @tC range over types, and we use @alpha_ and @beta_ for type variables.
+Our language of types is directly taken from classical linear logic.
+They are shown in @tytab. 
+The metasyntactic variables @tA, @tB and @tC 
+range over types, and we use @alpha_ and @beta_ for type variables.
 
 @tytab<-typeTable
 
 
+Type-formers are divided into four fragments:
+multiplicative, additive, quantifers and exponentials.
 The binary type formers all come with neutral elements. In @tytab the 
-neutral element are written to the right of their respective type. For example, 
+neutral element are written to the right of corresponding binary operator. For example, 
 the tensor product has neutral element @One, which means that 
 @tA @tensor_ @One ≅ @tA. 
 
@@ -201,10 +204,11 @@ over terms.
 Name binding works as follows: in the two @connect_ constructs and in the @case_ 
 construct, @math{x} is 
 bound in @math{a} and @math{y} is bound in @math{b}. 
-In all the @let_ constructs, all variables @math{x}, @math{z} and/or @alpha_ 
+In all the @let_ constructs, all variables @math{x},  @math{y}, @math{z} and/or @alpha_ 
 appearing to the left of the equals sign, are bound in @math{a}. Whenever a variable is
 mentioned, it is no longer available for use in subcomputations, except for @alias_. For example, in the @ignore_
-construct @math{z} is no longer in scope in @math{a}.
+construct @math{z} is no longer in scope in @math{a}. Variables are annotated with a type
+when it cannot be deduced from the context.
 
 @rules<-typeRules
 @rules shows the typing rules for our language. 
@@ -400,7 +404,7 @@ to the type above @math{(@id(swapType))^⊥}.
 No programmer in their right mind should want to write programs in the above style.
 Indeed, we intend our language to be used as a low-level, intermediate representation
 and the bulk of concrete programs should be written using syntactic sugar mimicking direct style.
-(The desugaring follows closely
+(A desugaring should follow closely
 the translation from direct to continuation-passing style.)
 
 @outerSec<-section{Synchronous Outermost Reduction}
@@ -527,7 +531,8 @@ This style of synchronous communication is unfortunate for two reasons:
       communication enables more concurrency.
 @item Our interpretation of the multiplicative fragment is that no 
       communication occurs at a reduction point. Hence implementing it with synchronisation 
-      appears twice as wasteful of concurrency opportunities as in other cases.
+      appears twice as wasteful of concurrency opportunities as in other cases (we discuss
+      this point further in @relatedWorkSec.)
 }
 
 We attack this shortcoming after taking a brief detour.
@@ -919,7 +924,7 @@ in the presence of quantification over
 arbitrary protocols. The obvious solution, which we plan to investigate in future work, is to 
 add a construction for quantification over unidirectional protocols (pure data).
 
-@subsection{Related Work}
+@relatedWorkSec<-subsection{Related Work}
 
 @paragraph{Systems based on intuitionistic variants}
 
@@ -1024,7 +1029,8 @@ of communication. We have also shed a new light to some poorly understood
 aspects of LL, such as the structural character of the multiplicative fragment: we
 have shown that no communication is necessary to implement it.
 
-@comment{@acks{This work is partially funded by some agency, which we cannot name for DBR.}}
+@acks{This work is partially funded by @anon{SSF}, under grant @anon{RAWFP}. 
+@anon{Anders Persson and Michal Palka} gave useful feedback on drafts of this review.}
 
 @bibliography
 

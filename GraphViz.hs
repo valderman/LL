@@ -122,10 +122,10 @@ toGraphPart te e this@(Alias True x w' s) = do
   return (n1++thisNode:n2)
 toGraphPart te e this@(Par True _ v v' x s t) = do
   let (v0,(_w,(vt :|: vt')):v1) = splitAt x e
-  tn0 <- toGraphPart te (v0++[(v,vt)]) s
-  let tn = init tn0
-      t' = last tn
-  (s':sn) <- toGraphPart te ((v',vt'):v1) t
+  sn0 <- toGraphPart te (v0++[(v,vt)]) s
+  let sn = init sn0
+      s' = last sn
+  (t':tn) <- toGraphPart te ((v',vt'):v1) t
   thisNode <- boson this
   specialEdge thisNode s' vt
   specialEdge thisNode t' vt'
