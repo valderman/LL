@@ -119,7 +119,7 @@ We make the following contributions:
        notation to express coupling between software components can be used as 
        a semi-graphical representation for CLL programs.
  @item We explain how standard concepts of λ-calculus evaluation 
-       (redex,head normal form, etc.) generalise in linear logic (@outerSec).
+       (redex, head normal form, etc.) generalise in linear logic (@outerSec).
  @item We construct an abstract machine capable of running programs written 
        in the above language (@amSec).
        This abstract machine combines the following desirable features: 
@@ -129,7 +129,7 @@ We make the following contributions:
        and it is based on time-tested concepts, such has closures and heap.
  @item We show that the execution steps of the abstract machine correspond
        to proof normalisation steps. We do this by gradual refinement of cut-reduction for LL
-       (@asyncSec and @redOMDef, @redAXDef, @redBODef, @redAMDef).
+       (@asyncSec and in particular @redOMDef, @redAXDef, @redBODef and @redAMDef).
 }
 
 @syntaxSec<-section{Syntax and Intuitions}

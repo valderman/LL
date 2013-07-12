@@ -34,7 +34,7 @@ preamble inMetaPost = do
     usepackage "tikz" []
     cmd "usetikzlibrary" $ tex "shapes,arrows"
         
-    title "Linear Logic: I see what it means!"
+    title "Linear Logic: I See What It Means!"
     authorinfo SIGPlan [("Anonymous","email(s)","institution(s)")]
     cmd "titlebanner" ("Draft of " <> cmd0 "today")
     cmd "preprintfooter" "Submitted to POPL 2014"
