@@ -16,7 +16,7 @@ executable erll
   hs-source-dirs:      ./ sugar/
   -- other-modules:
   build-depends:       base ==4.6.*,
-                       marxup ==2.0.*,
+                       marxup ==3.0.*,
                        random ==1.0.*,
                        geniplate ==0.6.*,
                        mtl ==2.1.*,

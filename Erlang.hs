@@ -97,16 +97,16 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
             , (x // y) (cx ||| cy)
             ]
 
-        scross z x _ y _ c = Var x & Var y := Ask z |> c
+        scross _b z x _ y _ c = Var x & Var y := Ask z |> c
 
-        spar z x _ y _ cx cy = chunk
+        spar _b z x _ y _ cx cy = chunk
             [ Var x := NewChannel
             , Var y := NewChannel
             , z ! Var x & Var y
             , cx ||| cy
             ]
 
-        swith b z x _ c = chunk
+        swith _b _ b z x _ c = chunk
             [ Var x := NewChannel
             , z ! (if b then InR else InL) & Var x
             , c
@@ -119,21 +119,21 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
 
         sbot x = x ! tt
 
-        sone x c = tt := Ask x |> c
+        sone _b x c = tt := Ask x |> c
 
         szero _ _ = Crash
 
-        stapp z _ x _ c = (z // x) c
+        stapp _b z _ x _ c = (z // x) c
 
         stunpack _ z x c = (z // x) c
 
-        soffer z x _ c = Promote z x c
+        soffer _b z x _ c = Promote z x c
 
         sdemand z x _ c = Var x := Demand z |> c
 
         signore z _ c = Ignore z |> c
 
-        salias z z' _ c = Alias z |> (z // z') c
+        salias _b z z' _ c = Alias z |> (z // z') c
 
         swhat z xs = error $ "compile: What " ++ z ++ "[" ++ unwords xs ++ "]‽"
 
@@ -167,27 +167,27 @@ erlangUnique (Deriv ts vs sq0) = runUM $ do
   where
     go :: Seq -> UM Seq
     go sq = case sq of
-      Exchange p s      -> Exchange p <$> go s
-      Ax ty             -> return (Ax ty)
-      Cut w w' t x c d  -> Cut <$> uq w <*> uq w' <.> t <.> x <*> go c <*> go d
-      Cross ty w w' x c -> Cross ty <$> uq w <*> uq w' <.> x <*> go c
-      Par ty w w' x c d -> Par ty <$> uq w <*> uq w' <.> x <*> go c <*> go d
-      Plus w w' x a b   -> Plus <$> uq w <*> uq w' <.> x <*> go a <*> go b
-      With w c x a      -> With <$> uq w <.> c <.> x <*> go a
+      Exchange p s        -> Exchange p <$> go s
+      Ax ty               -> return (Ax ty)
+      Cut w w' t x c d    -> Cut <$> uq w <*> uq w' <.> t <.> x <*> go c <*> go d
+      Cross b ty w w' x c -> Cross b ty <$> uq w <*> uq w' <.> x <*> go c
+      Par b ty w w' x c d -> Par b ty <$> uq w <*> uq w' <.> x <*> go c <*> go d
+      Plus w w' x a b     -> Plus <$> uq w <*> uq w' <.> x <*> go a <*> go b
+      With b ty w c x a   -> With b ty <$> uq w <.> c <.> x <*> go a
 
-      SOne x a          -> SOne x <$> go a
-      SZero x           -> return (SZero x)
-      SBot              -> return SBot
+      SOne b x a          -> SOne b x <$> go a
+      SZero x             -> return (SZero x)
+      SBot                -> return SBot
 
-      TApp t w x t' a   -> TApp t <$> uq w <.> x <.> t' <*> go a
-      TUnpack w x a     -> TUnpack <$> uq w <.> x <*> go a
+      TApp b t w x t' a   -> TApp b t <$> uq w <.> x <.> t' <*> go a
+      TUnpack w x a       -> TUnpack <$> uq w <.> x <*> go a
 
-      Offer w x a       -> Offer <$> uq w <.> x <*> go a
-      LL.Demand w t x a -> LL.Demand <$> uq w <.> t <.> x <*> go a
-      LL.Alias x w a    -> LL.Alias x <$> uq w <*> go a
-      LL.Ignore x a     -> LL.Ignore x <$> go a
+      Offer b w x a       -> Offer b <$> uq w <.> x <*> go a
+      LL.Demand w t x a   -> LL.Demand <$> uq w <.> t <.> x <*> go a
+      LL.Alias b x w a    -> LL.Alias b x <$> uq w <*> go a
+      LL.Ignore b x a     -> LL.Ignore b x <$> go a
 
-      What nm xs        -> error $ "erlangUnique: What " ++ nm ++ " " ++ show xs ++ "‽"
+      What nm xs          -> error $ "erlangUnique: What " ++ nm ++ " " ++ show xs ++ "‽"
 
 -- | Makes a name from a suggestion that does not collide with an environment
 makeName :: String -> [String] -> String

@@ -315,6 +315,10 @@ matchType z t0 t1 = maybe (throw (TypeError z t0 t1)) return (go t0 t1)
 __ :: Type
 __ = meta ""
 
+-- | The 'false' Boson (‽)
+false :: Boson
+false = False
+
 -- Returns the translated sequent and its context
 trSeq :: C.Seq -> T (Seq,[Ident])
 trSeq sq = case sq of
@@ -362,7 +366,7 @@ trSeq sq = case sq of
             $$ hsep (map idName (x:y:bs'))
             $$ text (show pm)
 
-        return (Cross tz (name x) (name y) 0 (exchange pm s'),z:bs')
+        return (Cross false tz (name x) (name y) 0 (exchange pm s'),z:bs')
 
     C.ParSeq (i -> z) (i -> x) sx (i -> y) sy -> do
 
@@ -376,7 +380,7 @@ trSeq sq = case sq of
         bind' y ty
         (sy',yb) <- putFirst y =<< trSeq sy
 
-        return (Par tz (name x) (name y) (length xb) sx' sy',xb ++ [z] ++ yb)
+        return (Par false tz (name x) (name y) (length xb) sx' sy',xb ++ [z] ++ yb)
 
     C.Case (i -> z) (i -> x) sx (i -> y) sy -> do
 
@@ -410,7 +414,7 @@ trSeq sq = case sq of
         [tx,ty] <- matchType z (__ :&: __) tz
 
         (s',l,r) <- bindTrSeqMunch x (choice ch tx ty) s
-        return (With (name x) (choice ch True False) (length l) s',l ++ [z] ++ r)
+        return (With false tz (name x) (choice ch True False) (length l) s',l ++ [z] ++ r)
 
     C.Bottom (i -> x) -> do
 
@@ -423,7 +427,7 @@ trSeq sq = case sq of
         tx <- eat x
         [] <- matchType x One tx
         (s',b) <- trSeq s
-        return (SOne 0 s',x:b)
+        return (SOne false 0 s',x:b)
 
     C.Crash (i -> x) (along -> xs) -> do
         tx <- eat x
@@ -440,7 +444,7 @@ trSeq sq = case sq of
         [apply (subst0 t') -> tx] <- matchType z (Forall "" __) tz
 
         (s',l,r) <- bindTrSeqMunch x tx s
-        return (TApp tz (name x) (length l) t' s',l ++ [z] ++ r)
+        return (TApp false tz (name x) (length l) t' s',l ++ [z] ++ r)
 
     -- let a @ x = z in s
     C.Unpack (i -> a) (i -> x) (i -> z) s -> do
@@ -468,7 +472,7 @@ trSeq sq = case sq of
             let t = k u
             unless (isBang t) (throw (NotBang u t z))
 
-        return (Offer (name x) (length l) s',l ++ [z] ++ r)
+        return (Offer false (name x) (length l) s',l ++ [z] ++ r)
 
     -- let x = demand z in s
     C.Demand (i -> x) (i -> z) s -> do
@@ -486,7 +490,7 @@ trSeq sq = case sq of
         [_] <- matchType z (Bang __) tz
 
         (s',b) <- trSeq s
-        return (Ignore 0 s', z : b)
+        return (Ignore false 0 s', z : b)
 
     -- let z' = alias z in s
     C.Alias (i -> z') (i -> z) s -> do
@@ -505,7 +509,7 @@ trSeq sq = case sq of
         (s2,b2) <- putFirst z (s1,b1)
         -- b2 is now on the form l,z',r
         (l,r) <- munch z' b2
-        return (Alias (length l) (name z') s2,l ++ [z] ++ r)
+        return (Alias false (length l) (name z') s2,l ++ [z] ++ r)
 
     C.Fold (i -> x) (i -> z) s -> do
 

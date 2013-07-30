@@ -186,9 +186,4 @@ renderSystem (cls,h) = do
   return ()
 
 diagSystem :: System SymHeap -> TeX 
-diagSystem s = mpFigure [] (fst <$> (runRender $ renderSystem s)) >> return ()
-
-
-
-
-
+diagSystem s = mpFigure ["scale=0.75"] (fst <$> (runRender $ renderSystem s)) >> return ()

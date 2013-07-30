@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -XTypeFamilies -XTypeSynonymInstances -XOverloadedStrings -XRecursiveDo -pgmF marxup -F #-}
 
+module Paper where
+
 import Pretty
 import MarXup
 import MarXup.Latex
@@ -16,42 +18,34 @@ import AM
 import Rules
 import DiagPretty
 import Control.Monad
+import GraphViz
+-- import Mem
+import Framework
+import PaperData ()
 
-preamble :: Tex ()
-preamble = do
-  usepackage ["utf8"] "inputenc"
-  usepackage [] "graphicx" -- used for import metapost diagrams
-  usepackage [] "amsmath"
-  usepackage [] "amssymb" -- extra symbols such as □ 
-  usepackage [] "cmll" -- for the operator "par"
-  usepackage ["a4paper","margin=2cm"] "geometry"
+preamble :: Bool -> Tex ()
+preamble inMetaPost = do
+  stdPreamble
+  usepackage "cmll" [] -- for the operator "par"
+  mathpreamble
   cmd "input" (tex "unicodedefs")
+  -- unless inMetaPost $ do
+    -- usepackage "dot2texi" []
+    -- usepackage "tikz" []
+    -- cmd "usetikzlibrary" $ tex "shapes,arrows"
+    
   title "Linear Logic: I see what it means!"
   authorinfo Plain [("Jean-Philippe Bernardy","bernardy@chalmers.se",ch),
-                    ("Josef Svenningsson","",ch)]
+                      ("Josef Svenningsson","",ch)]
  where ch = "Chalmers University of Technology and University of Gothenburg"
 
--- | Render a derivation tree. 
-deriv :: Bool -- ^ Show terms?
-         -> Deriv -> Tex Label
-deriv showProg (Deriv tvs vs s) = derivationTree [] $ texSeq showProg tvs vs s
 
--- | Render a derivation tree, showing terms.
-deriv' = deriv True
-
--- | Render a derivation as a program (term)
-program :: Deriv -> Tex ()
-program (Deriv tvs vs s) = treeRender (texProg tvs vs s)
 
 rul s s' = displayMath $ cmdn "frac" [block[diagSystem s,texSystem s], block[texSystem s',diagSystem s']] >> return ()
 
 toSystem' h =  toSystem h . fillTypes
 
-comment :: Tex a -> TeX
-comment x = ""
-
 allPosTypes = [One,Zero,tA:⊕:tB,tA:⊗:tB,Bang tA,Forall "α" tAofAlpha]
-
 
 allRules = 
   [[(axRule, "Copy the data between the closures; when it's ready.")]
@@ -67,11 +61,11 @@ allRules =
    ,(existsRule,existComment)]
   ,[(questRule,@"place a pointer to the closure @math{a} in the zone pointed by @math{x:A}, mark as ready; terminate.@"),
     (bangRule,@"wait for ready. Allocate and initialise memory of @mkLayout(tA), spawn a closure from 
-                  the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")] 
+                  the zone pointed by @math{x:!A}, link it with @math{x} and  continue. Decrement reference count.@")]
   ,[(weakenRule,"discard the pointer, decrement reference count. Don't forget about recursively decrementing counts upon deallocation.")]
   ,[(contractRule,"copy the pointer to the thunk, increment reference count.  Note this is easy in the AM compared to the cut-elim.")]
   ] 
-
+  
 existComment = @"Wait for the type representation to be ready. Copy the
   (pointer to) the representation to the type environment. Free the
   type variable from the memory. Rename the linear variable (as in
@@ -93,8 +87,12 @@ typeRules = figure "Typing rules of Classical Linear Logic, with an ISWIM-style 
 
 deriv'' (x,_) = deriv' x
                
-operationalRules = itemize $ forM_ allRules $ amRule' emptyHeap
-                  
+operationalRules = itemize $ forM_ allRules $ amRule
+
+program :: Deriv -> Tex ()
+program (Deriv tvs vs s) = indentation (texProg tvs vs s)
+           
+                           
 amRule' :: SymHeap -> [(Deriv,TeX)] -> TeX
 amRule' _ [] = ""
 amRule' h0 ((seq,comment):seqs) = do
@@ -113,57 +111,74 @@ amRule' h0 ((seq,comment):seqs) = do
 -- | Render abstract machine rules
 amRule = amRule' emptyHeap
 
-  
-  
-allReductions displayer = env "center" $ mapM_ redRule $
-   [
-    ("AxCut",cutAx),
-    (math par<>"⊗",cutParCross),
-    (amp<>"⊕",cutWithPlus True),
-    ("?!", cutBang),
-    ("⊥!",cutUnit),
-    ("∃∀",cutQuant),
-    ("?Contract",cutContract),
-    ("?Weaken",cutIgnore)
-    ]
-   ++ pushRules
+allReductions = typesetReductions (syncRules ++ pushRules ++ chanRedRules)
 
-  where redRule (name,input) = do
-          name
+typesetReductions reds = env "center" $ 
+    forM_ reds $ \(name,input) -> do
+          let red1 :: (Deriv -> Tex a) -> Tex ()
+              red1 displayer = do          
+                
+                displayer input
+                math $ cmd0 "Longrightarrow"
+                displayer (eval input)
+                return ()
+          "name:" <> name
           newline
           cmd0 "vspace{3pt}"
-          cmd "fbox" $ math $ do 
-            displayer input
-            cmd0 "Longrightarrow"
-            displayer (eval input)
+          red1 deriv
           newline
+          cmd "fbox" $ red1 (program)
           cmd0 "vspace{1em}"
+          -- renderTree input
+          -- renderTree (eval input)
+          newline
+          
 
 todo = cmd "marginpar"
 
 pole :: TeX
 pole = "⊥" <> tex "{\\kern -1ex}" <> "⊥"
 
-instance Element Type where
-  type Target Type = TeX
-  element = texClosedType
-
-instance Element Layout where
-  type Target Layout = TeX
-  element = math . texLayout
-
-tA = meta "A"
-tB = meta "B"
 arr = meta "a"
 keys = meta "k"
 vals = meta "v"
+
+
+-- _x  = math "x"
+-- _x' = math "x'"
+-- _σ  = math "σ"
+-- _σ' = math "σ'"
 
 norm :: TeX -> TeX
 norm x = math $ "|" <> x <> "|"
 
 nothing _ = mempty
 
-main = render $ latexDocument "article" ["10pt"] preamble $ @"
+
+
+memory = array [] (braces (text "lcl")) $
+         [[ mem t "x" "y",text "=",linearize (texProgM [] [("x",t),("y",neg t)] (copy'' t)) >> return ()] | t <- allPosTypes , t /= Zero]
+         ++[[mem metaT "x" "y",text "=",mem (neg metaT) "x" "y"]]
+  where metaT = Meta True "T" []
+
+texProgM = texProg'' what True
+  where what a ws fs = mem (Meta True a []) z w
+          where (z:w:_) = map fst fs
+
+{-
+memTranslation = do
+  deriv False cutRule
+  textual "="
+  deriv False $ Deriv ["Θ"] [gamma,delta] (Cut "x" "z" (meta "A") 1 whatA $
+                                           Cut "z" "y" (meta "A") 1 (Channel dum) whatB)
+-}
+
+-- | Render a derivation tree, showing terms.
+deriv' (Deriv tvs vs s) =  derivationTree $ texSeq True tvs vs s 
+
+deriv (Deriv tvs vs s) =  derivationTree $ texSeq False tvs vs s 
+
+outputTexMp name = renderToDisk' name $ latexDocument "article" ["10pt"] Paper.preamble $ @"
 @maketitle
 
 @section{Introduction}
@@ -283,14 +298,8 @@ creates a new communication channel of type @tA;
 }
 
 
-@section{Cut-elimination rules}
-  @allReductions(deriv False)
-
-
-
-@section{Program reduction rules}
-  @allReductions(program)
-
+@section{Evaluation rules}
+  @allReductions
 
 
 @section{Abstract machine rules}
@@ -353,6 +362,14 @@ We define:
 @item @math{@pole = any tree of axiom closures}
 }
 
+@itemize{
+@item @math{M = @brac{closures (bubbles with outgoing edges)}}
+@item @math{1 = empty set}
+@item @math{· = concatenation of closures with matching channels, with the simple eval. strategy.}
+@item @math{@pole = the terminated program}
+}
+
+
 @section{Change the world?}
 
 Assume the following interface, where @arr is an absract type of arrays; 
@@ -366,6 +383,48 @@ Assume the following interface, where @arr is an absract type of arrays;
 
 The with array function can create a single array with both @arr and @neg(arr)
 pointing to the same memory area.
+
+@section{A calculus with explicit memory}
+
+We introduce a new form of expression: @id(math mem_).
+
+@section{Termination of the tree-based machine}
+
+@env("definition"){
+We say that a node is waiting on an edge if:
+@itemize{
+ @item it is an axiom node or,
+ @item if is a non-structural rule acting on the port connected to that edge.
+}
+
+We call an edge ready if all nodes connected to it are waiting on it. In particular,
+an hypothesis edge is ready if the single nodes connected to it is waiting on it.
+}
+
+@lemma(""){In any tree, there is always at least an edge ready, or the system is terminated.
+}{
+Remark that every node is waiting on at least one port; except for the terminated node
+which cannot be connected to any node. The terminated system trivially satisfies the
+theorem.
+
+We then proceed by induction on the size of the tree. If the tree has a single node, then
+all the edges are hypotheses, it  must be waiting on one of them, which is then ready.
+
+For the inductive case, we assume two systems σ and σ' satisfying the induction hypothesis, 
+with and hypothesis @math{x} in @math{σ} and an hypothesis @math{x'} in @math{σ'}. 
+We show that the system obtained by connecting $x$ and $x'$ satisfies the theorem.
+
+We have the following cases:
+
+@enumerate{
+@item σ is waiting on @math{x} and @math{σ'} is waiting on @math{x'}. Then the new edge is ready.
+@item Either system is not waiting on the designated hypothesis. In this case, some other
+   edge in that system must be ready; and it remains ready in the combined system.
+}}
+
+@corollary(""){In a closed system, reducing only the top-level cuts is a terminating
+reduction strategy}
+
 
 @section{Related Work}
 

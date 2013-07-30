@@ -1,3 +1,10 @@
+.cake
+*.mps
+*.mpx
+*.mp
+*.bbl
+*.blg
+mpxerr.tex
 dist
 cabal-dev
 *.o
@@ -11,3 +18,4 @@ cabal-dev
 *.log
 *.out
 *.vtc
+*.svg

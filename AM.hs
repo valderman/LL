@@ -5,13 +5,14 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 
 -- | The abstract machine
 module AM where 
 
 import LL
-import Data.List (mapAccumL, elemIndex)
+import Data.List (mapAccumL, elemIndex, find)
 import Data.Graph
 import Data.Tree
 
@@ -98,23 +99,23 @@ runClosure h (Plus x y v a b,e,te)
 --   | Redirect r <- ... Plus x y v a b,...r.
   | Tag c <- h!(e!!+v) = Just (replace (e!!+v) Freed h,
                               [(if c then a else b,increment v (if c then x else y) e,te)])
-runClosure h (Cross ty x y v a,e,te)
+runClosure h (Cross _ ty x y v a,e,te)
   = Just (h,[(a,el++[(x,z),(y,shift (mkLayout (te∙ty)) z)] ++ er,te)])
   where (el,(_,z):er) = splitAt v e
-runClosure h (Par ty x y v a b,e,te)
+runClosure h (Par _ ty x y v a b,e,te)
   = Just (h,[(a,el++[(x,z)],te)
             ,(b,[(y,shift (mkLayout (te∙ty)) z)]++er,te)])
     where (el,(_,z):er) = splitAt v e
-runClosure h (With x t v a,e,te)
+runClosure h (With β ty x t v a,e,te)
   = Just (replace (e!!+v) (Tag t) h,[(a,increment v x e,te)])
   -- FIXME: free the part which is unused (half of the time)
-runClosure h (SOne v a,e,te)
+runClosure h (SOne β v a,e,te)
   = Just(h,[(a,el++er,te)])
     where (el,_:er) = splitAt v e
 runClosure h (SBot,e,te)
   = Just (h,[])
 
-runClosure h (TApp tp x v ty a,e,te)
+runClosure h (TApp β tp x v ty a,e,te)
   = Just (replace (e!!+v) (Q ty q) h',[(a,el++(x,z):er,te)])
   where (el,(_,z):er) = splitAt v e
         (h',q) = alloc ((ty:te)∙tp) h
@@ -137,7 +138,7 @@ runClosure h (Cut x y ty v a b,e,te)
   where (ea,eb) = splitAt v e
         (h',q)  = alloc (te∙ty) h
 
-runClosure h (Offer x v a,e,te)
+runClosure h (Offer β x v a,e,te)
   = Just (replace (e!!+v) (Delay n (Just (a,el++(x,nullPointer):er,te))) h,[])
     where (el,(_,w):er) = splitAt v e
           n = countRefs (h!(e!!+v)) -- FIXME: JP: how much should the refcount be? I am suspecting only the "clients" should be counted.
@@ -147,10 +148,10 @@ runClosure h (Demand x ty v a,e,te)
          ,[(a,el++[(x,q)]++er,te),(u,setNull e' q,te')])
     where (el,(_,p):er) = splitAt v e
           (h',q) = alloc (te ∙ ty) h
-runClosure h (Ignore v a,e,te)
+runClosure h (Ignore β v a,e,te)
   = Just (modifyRefCount (subtract 1) m h,[(a,el++er,te)])
   where (el,(_,m):er) = splitAt v e
-runClosure h (Alias v x a,e,te)
+runClosure h (Alias β v x a,e,te)
   = Just (modifyRefCount (+1) (e!!+v) h,[(a,(x,e!!+v):e,te)])
 runClosure _ _ = Nothing
 
@@ -166,15 +167,18 @@ increment n nm e = let (l,(_,x):r) = splitAt n e
                     in l ++ (nm,next x) : r
 
 copy'' :: Type -> Seq
-copy'' (t1 :⊕: t2) = Plus "" ""  0 (copy'' t1) (copy'' t2) -- FIXME: probably a With is necessary here
-copy'' (t1 :⊗: t2) = Cross t1 "" "" 0 $
+copy'' (t1 :⊕: t2) = Plus "z" "w"  0
+                       (With False t1 "r" True 1 (copy'' t1))
+                       (With False t2 "s" False 1 (copy'' t2))
+copy'' (t1 :⊗: t2) = Cross False t1 "z" "w" 0 $
                      Exchange [0,2,1] $
-                     Par t1 "" "" 1 (copy'' t1) (copy'' t2)
+                     Par False t1 "r" "s" 1 (copy'' t1) (copy'' t2)
 copy'' Zero = error "Impossible"
-copy'' One = SOne 0 SBot
+copy'' One = SOne False 0 SBot
 copy'' t@(TVar True _) = Ax t
 copy'' t@(Bang _) = Ax t
 copy'' t@(Forall _ _) = Ax t
+copy'' t@(Meta True name v) = What name [0..length v-1]
 copy'' t = Exchange [1,0] $ copy'' (neg t)
 
 sizeOf :: Layout -> Int
@@ -271,18 +275,19 @@ compareClosures (s,e,te) h (s',e',te') h' = do
     assert v v'
     unify x x'
     compareHeaps (fetch x h) (fetch x' h')
-    
-    
 -}    
 
+
 -- Invariant: a blocked system will have only new cells in the
--- heap. (!except for exponentials)
-   {-     
-type Cl = Closure Int
+-- heap. (!except for exponentials and anything that can write in the heap)
+        
+-- TODO: sort the closures.
+
                 
-mkGraph :: [Cl] -> [((),Int,[Int])]
+
+mkGraph :: forall r. Eq r => [Closure r] -> [((),Int,[Int])]
 mkGraph cls = map mkOne cls'
-  where cls' :: [(Cl,Int)]
+  where cls' :: [(Closure r,Int)]
         cls' = zip cls [0..]
         mkOne (cl@(_,e,_),ix) = ((),ix,connected)
           where 
@@ -290,33 +295,33 @@ mkGraph cls = map mkOne cls'
             connected = [ix' | ((_,e',_),ix') <- cls', (_,x') <- e', (_,x) <- e, x == x']
         
 -- | From a blocked system, recover the tree-structure of closures.        
-mkTree :: [Cl] -> Tree Cl
+mkTree :: forall r. Eq r => [Closure r] -> Tree (Closure r)
 mkTree cls = fmap (cls!!) t
   where [t] = dff $ fst $ graphFromEdges' $ mkGraph cls
         -- there can be only one tree because we do not have mix.
 
 -- | Rename variables in sequents so they form a meaningful cut
--- structure.  In the output: the 1st variable communicates with the
--- parent; the others with each of the children in order.
--- For the root, we assume that the input has a dummy 1st variable.
-recoverCutStructure :: Tree Cl -> Tree Cl
+-- structure.  In the output: the last variable communicates with the
+-- parent; the others with each of the children in reverse order.
+recoverCutStructure :: Eq r => Tree (Closure r) -> Tree (Closure r)
 recoverCutStructure (Node c []) = Node c []
-recoverCutStructure (Node c@(_,_:e,_) cs) = Node c (map recoverCutStructure $ 
-                                                    zipWith placeFirst (map snd e) cs)
+recoverCutStructure (Node c@(_,e,_) cs) = 
+  Node c (map recoverCutStructure $ 
+          reverse [placeLast x c' | (_,x) <- e, Just c' <- [connectedTo x cs]])
+
+connectedTo x cs = find (\(Node (_,e,_) _) -> any ((== x) . snd) e) cs
 
 -- | Place the given reference in the 1st position in the env in the
 -- closure, and adapt the subtrees.
-placeFirst :: Int -> Tree Cl -> Tree Cl
-placeFirst x (Node (s,e,te) ts) = Node (Exchange ρ s, [e!!j | j <- ρ], te) ts
+placeLast :: Eq r => r -> Tree (Closure r) -> Tree (Closure r)
+placeLast x (Node (s,e,te) ts) = Node (Exchange ρ s, [e!!j | j <- ρ], te) ts
   where Just i = elemIndex x (map snd e)
-        ρ = i:[0..i-1]++[i+1..length e]
-  
-mkCuts :: Tree Cl -> Deriv
-mkCuts (Node (s,e,te) []) = s
-mkCuts (Node (s,_:e,te) ts) = (Cut "_" "_" dum, [])
+        ρ = [0..i-1]++[i+1..length e]++[i]
 
-sequentialize :: System h -> Seq
-sequentialize = error "todo" -- mkCuts . recoverCutStructure . mkTree
+mkCuts :: Tree (Closure r) -> Seq
+mkCuts (Node (s,e,te) []) = s
+mkCuts (Node (s,_:e,te) ts) = foldr (\(t,γ) -> Cut "_" "_" dum γ t) s $ zip (map mkCuts ts) [0..]
+
+sequentialize :: (Eq (Ref h)) => System h -> Seq
+sequentialize (cls,_heap) = mkCuts . recoverCutStructure . mkTree $ cls
       
-toInfer = meta "type cut on to recover"
--}

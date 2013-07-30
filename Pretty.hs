@@ -10,7 +10,6 @@ import Text.PrettyPrint.HughesPJ hiding ((<>))
 import Data.Monoid
 import LL
 import AM
-import Control.Lens
 import Symheap
 import qualified Data.Map as M
 import Data.List (intercalate)
@@ -20,9 +19,19 @@ import Data.List (intercalate)
 
 
 
-instance Show (Deriv) where
-  show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq True ts vs s
+deriving instance Show Seq
+deriving instance Show Deriv
+deriving instance Show Type
 
+{-
+instance Show Type where
+  show x = render $ pType 0 ["v" <> show i | i <- [0..]] x
+
+instance Show Seq where
+   show = render . pSeq [] []
+
+instance Show (Deriv) where show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq True ts vs s
+-}
 prn p k = if p > k then parens else id
 
 pType :: Int -> [String] -> Type -> Doc
@@ -44,8 +53,6 @@ pType p vs (Quest t) = prn p 4 $ "?" <> pType 4 vs t
 pType p vs (Meta b s xs) = if_ b ("~" <>) $ text s <> args
   where args = if null xs then mempty else brackets (cat $ punctuate "," $ map (pType 0 vs) xs)
 
-instance Show Type where
-  show x = render $ pType 0 ["v" <> show i | i <- [0..]] x
 
 pSeq :: Bool -> [Name] -> [(Name,Type)] -> Seq -> Doc
 pSeq showTypes = foldSeq sf where
@@ -55,38 +62,41 @@ pSeq showTypes = foldSeq sf where
         scut v v' vt s vt' t = "connect " <>
                                       "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
                                                   varT v' vt' <> " in " <> t] <>"}"
-        scross w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
-        spar w v vt v' vt' s t = "connect "<>text w <>
+        scross _ w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
+        spar _ w v vt v' vt' s t = "connect "<>text w <>
                                       "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
                                                   varT v' vt' <> " in " <> t] <>"}"
         splus w v vt v' vt' s t = "case " <> text w <> " of {" <>
                                 vcat ["inl " <> text v <> " ↦ " <> s<> ";",
                                       "inr " <> text v' <> " ↦ " <> t]<> "}"
-        swith b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
+        swith _ _ b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
            where c = if b then "fst" else "snd"
         sbot v = text v
         szero w vs = "dump " <> whenShowTypes (pCtx' vs) <> " in " <> text w
-        sone w t = "let ◇ = " <> text w <> " in " $$ t
+        sone _ w t = "let ◇ = " <> text w <> " in " $$ t
         sxchg _ t = t
-        stapp v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
+        stapp _ v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
         stunpack tw w v s = "let ⟨" <> whenShowTypes (text tw) <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
-        soffer v w ty s = "offer" <+> varT v ty <+> text "as" <+> varT w ty <+> text "in" $$ s
+        soffer _ v w ty s = "offer" <+> varT v ty <+> text "as" <+> varT w ty <+> text "in" $$ s
         sdemand v w ty s = "let" <+> text w <+> "=" <+> text "demand" <+> varT v ty <+> "in" $$ s
         signore w ty s = "ignore " <> text w $$ s
-        salias w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
+        salias _ w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
         sfold w w' ty s = "let" <+> text w' <+> equals <+> "fold" <+> text w' <+> "in" $$ s
         sunfold w w' ty s = "let" <+> text w' <+> equals <+> "unfold" <+> text w' <+> "in" $$ s
-        swhat a _ = braces $ pCtx ts vs
+        swhat a _ _ = braces $ pCtx ts vs
+        smem ty t u = "serve " <> ty <> " " <> vcat ["server" <> u
+                                                    ,"clients" <> t
+                                                    ]
+
    varT x y | showTypes = text x <> " : " <> y
             | otherwise = text x
    whenShowTypes | showTypes = id
                  | otherwise = const "?"
 
-deriving instance Show Seq
 -- instance Show Seq where
 --   show = render . pSeq [] []
 
-pCtx ts vs = pCtx' (over (mapped._2) (pType 0 ts) vs)
+pCtx ts vs = pCtx' (fmap (second (pType 0 ts)) vs)
 
 pCtx' :: [(Name,Doc)] ->  Doc
 pCtx' vs = sep $ punctuate comma $ [text v <> " : " <> t | (v,t) <- vs]
