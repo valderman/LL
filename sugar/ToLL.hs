@@ -515,15 +515,15 @@ trSeq sq = case sq of
 
         tz <- eat z
         [tr] <- matchType z (Mu True "" __) tz
-        (s',l,r) <- bindTrSeqMunch x (foldTy (name x) tr) s
-        return (Fold (name z) (length l) s',l ++ [z] ++ r)
+        (s',l,r) <- bindTrSeqMunch x (foldTy (name z) tr) s
+        return (Fold (name x) (length l) s',l ++ [z] ++ r)
 
     C.Unfold (i -> x) (i -> z) s -> do
 
         tz <- eat z
         [tr] <- matchType z (Mu False "" __) tz
-        (s',l,r) <- bindTrSeqMunch x (unfoldTy (name x) tr) s
-        return (Unfold (name z) (length l) s',l ++ [z] ++ r)
+        (s',l,r) <- bindTrSeqMunch x (unfoldTy (name z) tr) s
+        return (Unfold (name x) (length l) s',l ++ [z] ++ r)
 
     C.Hole -> throw . Hole . M.toList . snd =<< get
 
