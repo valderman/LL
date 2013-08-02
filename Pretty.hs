@@ -33,6 +33,10 @@ instance Show Seq where
 
 instance Show (Deriv) where show (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq True ts vs s
 -}
+
+showDeriv :: Deriv -> String
+showDeriv (Deriv ts vs s) = render $ (pCtx ts vs  <> " ⊢") $$ pSeq True ts vs s
+
 prn p k = if p > k then parens else id
 
 pType :: Int -> [String] -> Type -> Doc
@@ -58,36 +62,47 @@ pType p vs (Meta b s xs) = if_ b ("~" <>) $ text s <> args
 pSeq :: Bool -> [Name] -> [(Name,Type)] -> Seq -> Doc
 pSeq showTypes = foldSeq sf where
    sf (Deriv ts vs _) = SeqFinal {..} where
-        sty = pType 0
-        sax v v' _ = text v <> " ↔ " <> text v'
-        scut v v' vt s vt' t = "connect " <>
-                                      "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
-                                                  varT v' vt' <> " in " <> t] <>"}"
-        scross _ w v vt v' vt' t = "let " <> text v <> "," <> text v' <> " = " <> text w <> " in " $$ t
-        spar _ w v vt v' vt' s t = "connect "<>text w <>
-                                      "{"<> vcat [varT v  vt  <> " in " <> s <> ";",
-                                                  varT v' vt' <> " in " <> t] <>"}"
-        splus w v vt v' vt' s t = "case " <> text w <> " of {" <>
-                                vcat ["inl " <> text v <> " ↦ " <> s<> ";",
-                                      "inr " <> text v' <> " ↦ " <> t]<> "}"
-        swith _ _ b w v' _ t = "let " <> text v' <> " = " <> c <> " " <> text w <> " in " $$ t
+        sty                      = pType 0
+        sax v v' _               = text v <+> "<->" <+> text v'
+        scut v v' vt s vt' t     = pp_block "connect" (varT v  vt) s
+                                                  (varT v' vt') t
+
+        scross _ w v vt v' vt' t = pp_let (text v <+> "," <+> text v') (text w) t
+
+        spar _ w v vt v' vt' s t = pp_block ("connect" <+> "via" <+> text w)
+                                            (varT v  vt) s
+                                            (varT v' vt') t
+        splus w v vt v' vt' s t  = pp_block ("case" <+> text w <+> "of")
+                                            ("inl" <+> text v) s
+                                            ("inr" <+> text v') t
+
+        swith _ _ b w v' _ t = pp_let (text v') (c <+> text w) t
            where c = if b then "fst" else "snd"
-        sbot v = text v
-        szero w vs = "dump " <> whenShowTypes (pCtx' vs) <> " in " <> text w
-        sone _ w t = "let ◇ = " <> text w <> " in " $$ t
-        sxchg _ t = t
-        stapp _ v _ w tyB s = "let " <> text v <> " = " <> text w <> "∙" <> tyB <> " in " $$ s
-        stunpack tw w v s = "let ⟨" <> whenShowTypes (text tw) <> "," <> text v <> "⟩ = " <> text w <> " in " $$ s
-        soffer _ v w ty s = "offer" <+> varT v ty <+> text "as" <+> varT w ty <+> text "in" $$ s
-        sdemand v w ty s = "let" <+> text w <+> "=" <+> text "demand" <+> varT v ty <+> "in" $$ s
-        signore w ty s = "ignore " <> text w $$ s
-        salias _ w w' ty s = "let" <+> text w' <+> equals <+> "alias" <+> varT w ty <+> "in" $$ s
-        sfold w w' ty s = "let" <+> text w' <+> equals <+> "fold" <+> text w' <+> "in" $$ s
-        sunfold w w' ty s = "let" <+> text w' <+> equals <+> "unfold" <+> text w' <+> "in" $$ s
+
+        sbot v              = text v
+        szero w vs          = "dump" <+> whenShowTypes (pCtx' vs) <+> "in" <+> text w
+        sone _ w t          = pp_let "◇" (text w) t
+        sxchg _ t           = t
+        stapp _ v _ w tyB s = pp_let (text w) (text v <> "∙" <> tyB) s
+        stunpack tw w v s   = pp_let ("⟨" <> whenShowTypes (text tw) <> "," <> text v <> "⟩") (text w) s
+        soffer _ v w ty s   = "offer" <+> varT v ty <+> text "as" <+> varT w ty <+> text "in" $$ s
+        sdemand v w ty s    = pp_let (text w) (text "demand" <+> varT v ty) s
+        signore w ty s      = "ignore " <> text w $$ s
+        salias _ w w' ty s  = pp_let (text w') ( "alias" <+> varT w ty) s
+        sfold w w' ty s     = pp_let (text w) ("fold" <+> text w') s
+        sunfold w w' ty s   = pp_let (text w) ("unfold" <+> text w') s
         swhat a _ _ = braces $ pCtx ts vs
         smem ty t u = "serve " <> ty <> " " <> vcat ["server" <> u
                                                     ,"clients" <> t
                                                     ]
+
+   pp_let lhs rhs s = "let" <+> lhs <+> "=" <+> rhs <+> "in" $$ s
+
+   pp_block top lhs1 rhs1 lhs2 rhs2 = hang top 4 $
+                vcat [ hang ("{" <+> lhs1 <+> "->") 4 rhs1
+                     , hang (";" <+> lhs2 <+> "->") 4 rhs2
+                     , "}"
+                     ]
 
    varT x y | showTypes = text x <> " : " <> y
             | otherwise = text x
