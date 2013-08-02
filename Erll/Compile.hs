@@ -41,7 +41,7 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
 
         swith _b _ b z x _ c = chunk
             [ Var x := NewChannel
-            , z ! (if b then InR else InL) & Var x
+            , z ! (if b then InL else InR) & Var x
             , c
             ]
 
