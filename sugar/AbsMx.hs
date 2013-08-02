@@ -21,6 +21,12 @@ data IdList =
  | ILCons Id IdList
   deriving (Eq,Ord,Show)
 
+data TyList =
+   TLNil
+ | TLSingle Type
+ | TLCons Type TyList
+  deriving (Eq,Ord,Show)
+
 data TyVar =
    TyVar Id
   deriving (Eq,Ord,Show)
@@ -54,6 +60,7 @@ data Type =
  | Top
  | Zero
  | Lollipop Type Type
+ | AliasTy Id TyList
  | TyId Id
  | Bang Type
  | Quest Type

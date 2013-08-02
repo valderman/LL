@@ -1,0 +1,7 @@
+
+-- Feature or a bug?!
+
+type Hehe = a ;
+
+a, u : Hehe, v : ~ a |- u <-> v
+

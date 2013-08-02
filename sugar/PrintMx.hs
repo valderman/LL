@@ -114,6 +114,13 @@ instance Print IdList where
    ILCons id idlist -> prPrec i 0 (concatD [prt 0 id , prt 0 idlist])
 
 
+instance Print TyList where
+  prt i e = case e of
+   TLNil  -> prPrec i 0 (concatD [doc (showString "[") , doc (showString "]")])
+   TLSingle type' -> prPrec i 0 (concatD [prt 6 type'])
+   TLCons type' tylist -> prPrec i 0 (concatD [prt 6 type' , prt 0 tylist])
+
+
 instance Print TyVar where
   prt i e = case e of
    TyVar id -> prPrec i 0 (concatD [prt 0 id])
@@ -153,14 +160,15 @@ instance Print Type where
   prt i e = case e of
    Tensor type'0 type' -> prPrec i 4 (concatD [prt 4 type'0 , doc (showString "*") , prt 5 type'])
    Par type'0 type' -> prPrec i 4 (concatD [prt 4 type'0 , doc (showString "|") , prt 5 type'])
-   One  -> prPrec i 5 (concatD [doc (showString "1")])
-   Bot  -> prPrec i 5 (concatD [doc (showString "_|_")])
+   One  -> prPrec i 6 (concatD [doc (showString "1")])
+   Bot  -> prPrec i 6 (concatD [doc (showString "_|_")])
    Plus type'0 type' -> prPrec i 3 (concatD [prt 3 type'0 , doc (showString "+") , prt 4 type'])
    Choice type'0 type' -> prPrec i 3 (concatD [prt 3 type'0 , doc (showString "&") , prt 4 type'])
-   Top  -> prPrec i 5 (concatD [doc (showString "T")])
-   Zero  -> prPrec i 5 (concatD [doc (showString "0")])
+   Top  -> prPrec i 6 (concatD [doc (showString "T")])
+   Zero  -> prPrec i 6 (concatD [doc (showString "0")])
    Lollipop type'0 type' -> prPrec i 1 (concatD [prt 2 type'0 , doc (showString "-o") , prt 1 type'])
-   TyId id -> prPrec i 5 (concatD [prt 0 id])
+   AliasTy id tylist -> prPrec i 5 (concatD [prt 0 id , prt 0 tylist])
+   TyId id -> prPrec i 6 (concatD [prt 0 id])
    Bang type' -> prPrec i 5 (concatD [doc (showString "!") , prt 5 type'])
    Quest type' -> prPrec i 5 (concatD [doc (showString "?") , prt 5 type'])
    Neg type' -> prPrec i 5 (concatD [doc (showString "~") , prt 5 type'])

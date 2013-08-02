@@ -17,6 +17,10 @@ TyAlias. Alias   ::= "type" Id IdList "=" Type ;
 ILNil.   IdList  ::= ;
 ILCons.  IdList  ::= Id IdList ;
 
+internal TLNil. TyList ::= "[" "]" ;
+TLSingle. TyList  ::= Type6 ;
+TLCons.   TyList  ::= Type6 TyList ;
+
 TyVar.   TyVar   ::= Id;
 
 Binder.  Binder  ::= Id ":" Type ;
@@ -36,18 +40,19 @@ ANothing. Along   ::= ;
 -- Multiplicatives
 Tensor.   Type4 ::= Type4 "*" Type5 ;
 Par.      Type4 ::= Type4 "|" Type5 ;
-One.      Type5 ::= "1"   ;
-Bot.      Type5 ::= "_|_" ;
+One.      Type6 ::= "1"   ;
+Bot.      Type6 ::= "_|_" ;
 
 -- Additives
 Plus.     Type3 ::= Type3 "+" Type4 ;
 Choice.   Type3 ::= Type3 "&" Type4 ;
-Top.      Type5 ::= "T" ;
-Zero.     Type5 ::= "0" ;
+Top.      Type6 ::= "T" ;
+Zero.     Type6 ::= "0" ;
 
 Lollipop. Type1 ::= Type2 "-o" Type1 ;
 
-TyId.     Type5 ::= Id ;
+AliasTy.  Type5 ::= Id TyList ;
+TyId.     Type6 ::= Id ;
 
 Bang.     Type5 ::= "!" Type5 ;
 Quest.    Type5 ::= "?" Type5 ;
@@ -58,7 +63,7 @@ Forall.   Type ::= "forall" Id "." Type ;
 Exists.   Type ::= "exists" Id "." Type ;
 Mu.       Type ::= "mu" Id "." Type ;
 
-coercions Type 5 ;
+coercions Type 6 ;
 
 -- I don't like calling these fst and snd because these are about sums, not tuples
 Fst.       Choice ::= "fst" ;

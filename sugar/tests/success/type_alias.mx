@@ -1,0 +1,7 @@
+
+type Both a b = a * b ;
+
+
+ab : Both 1 _|_ |- let a,b = ab in let () = a in b
+
+

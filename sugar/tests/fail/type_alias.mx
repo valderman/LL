@@ -1,0 +1,5 @@
+
+type Id a = a ;
+
+x : Id |- x
+

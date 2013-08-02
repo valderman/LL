@@ -26,7 +26,7 @@ import LL hiding (exchange,alias)
 import Perm
 
 import qualified AbsMx as C
-import AbsMx (Id(..),Choice(..),Binder(..),Along(..),Prog(..),IdList(..),MDerivName(..))
+import AbsMx (Id(..),Choice(..),Binder(..),Along(..),Prog(..),IdList(..),TyList(..),MDerivName(..))
 
 data Ident = Ident { name :: String, pos :: (Int,Int) }
 
@@ -49,7 +49,10 @@ i (Id (p,s)) = Ident s p
 desugar :: Prog -> (Either Err [Deriv],Doc)
 desugar (Prog alias derivs) = runT init_alias (mapM dsDeriv derivs)
   where
-    init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) ILNil t <- alias ]
+    init_alias  = M.fromList
+        [ (x,(t,idList il))
+        | C.TyAlias (i -> x) il t <- alias
+        ]
 
 dsDeriv :: C.Deriv -> T Deriv
 dsDeriv (C.Deriv tvs bs m_name s) = do
@@ -74,7 +77,7 @@ dsDeriv (C.Deriv tvs bs m_name s) = do
     return deriv
 
 newtype T a = T
-    { unT :: ReaderT (Map Ident C.Type)
+    { unT :: ReaderT (Map Ident (C.Type,[Ident]))
              (StateT St
              (ErrorT Err
              (Writer [Doc]))) a
@@ -82,9 +85,9 @@ newtype T a = T
   deriving
     ( Functor, Applicative, Monad
     , MonadState St
-    , MonadReader (Map Ident C.Type)        -- type aliases
-    , MonadWriter [Doc]                     -- debug messages
-    , MonadError Err                        -- errors
+    , MonadReader (Map Ident (C.Type,[Ident])) -- type aliases
+    , MonadWriter [Doc]                    -- debug messages
+    , MonadError Err                       -- errors
     )
 
 data St = St
@@ -110,7 +113,7 @@ throw e = do
     tvs <- gets st_tvs
     throwError (Err (map name tvs) e)
 
-runT :: forall a . Map Ident C.Type -> T a -> (Either Err a,Doc)
+runT :: forall a . Map Ident (C.Type,[Ident]) -> T a -> (Either Err a,Doc)
 runT as (T m)
     = second vcat . runWriter . runErrorT
     $ evalStateT (runReaderT m as) (St [] M.empty M.empty)
@@ -152,6 +155,8 @@ data Err'
     -- ^ Refer to a deriv that does not exist
     | DerivMismatchContext Ident [Name] [Type] [Type] [Type]
     -- ^ Derivation does not work
+    | IncorrectlyAppliedAlias Ident [Ident] [Type]
+    -- ^ Alias arity mismatch
     | Fail String
     -- ^ Fail in the monad
 
@@ -190,6 +195,10 @@ prettyErr tvs e = case e of
             $$ "invoked types:" <+> sep (pc (map p_ty tys))
             $$ "spliced types:" <+> sep (pc (map (prettyType tvs') ctx))
             $$ "invoked context:" <+> sep (pc (map p_ty ctx'))
+    IncorrectlyAppliedAlias x is ts ->
+        hang (prettyId x <> colon <+> "incorrectly applied alias:") 4
+            $  "defined with these variables:" <+> ids is
+            $$ "invoked with these arguments:" <+> sep (pc (map p_ty ts))
     Fail s -> "Unknown error:" <+> text s
   where
     ids :: [Ident] -> Doc
@@ -281,15 +290,33 @@ trType = locally . go
         C.Forall (i -> x) t -> insertTyVar x >> (Forall (name x)  <$> go t)
         C.Exists (i -> x) t -> insertTyVar x >> (Exists (name x) <$> go t)
         C.Mu (i -> x) t     -> insertTyVar x >> (Mu True (name x) <$> go t)
-        C.TyId (i -> x)     -> do
+        C.TyId x            -> go (C.AliasTy x TLNil)
+        C.AliasTy (i -> x) (tyList -> ts) -> do
             tvs <- gets st_tvs
             case elemIndex x tvs of
-                Just ix -> return (var ix)
+                Just ix | null ts -> return (var ix)
                 Nothing -> do
                     as <- ask
                     case M.lookup x as of
-                        Just t  -> go t
-                        Nothing -> throw (UnboundIdentifier x)
+                        Just (t,is) -> do
+                            tys <- mapM go ts
+                            when (length tys /= length is) $ throw (IncorrectlyAppliedAlias x is tys)
+                            mapM_ insertTyVar (reverse is)
+                            ty <- trType t
+                            return (apply (tys ++ map var [0..]) ty)
+                        Nothing     -> throw (UnboundIdentifier x)
+
+{-
+    prepare_alias :: Err' -> [Ident] -> [Type] -> T ()
+    prepare_alias err = go'
+      where
+        go' (x:xs) (t:ts) = do
+            modify $ \ st -> st { st_types = M.insert x t (st_types st) }
+            go' xs ts
+        go' [] [] = return ()
+        go' _  _  = throw err
+        -}
+
 
     -- A hack to translate types
     locally :: T a -> T a
@@ -298,6 +325,15 @@ trType = locally . go
         r <- u
         put x
         return r
+
+tyList :: TyList -> [C.Type]
+tyList TLNil         = []
+tyList (TLSingle t)  = [t]
+tyList (TLCons t tl) = t : tyList tl
+
+idList :: IdList -> [Ident]
+idList ILNil         = []
+idList (ILCons x il) = i x : idList il
 
 negTy :: C.Type -> C.Type
 negTy = C.Neg
@@ -576,6 +612,49 @@ trSeq sq = case sq of
                 return (s,xs)
 
             Nothing -> throw (NoSuchDeriv x)
+
+{-
+refer :: [(Name,Type)] -> [(Ident,Type)] -> (Seq,Type)
+refer []         xts = second snd (refer' xts)
+refer ((n,t):ts) xts = (TApp false ty n 0 t s,ty)
+  where
+    (s,t_inner) = refer ts (map (second (apply (subst0 t))) xts)
+    ty = Forall n t_inner
+
+refer' :: [(Ident,Type)] -> (Seq,(Name,Type))
+refer' []      = error "refer: empty seq"
+refer' [(x,t)] = (Ax t,(name x ++ "'",t))
+refer' ((x,tx):(y,ty):xts)
+    = ( Exchange ([1,0] ++ [2..length xts+2])
+      $ Par false typ (name x ++ "'") rest 1 (Ax tx) s
+      , (name x ++ rest,typ)
+      )
+  where
+    (s,(rest,trest)) = refer' ((y,ty):xts)
+    typ = tx :|: trest
+
+singularDeriv :: Deriv -> Deriv
+singularDeriv = go
+  where
+    go d = case d of
+        Deriv tvs ctx@(_:_:_) s ->
+            let (s',(x,tx)) = singCross ctx s
+            in  go (Deriv tvs [(x,tx)] s')
+        Deriv (a:tvs) [(x,tx)] s -> go $
+            Deriv tvs [(a ++ x,Exists a tx)] (TUnpack x 0 s)
+        Deriv{} -> d
+
+singCross :: [(Name,Type)] -> Seq -> (Seq,(Name,Type))
+singCross = go 0
+  where
+    go :: Int -> [(Name,Type)] -> Seq -> (Seq,(Name,Type))
+    go _ []                  _ = error "singCross: []"
+    go _ [(x,tx)]            s = (s,(x,tx))
+    go n ((a,ta):(b,tb):ctx) s = (Cross false tarest a rest n s',(a ++ rest,tarest))
+      where
+        (s',(rest,trest)) = go (succ n) ((b,tb):ctx) s
+        tarest = ta ⊗ trest
+        -}
 
 bindTrSeqMunch :: Ident -> Type -> C.Seq -> T (Seq,[Ident],[Ident])
 bindTrSeqMunch x tx s = do

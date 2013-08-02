@@ -35,6 +35,13 @@ transIdList x = case x of
   ILCons id idlist  -> failure x
 
 
+transTyList :: TyList -> Result
+transTyList x = case x of
+  TLNil  -> failure x
+  TLSingle type'  -> failure x
+  TLCons type' tylist  -> failure x
+
+
 transTyVar :: TyVar -> Result
 transTyVar x = case x of
   TyVar id  -> failure x
@@ -74,6 +81,7 @@ transType x = case x of
   Top  -> failure x
   Zero  -> failure x
   Lollipop type'1 type'2  -> failure x
+  AliasTy id tylist  -> failure x
   TyId id  -> failure x
   Bang type'  -> failure x
   Quest type'  -> failure x
