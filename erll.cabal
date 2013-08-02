@@ -1,6 +1,6 @@
-name:                LL
+name:                erll
 version:             0.1.0.0
--- synopsis:
+synopsis:            Mx, a language with linear types, to erlang compiler
 -- description:
 -- license:
 -- license-file:
@@ -12,7 +12,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable erll
-  main-is:             Main.hs
+  main-is:             Erll/Main.hs
   hs-source-dirs:      ./ sugar/
   -- other-modules:
   build-depends:       base ==4.6.*,

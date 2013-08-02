@@ -15,12 +15,12 @@ import AbsMx hiding (Deriv)
 
 import Pretty
 import ToLL (desugar)
-import Erlang as E
 import LL (Deriv(..),eval)
 
 import Control.Monad
 
-import ErlangPrelude
+import Erll.Prelude
+import Erll.Compile as E
 
 import Text.PrettyPrint (render)
 import Text.Show.Pretty

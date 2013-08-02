@@ -86,8 +86,8 @@ newtype T a = T
     ( Functor, Applicative, Monad
     , MonadState St
     , MonadReader (Map Ident (C.Type,[Ident])) -- type aliases
-    , MonadWriter [Doc]                    -- debug messages
-    , MonadError Err                       -- errors
+    , MonadWriter [Doc]                        -- debug messages
+    , MonadError Err                           -- errors
     )
 
 data St = St
@@ -618,49 +618,6 @@ trSeq sq = case sq of
                 return (s,xs)
 
             Nothing -> throw (NoSuchDeriv x)
-
-{-
-refer :: [(Name,Type)] -> [(Ident,Type)] -> (Seq,Type)
-refer []         xts = second snd (refer' xts)
-refer ((n,t):ts) xts = (TApp false ty n 0 t s,ty)
-  where
-    (s,t_inner) = refer ts (map (second (apply (subst0 t))) xts)
-    ty = Forall n t_inner
-
-refer' :: [(Ident,Type)] -> (Seq,(Name,Type))
-refer' []      = error "refer: empty seq"
-refer' [(x,t)] = (Ax t,(name x ++ "'",t))
-refer' ((x,tx):(y,ty):xts)
-    = ( Exchange ([1,0] ++ [2..length xts+2])
-      $ Par false typ (name x ++ "'") rest 1 (Ax tx) s
-      , (name x ++ rest,typ)
-      )
-  where
-    (s,(rest,trest)) = refer' ((y,ty):xts)
-    typ = tx :|: trest
-
-singularDeriv :: Deriv -> Deriv
-singularDeriv = go
-  where
-    go d = case d of
-        Deriv tvs ctx@(_:_:_) s ->
-            let (s',(x,tx)) = singCross ctx s
-            in  go (Deriv tvs [(x,tx)] s')
-        Deriv (a:tvs) [(x,tx)] s -> go $
-            Deriv tvs [(a ++ x,Exists a tx)] (TUnpack x 0 s)
-        Deriv{} -> d
-
-singCross :: [(Name,Type)] -> Seq -> (Seq,(Name,Type))
-singCross = go 0
-  where
-    go :: Int -> [(Name,Type)] -> Seq -> (Seq,(Name,Type))
-    go _ []                  _ = error "singCross: []"
-    go _ [(x,tx)]            s = (s,(x,tx))
-    go n ((a,ta):(b,tb):ctx) s = (Cross false tarest a rest n s',(a ++ rest,tarest))
-      where
-        (s',(rest,trest)) = go (succ n) ((b,tb):ctx) s
-        tarest = ta ⊗ trest
-        -}
 
 bindTrSeqMunch :: Ident -> Type -> C.Seq -> T (Seq,[Ident],[Ident])
 bindTrSeqMunch x tx s = do

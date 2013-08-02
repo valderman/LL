@@ -1,11 +1,7 @@
 {-# LANGUAGE PatternGuards, RecordWildCards, OverloadedStrings #-}
-module ErlangPrelude (parsePrelude, preludeCompile) where
+module Erll.Prelude (parsePrelude, Prelude(..), Bif, Loc(..)) where
 
 import Control.Applicative
-import Erlang
-import Text.PrettyPrint
-import LL (Deriv(..))
-import Data.List (find)
 import Control.Monad
 
 type Bif = (String,Loc,[String])
@@ -68,34 +64,4 @@ parseBifs = go
 
 dropSpaces :: String -> String
 dropSpaces = dropWhile (== ' ')
-
-preludeCompile :: Prelude -> String -> Deriv -> String
-preludeCompile Prelude{..} m d =
-    let d'@(Deriv _ vs _) = erlangUnique d
-        bifs = getBifs (map fst vs) prel_bifs
-        c = Spawn (compileDeriv d')
-    in  (unlines
-            [ "% Compile with:"
-            , "% erl -compile " ++ m
-            , "% Run with:"
-            , "% erl -pa ./ -run " ++ m ++ " main -run init stop -noshell"
-            , "-module(" ++ m ++ ")."
-            , "-export([main/0])."
-            ])
-        ++ prel_str ++
-        (render $ hang "main() ->" 4 $ vcat $
-            [ pp (Var n := NewChannel) <> comma
-            | (n,_,_) <- bifs
-            ] ++
-            concat [ map text s | (_,Init,s) <- bifs ] ++
-            [ pp c <> comma ] ++
-            concat [ map text s | (_,Final,s) <- bifs ] ++
-            ["ok."]
-        )
-
-getBifs :: [String] -> [Bif] -> [Bif]
-getBifs (x:xs) bifs = case find (\ (y,_,_) -> x == y) bifs of
-    Just bif -> bif:getBifs xs bifs
-    Nothing  -> error $ x ++ " is not defined as a built-in-function"
-getBifs [] _ = []
 
