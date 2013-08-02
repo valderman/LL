@@ -14,23 +14,22 @@ import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.Writer hiding ((<>))
 
-import Pretty(pType,pSeq)
+import Pretty(pType)
 
 import Data.List (elemIndex,delete)
 import Data.Function (on)
 import Data.Ord (comparing)
 import Data.Maybe (fromMaybe)
 
-import Test.QuickCheck
-
-import LL hiding (exchange)
+import LL hiding (exchange,alias)
 
 import Perm
 
 import qualified AbsMx as C
-import AbsMx (Id(..),Choice(..),Binder(..),Along(..),Prog)
+import AbsMx (Id(..),Choice(..),Binder(..),Along(..),Prog(..),IdList(..),MDerivName(..))
 
 data Ident = Ident { name :: String, pos :: (Int,Int) }
+
 
 idName :: Ident -> Doc
 idName = text . name
@@ -47,8 +46,17 @@ instance Show Ident where
 i :: Id -> Ident
 i (Id (p,s)) = Ident s p
 
-desugar :: Prog -> (Either Err Deriv,Doc)
-desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
+desugar :: Prog -> (Either Err [Deriv],Doc)
+desugar (Prog alias derivs) = runT init_alias (mapM dsDeriv derivs)
+  where
+    init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) ILNil t <- alias ]
+
+dsDeriv :: C.Deriv -> T Deriv
+dsDeriv (C.Deriv tvs bs m_name s) = do
+    let init_tyvars = [ tv | C.TyVar (i -> tv) <- tvs ]
+
+    setTyVars init_tyvars
+
     bs' <- forM bs $ \ (Binder (i -> x) t) -> (,) x <$> bind x t
     (s',sb) <- trSeq s
 
@@ -57,24 +65,33 @@ desugar (C.Deriv as tvs bs s) = runT init_alias init_tyvars $ do
 
     let ctx = [ (name x,t) | (x,t) <- bs' ]
 
-    return $ Deriv (map name init_tyvars) ctx (exchange pm s')
-  where
-    init_alias  = M.fromList [ (x,t) | C.TyAlias (i -> x) [] t <- as ]
-    init_tyvars = [ tv | C.TyVar (i -> tv) <- tvs ]
+        deriv = Deriv (map name init_tyvars) ctx (exchange pm s')
+
+    case m_name of
+        DerivName (i -> x) -> modify $ \ st -> st { st_derivs = M.insert x deriv (st_derivs st) }
+        _                  -> return ()
+
+    return deriv
 
 newtype T a = T
     { unT :: ReaderT (Map Ident C.Type)
-             (StateT ([Ident],Map Ident Type)
+             (StateT St
              (ErrorT Err
              (Writer [Doc]))) a
     }
   deriving
     ( Functor, Applicative, Monad
-    , MonadState ([Ident],Map Ident Type)   -- type variables and identifiers in scope
+    , MonadState St
     , MonadReader (Map Ident C.Type)        -- type aliases
     , MonadWriter [Doc]                     -- debug messages
     , MonadError Err                        -- errors
     )
+
+data St = St
+    { st_tvs    :: [Ident]
+    , st_types  :: Map Ident Type
+    , st_derivs :: Map Ident Deriv
+    }
 
 -- | Report a debug message
 report :: Doc -> T ()
@@ -83,19 +100,23 @@ report = tell . (:[])
 -- | Make the context a doc for debug messages
 ctxDoc :: T Doc
 ctxDoc = do
-    (tvs,ctx) <- get
+    tvs <- gets st_tvs
+    ctx <- gets st_types
     let tvs' = map name tvs
     return (prettyCtx tvs' (M.toList ctx))
 
 throw :: Err' -> T a
 throw e = do
-    (tvs,_) <- get
+    tvs <- gets st_tvs
     throwError (Err (map name tvs) e)
 
-runT :: forall a . Map Ident C.Type -> [Ident] -> T a -> (Either Err a,Doc)
-runT as tvs (T m)
-    = (\ (a,ws) -> (a,vcat ws)) . runWriter . runErrorT
-    $ evalStateT (runReaderT m as) (tvs,M.empty)
+runT :: forall a . Map Ident C.Type -> T a -> (Either Err a,Doc)
+runT as (T m)
+    = second vcat . runWriter . runErrorT
+    $ evalStateT (runReaderT m as) (St [] M.empty M.empty)
+
+setTyVars :: [Ident] -> T ()
+setTyVars tvs = modify (\ st -> st { st_tvs = tvs })
 
 data Err = Err
     [Name] -- ^ type variables in scope
@@ -127,6 +148,10 @@ data Err'
     -- ^ Case with different contexts in the two branches
     | Hole [(Ident,Type)]
     -- ^ The identifiers and their types in a hole
+    | NoSuchDeriv Ident
+    -- ^ Refer to a deriv that does not exist
+    | DerivMismatchContext Ident [Name] [Type] [Type] [Type]
+    -- ^ Derivation does not work
     | Fail String
     -- ^ Fail in the monad
 
@@ -157,12 +182,21 @@ prettyErr tvs e = case e of
         hang (prettyId z <+> "deconstructed, but the case arms do not use the same variables") 4
             $  "Left:" <+> ids xs
             $$ "Right:" <+> ids ys
-    Hole ctx -> hang ("Hole context:") 4 (p_ctx ctx)
+    Hole ctx -> hang "Hole context:" 4 (p_ctx ctx)
+    NoSuchDeriv d -> prettyId d <> colon <+> "no derivation with that name"
+    DerivMismatchContext d tvs' ctx tys ctx' ->
+        hang (prettyId d <> colon <+> "splicing derivation does not match in types:") 4
+            $  "spliced type variables:" <+> sep (pc (map text tvs'))
+            $$ "invoked types:" <+> sep (pc (map p_ty tys))
+            $$ "spliced types:" <+> sep (pc (map (prettyType tvs') ctx))
+            $$ "invoked context:" <+> sep (pc (map p_ty ctx'))
     Fail s -> "Unknown error:" <+> text s
   where
     ids :: [Ident] -> Doc
     ids [] = parens "none"
-    ids xs = hcat (punctuate comma (map prettyIdent xs))
+    ids xs = sep (pc (map prettyIdent xs))
+
+    pc = punctuate comma
 
     p_ty  = prettyType tvs
     p_ctx = prettyCtx tvs
@@ -178,7 +212,7 @@ prettyId (Ident n (y,x)) = int y <> colon <> int x <> colon <+> text n
 -- prettyIdent = text . show
 
 prettyType :: [Name] -> Type -> Doc
-prettyType tvs = pType 0 (tvs ++ ["<gbl:" ++ show i ++ ">" | i <- [0..]])
+prettyType tvs = pType 0 (tvs ++ ["<gbl:" ++ show x ++ ">" | x <- [0 :: Int ..]])
 
 prettySeq :: Seq_ -> Doc
 prettySeq s = case s of
@@ -196,16 +230,15 @@ todo = error . (++ " todo")
 
 typeOf :: Ident -> T Type
 typeOf x = do
-    (_,m) <- get
+    m <- gets st_types
     case M.lookup x m of
-        Just t -> return t
+        Just t  -> return t
         Nothing -> throw (UnboundIdentifier x)
 
 eat :: Ident -> T Type
 eat x = do
     t <- typeOf x
-    (tvs,m) <- get
-    put (tvs,M.delete x m)
+    modify $ \ st -> st { st_types = M.delete x (st_types st) }
     return t
 
 bind :: Ident -> C.Type -> T Type
@@ -213,27 +246,21 @@ bind x t = trType t >>= \ t' -> bind' x t' >> return t'
 
 bind' :: Ident -> Type -> T ()
 bind' x t = do
-    (tvs,m) <- get
+    tvs <- gets st_tvs
+    m <- gets st_types
     case (lookupWithKey x m,M.insert x t m) of
         (Just (x',t'),_)  -> throw (BoundIdentifier x t x' t')
                              -- Shadowing is not allowed, so we throw an error here
-        (Nothing,m') -> put (tvs,m')
+        (Nothing,m') -> modify $ \ st -> st { st_tvs = tvs, st_types = m' }
 
 lookupWithKey :: Ord k => k -> Map k v -> Maybe (k,v)
 lookupWithKey k m = (`M.elemAt` m) <$> M.lookupIndex k m
 
-locally :: T a -> T a
-locally u = do
-    x <- get
-    r <- u
-    put x
-    return r
-
 insertTyVar :: Ident -> T ()
-insertTyVar x = do
-    (tvs,m) <- get
-    put (x:tvs,M.map (apply wk) m)
-    -- all identifiers gets their variables shifted
+insertTyVar x = modify $ \ st -> st
+    { st_tvs   = x:st_tvs st
+    , st_types = M.map (apply wk) (st_types st)
+    } -- all identifiers gets their variables shifted
 
 trType :: C.Type -> T Type
 trType = locally . go
@@ -255,7 +282,7 @@ trType = locally . go
         C.Exists (i -> x) t -> insertTyVar x >> (Exists (name x) <$> go t)
         C.Mu (i -> x) t     -> insertTyVar x >> (Mu True (name x) <$> go t)
         C.TyId (i -> x)     -> do
-            (tvs,_) <- get
+            tvs <- gets st_tvs
             case elemIndex x tvs of
                 Just ix -> return (var ix)
                 Nothing -> do
@@ -263,6 +290,14 @@ trType = locally . go
                     case M.lookup x as of
                         Just t  -> go t
                         Nothing -> throw (UnboundIdentifier x)
+
+    -- A hack to translate types
+    locally :: T a -> T a
+    locally u = do
+        x <- get
+        r <- u
+        put x
+        return r
 
 negTy :: C.Type -> C.Type
 negTy = C.Neg
@@ -284,7 +319,7 @@ putLast = reorder pred
 
 saveCtx :: T (Ident -> Type)
 saveCtx = do
-    (_,m) <- get
+    m <- gets st_types
     return $ \ x -> fromMaybe
         (error $ "saveCtx: internal error, lost identifier " ++ show x)
         (M.lookup x m)
@@ -525,7 +560,22 @@ trSeq sq = case sq of
         (s',l,r) <- bindTrSeqMunch x (unfoldTy (name z) tr) s
         return (Unfold (name x) (length l) s',l ++ [z] ++ r)
 
-    C.Hole -> throw . Hole . M.toList . snd =<< get
+    C.Hole -> throw . Hole . M.toList =<< gets st_types
+
+    C.Refer (i -> x) tys0 (map i -> xs) -> do
+
+        m <- gets st_derivs
+
+        case M.lookup x m of
+            Just (Deriv tvs (map snd -> ctx) s) -> do
+                tys <- mapM trType tys0
+                xts <- mapM eat xs
+                when (length tvs /= length tys) (throw (DerivMismatchContext x tvs ctx tys xts))
+                let ctx' = map (apply (tys ++ map var [0..])) ctx
+                when (ctx' /= xts) (throw (DerivMismatchContext x tvs ctx' tys xts))
+                return (s,xs)
+
+            Nothing -> throw (NoSuchDeriv x)
 
 bindTrSeqMunch :: Ident -> Type -> C.Seq -> T (Seq,[Ident],[Ident])
 bindTrSeqMunch x tx s = do

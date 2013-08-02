@@ -11,9 +11,12 @@ import AbsMx hiding (Deriv)
 import Pretty
 import ToLL (desugar)
 import Erlang
-import LL (Deriv(..))
+import LL (Deriv(..),eval)
 
-import Text.PrettyPrint.HughesPJ (render)
+import Control.Monad
+
+import Text.PrettyPrint (render)
+import Text.Show.Pretty
 
 import ErrM
 
@@ -22,7 +25,7 @@ main = do
     args <- getArgs
     case args of
         [] -> run =<< getContents
-        fs -> mapM_ (\ f -> run =<< readFile f) fs
+        fs -> mapM_ (run <=< readFile) fs
 
 run :: String -> IO ()
 run s = case pProg (myLexer s) of
@@ -30,16 +33,23 @@ run s = case pProg (myLexer s) of
         putStrLn $ "Parse failed:" ++ s ++ "!"
         exitWith (ExitFailure 2)
     Ok p -> do
-        let (r,msg) = desugar p
-        putStrLn (render msg)
+        let (r,_msg) = desugar p
+        -- putStrLn (render msg)
         case r of
-            Right d@(Deriv _ _ s) -> do
-                print s
-                putStrLn "== Pretty-Printed =="
-                print d
+            Right ds -> do
+                forM_ ds $ \ d -> do
+                    putStrLn $ ppAttempt $ replace '⊕' '+' $ replace '⊗' '*' $ show d
+                    putStrLn "== Pretty-Printed =="
+                    putStrLn (showDeriv d)
 
-                putStrLn "\n== Erlang Code =="
-                print (compile d)
+                    -- putStrLn "\n== Erlang Code =="
+                    -- print (compile d)
                 exitSuccess
             Left e  -> print e >> exitFailure
+
+ppAttempt :: String -> String
+ppAttempt s = maybe s valToStr (parseValue s)
+
+replace :: Eq a => a -> a -> [a] -> [a]
+replace a b = map (\ x -> if x == a then b else x)
 

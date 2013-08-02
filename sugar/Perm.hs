@@ -1,9 +1,11 @@
+{-# LANGUAGE PatternGuards #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 module Perm(swap,swap0,perm,permute,compose,getPermutation,isId,without) where
 
 import LL (Permutation,inverse)
 import Control.Applicative
 import Test.QuickCheck
-import Data.List (findIndex)
+import Data.List (elemIndex)
 
 swap0 :: Int -> Permutation
 swap0 = swap 0
@@ -15,7 +17,7 @@ swap x y
     | otherwise = [0..x-1] ++ [y] ++ [x+1..y-1] ++ [x] ++ [y+1..]
 
 chop :: [a] -> Permutation -> Permutation
-chop xs p = map fst (zip p xs)
+chop xs p = zipWith const p xs
 
 permute :: [a] -> Permutation -> [a]
 permute xs p = [ xs !! x | x <- p ]
@@ -29,7 +31,7 @@ compose p1 p2 = [ p1 !! x | x <- p2 ]
 getPermutation :: Eq a => [a] -> [a] -> Either ([a],[a]) Permutation
 getPermutation []     [] = Right []
 getPermutation (x:xs) ys
-    | Just n <- findIndex (x ==) ys
+    | Just n <- elemIndex x ys
     = (n:) . map (\ k -> if k >= n then succ k else k) <$> getPermutation xs (ys `without` n)
 getPermutation xs     ys = Left (xs,ys)
 

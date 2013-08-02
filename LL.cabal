@@ -25,5 +25,6 @@ executable erll
                        lens ==3.9.*,
                        array ==0.4.*,
                        QuickCheck ==2.6.*,
-                       safe
+                       safe,
+                       pretty-show
   build-tools:         alex, happy

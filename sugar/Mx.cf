@@ -1,13 +1,21 @@
-Deriv.  Prog ::= [Alias] [TyVar] [Binder] "|-" Seq ;
+Prog.   Prog ::= [Alias] [Deriv] ;
+
+Deriv.  Deriv ::= [TyVar] [Binder] "|-" MDerivName Seq ;
+
+separator nonempty Deriv ";" ;
 
 separator Binder "," ;
-separator nonempty Id ","  ;
-separator AliasId "" ;
+separator nonempty Id "," ;
 terminator TyVar "," ;
 terminator Alias ";" ;
 
-TyAlias. Alias   ::= "type" Id [AliasId] "=" Type ;
-AliasId. AliasId ::= Id ;
+-- Used to refer to other derivations
+separator Type "," ;
+
+TyAlias. Alias   ::= "type" Id IdList "=" Type ;
+
+ILNil.   IdList  ::= ;
+ILCons.  IdList  ::= Id IdList ;
 
 TyVar.   TyVar   ::= Id;
 
@@ -16,6 +24,10 @@ Binder.  Binder  ::= Id ":" Type ;
 -- Maybe binder
 BJust.    MBinder ::= Id ":" Type ;
 BNothing. MBinder ::= Id ;
+
+-- Maybe a name for a derivation
+DerivName.   MDerivName ::= "[" Id "]" ;
+NoDerivName. MDerivName ::= ;
 
 -- Crashing along
 AJust.    Along   ::= "along" [Id] ;
@@ -69,6 +81,7 @@ Ignore.    Seq ::= "ignore" Id "in" Seq ;
 Alias.     Seq ::= "let" Id "=" "alias" Id "in" Seq ;
 Fold.      Seq ::= "let" Id "=" "fold" Id "in" Seq ;
 Unfold.    Seq ::= "let" Id "=" "unfold" Id "in" Seq ;
+Refer.     Seq ::= "[" Id "|" [Type] ";" [Id] "]" ;
 Hole.      Seq ::= "_" ;
 
 position token Id (letter)((letter|digit|'-'|'_'|'\'')*) ;

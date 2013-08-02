@@ -1,0 +1,40 @@
+type Bool = 1 + 1;
+
+x : ~ Bool |- [ x ] let u = fst x in u ;
+
+u : ~ Bool |- [ test1 ] [ x | ; u ] ;
+
+x : Bool, r : ~ Bool |- [ not ]
+    case x of
+        { inl y -> let () = y in let u = snd r in u
+        ; inr z -> let () = z in let u = fst r in u
+        } ;
+
+a : Bool, b : ~ Bool |- [ test2 ] [ not | ; a , b ] ;
+
+x : Bool, y : Bool, r : ~ Bool |- [ silly ]
+    case y of
+        { inl y -> let () = y in x <-> r
+        ; inr z -> let () = z in x <-> r
+        } ;
+
+a : Bool, b : Bool, o : ~ Bool |- [ test3 ] [ silly | ; a, b, o ] ;
+
+x : 1, y : _|_, r : 0 |- [ silly2 ] crash r along x, y ;
+
+a : 1, b : _|_, o : 0 |- [ test4 ] [ silly2 | ; a, b, o ] ;
+
+a : 1, b : Bool, c : Bool & Bool, d : 0 |- [ crashing ] crash d along a, b, c ;
+
+x : 1, y : Bool, z : Bool & Bool, k : 0 |- [ test5 ] [ crashing | ; x, y, z, k ] ;
+
+
+a, x : a, y : a & a, d : 0 |- [ tyvar ] crash d along x,y ;
+
+u : 1, v : 1 & 1, d : 0 |- [ test6 ] [ tyvar | 1 ; u, v, d ] ;
+
+
+a, b, x : a, y : b, d : 0 |- [ tyvars ] crash d along x,y ;
+
+u : 1, v : _|_, d : 0 |- [ test7 ] [ tyvars | 1, _|_ ; u, v, d ]
+

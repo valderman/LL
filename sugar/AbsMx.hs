@@ -5,15 +5,20 @@ module AbsMx where
 
 newtype Id = Id ((Int,Int),String) deriving (Eq,Ord,Show)
 data Prog =
-   Deriv [Alias] [TyVar] [Binder] Seq
+   Prog [Alias] [Deriv]
+  deriving (Eq,Ord,Show)
+
+data Deriv =
+   Deriv [TyVar] [Binder] MDerivName Seq
   deriving (Eq,Ord,Show)
 
 data Alias =
-   TyAlias Id [AliasId] Type
+   TyAlias Id IdList Type
   deriving (Eq,Ord,Show)
 
-data AliasId =
-   AliasId Id
+data IdList =
+   ILNil
+ | ILCons Id IdList
   deriving (Eq,Ord,Show)
 
 data TyVar =
@@ -27,6 +32,11 @@ data Binder =
 data MBinder =
    BJust Id Type
  | BNothing Id
+  deriving (Eq,Ord,Show)
+
+data MDerivName =
+   DerivName Id
+ | NoDerivName
   deriving (Eq,Ord,Show)
 
 data Along =
@@ -76,6 +86,7 @@ data Seq =
  | Alias Id Id Seq
  | Fold Id Id Seq
  | Unfold Id Id Seq
+ | Refer Id [Type] [Id]
  | Hole
   deriving (Eq,Ord,Show)
 

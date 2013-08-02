@@ -89,24 +89,30 @@ instance Print Id where
 
 instance Print Prog where
   prt i e = case e of
-   Deriv aliass tyvars binders seq -> prPrec i 0 (concatD [prt 0 aliass , prt 0 tyvars , prt 0 binders , doc (showString "|-") , prt 0 seq])
+   Prog aliass derivs -> prPrec i 0 (concatD [prt 0 aliass , prt 0 derivs])
 
+
+instance Print Deriv where
+  prt i e = case e of
+   Deriv tyvars binders mderivname seq -> prPrec i 0 (concatD [prt 0 tyvars , prt 0 binders , doc (showString "|-") , prt 0 mderivname , prt 0 seq])
+
+  prtList es = case es of
+   [x] -> (concatD [prt 0 x])
+   x:xs -> (concatD [prt 0 x , doc (showString ";") , prt 0 xs])
 
 instance Print Alias where
   prt i e = case e of
-   TyAlias id aliasids type' -> prPrec i 0 (concatD [doc (showString "type") , prt 0 id , prt 0 aliasids , doc (showString "=") , prt 0 type'])
+   TyAlias id idlist type' -> prPrec i 0 (concatD [doc (showString "type") , prt 0 id , prt 0 idlist , doc (showString "=") , prt 0 type'])
 
   prtList es = case es of
    [] -> (concatD [])
    x:xs -> (concatD [prt 0 x , doc (showString ";") , prt 0 xs])
 
-instance Print AliasId where
+instance Print IdList where
   prt i e = case e of
-   AliasId id -> prPrec i 0 (concatD [prt 0 id])
+   ILNil  -> prPrec i 0 (concatD [])
+   ILCons id idlist -> prPrec i 0 (concatD [prt 0 id , prt 0 idlist])
 
-  prtList es = case es of
-   [] -> (concatD [])
-   x:xs -> (concatD [prt 0 x , prt 0 xs])
 
 instance Print TyVar where
   prt i e = case e of
@@ -131,6 +137,12 @@ instance Print MBinder where
    BNothing id -> prPrec i 0 (concatD [prt 0 id])
 
 
+instance Print MDerivName where
+  prt i e = case e of
+   DerivName id -> prPrec i 0 (concatD [doc (showString "[") , prt 0 id , doc (showString "]")])
+   NoDerivName  -> prPrec i 0 (concatD [])
+
+
 instance Print Along where
   prt i e = case e of
    AJust ids -> prPrec i 0 (concatD [doc (showString "along") , prt 0 ids])
@@ -147,7 +159,7 @@ instance Print Type where
    Choice type'0 type' -> prPrec i 3 (concatD [prt 3 type'0 , doc (showString "&") , prt 4 type'])
    Top  -> prPrec i 5 (concatD [doc (showString "T")])
    Zero  -> prPrec i 5 (concatD [doc (showString "0")])
-   Lollipop type'0 type' -> prPrec i 1 (concatD [prt 1 type'0 , doc (showString "-o") , prt 2 type'])
+   Lollipop type'0 type' -> prPrec i 1 (concatD [prt 2 type'0 , doc (showString "-o") , prt 1 type'])
    TyId id -> prPrec i 5 (concatD [prt 0 id])
    Bang type' -> prPrec i 5 (concatD [doc (showString "!") , prt 5 type'])
    Quest type' -> prPrec i 5 (concatD [doc (showString "?") , prt 5 type'])
@@ -156,6 +168,10 @@ instance Print Type where
    Exists id type' -> prPrec i 0 (concatD [doc (showString "exists") , prt 0 id , doc (showString ".") , prt 0 type'])
    Mu id type' -> prPrec i 0 (concatD [doc (showString "mu") , prt 0 id , doc (showString ".") , prt 0 type'])
 
+  prtList es = case es of
+   [] -> (concatD [])
+   [x] -> (concatD [prt 0 x])
+   x:xs -> (concatD [prt 0 x , doc (showString ",") , prt 0 xs])
 
 instance Print Choice where
   prt i e = case e of
@@ -182,6 +198,7 @@ instance Print Seq where
    Alias id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "alias") , prt 0 id , doc (showString "in") , prt 0 seq])
    Fold id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "fold") , prt 0 id , doc (showString "in") , prt 0 seq])
    Unfold id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "unfold") , prt 0 id , doc (showString "in") , prt 0 seq])
+   Refer id types ids -> prPrec i 0 (concatD [doc (showString "[") , prt 0 id , doc (showString "|") , prt 0 types , doc (showString ";") , prt 0 ids , doc (showString "]")])
    Hole  -> prPrec i 0 (concatD [doc (showString "_")])
 
 
