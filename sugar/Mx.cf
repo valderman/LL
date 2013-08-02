@@ -33,7 +33,7 @@ Choice.   Type3 ::= Type3 "&" Type4 ;
 Top.      Type5 ::= "T" ;
 Zero.     Type5 ::= "0" ;
 
-Lollipop. Type1 ::= Type1 "-o" Type2 ;
+Lollipop. Type1 ::= Type2 "-o" Type1 ;
 
 TyId.     Type5 ::= Id ;
 
