@@ -72,7 +72,7 @@ runFile Params{..} s = case pProg (resolveLayout False (myLexer s)) of
                         print (E.compile d)
 
                 when make $ do
-                    prel_str <- readFile "prelude.erl"
+                    prel_str <- readFile "Erll/prelude.erl"
                     let prel  = parsePrelude prel_str
                         modul = takeBaseName file
                         erl   = modul <.> "erl"

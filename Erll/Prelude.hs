@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards, RecordWildCards, OverloadedStrings #-}
+{-# LANGUAGE PatternGuards, RecordWildCards #-}
 module Erll.Prelude (parsePrelude, Prelude(..), Bif, Loc(..)) where
 
 import Control.Applicative
