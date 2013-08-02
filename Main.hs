@@ -5,6 +5,7 @@ import System.Environment (getArgs)
 
 import LexMx
 import ParMx
+import LayoutMx (resolveLayout)
 import PrintMx hiding (render)
 import AbsMx hiding (Deriv)
 
@@ -28,7 +29,7 @@ main = do
         fs -> mapM_ (run <=< readFile) fs
 
 run :: String -> IO ()
-run s = case pProg (myLexer s) of
+run s = case pProg (resolveLayout False (myLexer s)) of
     Bad s -> do
         putStrLn $ "Parse failed:" ++ s ++ "!"
         exitWith (ExitFailure 2)

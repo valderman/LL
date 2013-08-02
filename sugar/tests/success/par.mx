@@ -1,5 +1,5 @@
 
-t : _|_ | _|_, j : 1, k : 1 |- connect via t
+t : _|_ | _|_, j : 1, k : 1 |- connect t via
     { x -> let () = j in x
     ; y -> let () = k in y
     }

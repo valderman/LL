@@ -10,7 +10,7 @@ import ParMx
 import SkelMx
 import PrintMx
 import AbsMx
-
+import LayoutMx
 
 
 
@@ -18,7 +18,7 @@ import ErrM
 
 type ParseFun a = [Token] -> Err a
 
-myLLexer = myLexer
+myLLexer = resolveLayout True . myLexer
 
 type Verbosity = Int
 

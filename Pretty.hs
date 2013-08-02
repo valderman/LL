@@ -64,12 +64,12 @@ pSeq showTypes = foldSeq sf where
    sf (Deriv ts vs _) = SeqFinal {..} where
         sty                      = pType 0
         sax v v' _               = text v <+> "<->" <+> text v'
-        scut v v' vt s vt' t     = pp_block "connect" (varT v  vt) s
+        scut v v' vt s vt' t     = pp_block "cut" (varT v  vt) s
                                                   (varT v' vt') t
 
         scross _ w v vt v' vt' t = pp_let (text v <+> "," <+> text v') (text w) t
 
-        spar _ w v vt v' vt' s t = pp_block ("connect" <+> "via" <+> text w)
+        spar _ w v vt v' vt' s t = pp_block ("connect" <+> text w <+> "via")
                                             (varT v  vt) s
                                             (varT v' vt') t
         splus w v vt v' vt' s t  = pp_block ("case" <+> text w <+> "of")

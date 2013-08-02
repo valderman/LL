@@ -2,9 +2,9 @@ a, b, c, f : ~ (((a * b) * c) -o (a * (b * c))) |-
 let i , o = f in
 let ab , c = i in
 let a , b = ab in
-connect via o
+connect o via
     { a' -> a <-> a'
-    ; bc' -> connect via bc'
+    ; bc' -> connect bc' via
         { b' -> b' <-> b
         ; c' -> c' <-> c
         }

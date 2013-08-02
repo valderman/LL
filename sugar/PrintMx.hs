@@ -190,8 +190,8 @@ instance Print Choice where
 instance Print Seq where
   prt i e = case e of
    Ax id0 id -> prPrec i 0 (concatD [prt 0 id0 , doc (showString "<->") , prt 0 id])
-   Cut mbinder0 seq1 mbinder seq -> prPrec i 0 (concatD [doc (showString "connect") , doc (showString "{") , prt 0 mbinder0 , doc (showString "->") , prt 0 seq1 , doc (showString ";") , prt 0 mbinder , doc (showString "->") , prt 0 seq , doc (showString "}")])
-   ParSeq id0 id1 seq2 id seq -> prPrec i 0 (concatD [doc (showString "connect") , doc (showString "via") , prt 0 id0 , doc (showString "{") , prt 0 id1 , doc (showString "->") , prt 0 seq2 , doc (showString ";") , prt 0 id , doc (showString "->") , prt 0 seq , doc (showString "}")])
+   Cut mbinder0 seq1 mbinder seq -> prPrec i 0 (concatD [doc (showString "cut") , doc (showString "{") , prt 0 mbinder0 , doc (showString "->") , prt 0 seq1 , doc (showString ";") , prt 0 mbinder , doc (showString "->") , prt 0 seq , doc (showString "}")])
+   ParSeq id0 id1 seq2 id seq -> prPrec i 0 (concatD [doc (showString "connect") , prt 0 id0 , doc (showString "via") , doc (showString "{") , prt 0 id1 , doc (showString "->") , prt 0 seq2 , doc (showString ";") , prt 0 id , doc (showString "->") , prt 0 seq , doc (showString "}")])
    TensorSeq id0 id1 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString ",") , prt 0 id1 , doc (showString "=") , prt 0 id , doc (showString "in") , prt 0 seq])
    ChoiceSeq id0 choice id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , prt 0 choice , prt 0 id , doc (showString "in") , prt 0 seq])
    Case id0 id1 seq2 id seq -> prPrec i 0 (concatD [doc (showString "case") , prt 0 id0 , doc (showString "of") , doc (showString "{") , doc (showString "inl") , prt 0 id1 , doc (showString "->") , prt 0 seq2 , doc (showString ";") , doc (showString "inr") , prt 0 id , doc (showString "->") , prt 0 seq , doc (showString "}")])

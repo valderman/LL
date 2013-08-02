@@ -1,6 +1,6 @@
 
 tp : 1 * 1, pr : _|_ | _|_  |-
-let x, y = tp in connect via pr
+let x, y = tp in connect pr via
     { u -> u <-> x
     ; v -> v <-> y
     }

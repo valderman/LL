@@ -1,5 +1,5 @@
 misery : 1, unit : ! 1, end : _|_ , unit2 : ! 1, mystery : 1 |-
-connect
+cut
     { v : 1 ->
         let unit' = alias unit in
         let u = demand unit in

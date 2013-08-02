@@ -1,0 +1,4 @@
+u : _|_ + _|_ |-
+case u of
+    inl a -> a
+    inr b -> b

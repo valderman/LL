@@ -1,8 +1,8 @@
 
 a : 1, tp : 1 * 1, b : 1, pr : _|_ | 1, dr : _|_ | _|_, c : 1 |-
-let x, y = tp in connect via dr
+let x, y = tp in connect dr via
     { u -> u <-> x
-    ; v -> connect via pr
+    ; v -> connect pr via
         { j -> j <-> a
         ; i -> let () = b in let () = c in let () = i in v <-> y
         }

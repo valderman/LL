@@ -1,0 +1,4 @@
+u : _|_ | _|_ |-
+connect u via
+    a -> a
+    b -> b

@@ -1,6 +1,6 @@
 
 y : 1, z : ~ (1 * 1) |-
-connect via z
+connect z via
     { k -> k <-> y
     ; l -> l
     }

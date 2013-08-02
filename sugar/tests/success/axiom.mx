@@ -1,6 +1,6 @@
 
 u : 1 , y : 1 + 1, z : ~ ((1 + 1) * (1 + 1)) |-
-connect via z
+connect z via
     { k -> let () = u in k <-> y
     ; l -> let n = snd l in n
     }

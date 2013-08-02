@@ -1,6 +1,6 @@
 x : a * b, y : ~ a | ~ b |-
 let v,w = x in
-connect via y
+connect y via
     { i -> v <-> i
     ; j -> w <-> j
     }

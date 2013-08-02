@@ -1,6 +1,6 @@
 
 u : _|_
-    |- connect
+    |- cut
         { x : _|_ -> x
         ; y -> let () = y in u
         }

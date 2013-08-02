@@ -1,7 +1,7 @@
-i : 1, o : ~1 |- connect
+i : 1, o : ~1 |- cut
 { id : forall a . a -o a ->
     let id1' = id @ 1
-    in connect via id1'
+    in connect id1' via
         { a -> a <-> i
         ; b -> b <-> o
         }

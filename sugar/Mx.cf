@@ -69,9 +69,11 @@ coercions Type 6 ;
 Fst.       Choice ::= "fst" ;
 Snd.       Choice ::= "snd" ;
 
+layout "cut", "via", "of" ;
+
 Ax.        Seq ::= Id "<->" Id;
-Cut.       Seq ::= "connect" "{" MBinder "->" Seq ";" MBinder "->" Seq "}";
-ParSeq.    Seq ::= "connect" "via" Id "{" Id "->" Seq ";" Id "->" Seq "}";
+Cut.       Seq ::= "cut" "{" MBinder "->" Seq ";" MBinder "->" Seq "}";
+ParSeq.    Seq ::= "connect" Id "via" "{" Id "->" Seq ";" Id "->" Seq "}";
 TensorSeq. Seq ::= "let" Id "," Id "=" Id "in" Seq;
 ChoiceSeq. Seq ::= "let" Id "=" Choice Id "in" Seq;
 Case.      Seq ::= "case" Id "of" "{" "inl" Id "->" Seq ";" "inr" Id "->" Seq "}" ;
