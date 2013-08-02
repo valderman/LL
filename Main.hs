@@ -16,6 +16,8 @@ import LL (Deriv(..),eval)
 
 import Control.Monad
 
+import ErlangPrelude
+
 import Text.PrettyPrint (render)
 import Text.Show.Pretty
 
@@ -38,13 +40,16 @@ run s = case pProg (resolveLayout False (myLexer s)) of
         -- putStrLn (render msg)
         case r of
             Right ds -> do
+                {-
                 forM_ ds $ \ d -> do
-                    putStrLn $ ppAttempt $ replace '⊕' '+' $ replace '⊗' '*' $ show d
+                    -- putStrLn $ ppAttempt $ replace '⊕' '+' $ replace '⊗' '*' $ show d
                     putStrLn "== Pretty-Printed =="
                     putStrLn (showDeriv d)
-
-                    -- putStrLn "\n== Erlang Code =="
-                    -- print (compile d)
+                    -}
+                prel_str <- readFile "prelude.erl"
+                let prel = parsePrelude prel_str
+                -- putStrLn $ ppAttempt $ show prel
+                putStrLn (preludeCompile prel (last ds))
                 exitSuccess
             Left e  -> print e >> exitFailure
 

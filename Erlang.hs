@@ -1,13 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, RecordWildCards, DeriveFunctor,
              TypeSynonymInstances, FlexibleInstances, PatternGuards #-}
-module Erlang (compile, compileDeriv, erlangUnique) where
+module Erlang (compile, compileDeriv, erlangUnique, pp, Code(..), Pattern(..)) where
 
 import Control.Applicative hiding (empty)
 import Control.Monad.State
 import Data.Char
 import Text.PrettyPrint.HughesPJ
-
-import Examples hiding (t0)
 
 import LL hiding ((&),var,Alias,Demand,Ignore)
 import qualified LL
@@ -139,6 +137,8 @@ compileDeriv (Deriv ts vs sq) = foldSeq sf ts vs sq
 
         sty _ _ = ()
 
+        ~[sfold, sunfold, smem, schplus, schcross, schpar, schtyp, schempty, schfull] =[]
+
 infixl 4 <.>
 
 -- | Applies a pure value in an applicative computation
@@ -253,7 +253,7 @@ pc :: Code' -> Doc
 pc c = pp c <> dot
 
 pp :: Code' -> Doc
-pp c = case c of
+pp c0 = case c0 of
     NewChannel -> text "newChannel" <> parens empty
     Spawn n ->
         text "spawn" <> parens (hang

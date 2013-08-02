@@ -1,0 +1,88 @@
+
+type Bool = 1 + 1;
+
+x : Bool, y : Bool, z : ~ (Bool * Bool) |- [ semiadder ]
+
+case x of
+    { inl t -> let () = t in case y of
+        { inl v -> let () = v in connect z via
+            { k -> let m = fst k in m
+            ; l -> let n = fst l in n
+            }
+        ; inr w -> let () = w in connect z via
+            { k -> let m = fst k in m
+            ; l -> let n = snd l in n
+            }
+        }
+    ; inr u -> connect z via
+        { k -> let () = u in k <-> y
+        ; l -> let n = snd l in n
+        }
+    }
+
+;
+
+rw,
+Start : rw,
+ReadBool : ! (rw -o Bool * rw),
+result : ~ (Bool * Bool * rw)
+|- [ readTwoBools ]
+let ReadBool' = alias ReadBool in
+let rb1 = demand ReadBool in
+let rb2 = demand ReadBool' in
+connect rb1 via
+    Start'  -> Start' <-> Start
+    b1_cont1 ->
+        let b1, cont1 = b1_cont1 in
+        connect rb2 via
+            cont' -> cont' <-> cont1
+            b2_cont2 ->
+                let b2, cont2 = b2_cont2 in
+                connect result via
+                    bls -> connect bls via
+                        b1' -> b1 <-> b1'
+                        b2' -> b2 <-> b2'
+                    Stop -> cont2 <-> Stop
+
+;
+
+rw,
+Start : rw,
+PrintBool : ! (rw -o Bool -o rw),
+bools : Bool * Bool,
+Stop : ~ rw
+|- [ printTwoBools ]
+let PrintBool' = alias PrintBool in
+let pb1= demand PrintBool in
+let pb2 = demand PrintBool' in
+let b1, b2 = bools in
+connect pb1 via
+    Start' -> Start' <-> Start
+    b1'_cont1 -> connect b1'_cont1 via
+        b1' -> b1' <-> b1
+        cont1 -> connect pb2 via
+            cont1' -> cont1 <-> cont1'
+            b2'_cont2 -> connect b2'_cont2 via
+                b2' -> b2' <-> b2
+                cont2 -> cont2 <-> Stop
+
+;
+
+rw,
+Start : rw,
+ReadBool : ! (rw -o Bool * rw),
+PrintBool : ! (rw -o Bool -o rw),
+Stop : ~ rw
+|- [ main ]
+cut
+    inp_tk : Bool * Bool * rw ->
+        let inp, tk = inp_tk in
+        let a, b = inp in
+        cut
+            res ->
+                [ semiadder | ; a, b, res ]
+            bools : Bool * Bool ->
+                [ printTwoBools | rw ; tk, PrintBool, bools, Stop ]
+    read_2 ->
+        [ readTwoBools | rw ; Start, ReadBool, read_2 ]
+

@@ -6,6 +6,8 @@
         ,promote/2,ignore/1,alias/1,demand/1
         ,tests/0]).
 
+%%% START %%%
+
 newChannel() ->
     spawn(fun() ->
         receive
@@ -51,7 +53,8 @@ axiom(ChX,ChY) ->
     ChY ! {notify,y,self()},
     receive
         x -> tell(ChY,ask(ChX));
-        y -> tell(ChX,ask(ChY))
+        y -> tell(ChX,ask(ChY));
+        {x,exp} -> ChY ! {promote,ChX}
     end.
 
 % Does not (yet) handle concurrent requests in parallel
@@ -82,6 +85,63 @@ demand(Ch) ->
             io:format("Demand received: ~p~n",[X]),
             X
     end.
+
+readBool(X) ->
+    % X is a channel rw -o Bool * rw
+    {I,BO} = ask(X),
+    real_world = ask(I),
+    B = newChannel(),
+    O = newChannel(),
+    tell(BO,{B,O}),
+    Bool = io:get_line(""),
+    T = newChannel(),
+    case Bool of
+        "true\n" -> tell(B,{right,T});
+        _        -> tell(B,{left,T})
+    end,
+    tell(T,{}),
+    tell(O,real_world).
+
+printBool(X) ->
+    % X is a channel rw -o Bool -o rw
+    {I,BO} = ask(X),
+    real_world = ask(I),
+    {B,O} = ask(BO),
+    case ask(B) of
+        {left,T} ->
+            {} = ask(T),
+            io:format("false~n");
+        {right,T} ->
+            {} = ask(T),
+            io:format("true~n")
+    end,
+    tell(O,real_world).
+
+%%% STOP %%%
+
+setup_Start(Start) ->
+%%% INIT Start %%%
+    spawn(fun () -> tell(Start,real_world) end),
+%%% END %%%
+    ok.
+
+setup_ReadBool(ReadBool) ->
+%%% INIT ReadBool %%%
+    spawn(fun () -> promote(ReadBool,fun(X) -> readBool(X) end) end),
+%%% END %%%
+    ok.
+
+setup_PrintBool(PrintBool) ->
+%%% INIT PrintBool %%%
+    spawn(fun () -> promote(PrintBool,fun(X) -> printBool(X) end) end),
+%%% END %%%
+    ok.
+
+final_Stop(Stop) ->
+%%% FINAL Stop %%%
+    real_world = ask(Stop),
+%%% END %%%
+    ok.
 
 % Tests the axiom rule in both ways. Should return {tt1,tt2}.
 test_axiom() ->
