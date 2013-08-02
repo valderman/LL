@@ -1,0 +1,86 @@
+
+type List a = mu x . 1 + (a * x) ;
+
+A, x : A, xs : ~ List A |- [ singleton ]
+let uxs = unfold xs in
+let a @ fe = uxs in
+let f, e = fe in
+let f' = alias f in
+let s = demand f in
+let s' = demand f' in
+connect s via
+    cell ->
+        let cons = snd cell in
+        connect cons via
+            x' -> x <-> x'
+            e2 -> connect s' via
+                cell2 -> let nil = fst cell2 in nil
+                e2'   -> e2 <-> e2'
+    e' -> e <-> e'
+
+;
+
+A, ys : ~ List A |- [ nil ]
+let uys = unfold ys in
+let a @ ysf = uys in
+let f, a = ysf in
+let mk_cell = demand f in
+connect mk_cell via
+    cell -> let nil = fst cell in nil
+    a' -> a <-> a'
+
+
+;
+
+
+-- should be O(1) if axioms between exponentials is correctly implemented
+
+A, x : A, xs : List A, ys : ~ List A |- [ cons ]
+let uys = unfold ys in
+let a @ ysf = uys in
+let fxs = fold xs in
+let xsf = fxs @ a in
+let yf, a = ysf in
+let yf' = alias yf in
+let f = demand yf' in
+connect f via
+    cell ->
+        let cons = snd cell in
+        connect cons via
+            x' -> x <-> x'
+            a2 -> connect xsf via
+                srv -> srv <-> yf
+                a2' -> a2 <-> a2'
+    a' -> a <-> a'
+
+;
+
+A, B,
+pe  : ~ (List (A + B) -o List A * List B),
+|- [ partitionEithers ]
+let inp, out = pe in
+let xs = fold inp in
+let serve = xs @ (List A * List B) in
+connect serve via
+    a ->
+        offer srv for a in
+        let cell, res = srv in
+        case cell of
+            inl nil ->
+                let () = nil in
+                connect res via
+                    xs -> [ nil | A ; xs ]
+                    ys -> [ nil | B ; ys ]
+            inr cons ->
+                let lr , asbs = cons in
+                let as, bs = asbs in
+                case lr of
+                    inl a -> connect res via
+                        xs -> [ cons | A ; a , as ,xs ]
+                        ys -> bs <-> ys
+                    inr b -> connect res via
+                        xs -> as <-> xs
+                        ys -> [ cons | B ; b , bs ,ys ]
+    b -> b <-> out
+
+
