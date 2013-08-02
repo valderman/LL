@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -w #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleContexts #-}

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -w #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}

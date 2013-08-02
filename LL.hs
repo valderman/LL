@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -w #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -362,8 +363,6 @@ cut n w w' ty γ (Offer β v x s) t | x > 0 = Offer β v (x-1) (Cut w w' ty γ s
 cut n w w' ty γ (Demand v ty' x s) t | x > 0 = Demand v ty' (x-1) (Cut w w' ty γ s t)
 cut n w w' ty γ (Ignore β x s) t | x > 0 = Ignore β (x-1) (Cut w w' ty (γ-1) s t)
 cut n w w' ty γ (Alias β x v s) t | x > 0 = Alias β (x-1) v (Cut w w' ty (γ+1) s t)
-cut _ _ _  _  _ Fold{}   _ = error "cut: Fold todo"
-cut _ _ _  _  _ Unfold{} _ = error "cut: Unfold todo"
 
 
 cut 2 _ _ ty 1 (Ax _) a = a
@@ -386,6 +385,9 @@ cut n _ _ ty γ (SBot) (SOne β 0 a) = a
   -- Cut w w' ta 1 (What "arst" []) (What "qwft" [])
 cut n w w' ty γ a b | positiveType ty = exchange ([γ..n-1] ++ [0..γ-1]) (cut n w' w (neg ty) (n-γ) b a)
 cut n w w' ty γ a b = Cut w w' ty γ a b
+
+-- cut _ _ _  _  _ Fold{}   _ = error "cut: Fold todo"
+-- cut _ _ _  _  _ Unfold{} _ = error "cut: Unfold todo"
 
 ignore β 0 a = a
 ignore β n a = Ignore β 0 (ignore β (n-1) a)
