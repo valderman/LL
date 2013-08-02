@@ -376,7 +376,7 @@ matchType z t0 t1 = maybe (throw (TypeError z t0 t1)) return (go t0 t1)
     go (Quest u)    (Quest v)    = go u v
     go (Forall _ u) (Forall _ v) = go u v
     go (Exists _ u) (Exists _ v) = go u v
-    go (Mu b1 _ u)  (Mu b2 _ v)  | b1 == b2  = go u v
+    go (Mu b1 _ u)  (Mu b2 n v)  | b1 == b2  = (meta n:) <$> go u v
                                  | otherwise = mzero
     go Meta{}       t            = return [t]
     go u            v
@@ -585,15 +585,15 @@ trSeq sq = case sq of
     C.Fold (i -> x) (i -> z) s -> do
 
         tz <- eat z
-        [tr] <- matchType z (Mu True "" __) tz
-        (s',l,r) <- bindTrSeqMunch x (foldTy (name z) tr) s
+        [Meta _ nm _,tr] <- matchType z (Mu True "" __) tz
+        (s',l,r) <- bindTrSeqMunch x (foldTy nm tr) s
         return (Fold (name x) (length l) s',l ++ [z] ++ r)
 
     C.Unfold (i -> x) (i -> z) s -> do
 
         tz <- eat z
-        [tr] <- matchType z (Mu False "" __) tz
-        (s',l,r) <- bindTrSeqMunch x (unfoldTy (name z) tr) s
+        [Meta _ nm _,tr] <- matchType z (Mu False "" __) tz
+        (s',l,r) <- bindTrSeqMunch x (unfoldTy nm tr) s
         return (Unfold (name x) (length l) s',l ++ [z] ++ r)
 
     C.Hole -> throw . Hole . M.toList =<< gets st_types
