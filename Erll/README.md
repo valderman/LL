@@ -31,7 +31,7 @@ The input language
 
 Apart from all the constructs in the Mx language, it also supports
 
- * Type holes
+  * Type holes
 
     Writing _ in the source code will emit an error notifying all variables
     in scope. Example:
@@ -64,27 +64,30 @@ Apart from all the constructs in the Mx language, it also supports
 
   * Recursive types
 
-     Not yet implemented in the compiler, you can use mu-types to create ADTs
-     such as list. This derivation makes a singleton list:
+    Not yet implemented in the compiler, you can use mu-types to create ADTs
+    such as list. This derivation makes a singleton list:
 
-         type List a = mu x . 1 + (a * x) ;
+        type List a = mu x . 1 + (a * x) ;
 
-         A, x : A, xs : ~ List A |-
-         let uxs = unfold xs in
-         let a @ fe = uxs in
-         let f, e = fe in
-         let f' = alias f in
-         let s = demand f in
-         let s' = demand f' in
-         connect s via
-             cell ->
-                 let cons = snd cell in
-                 connect cons via
-                     x' -> x <-> x'
-                     e2 -> connect s' via
-                         cell2 -> let nil = fst cell2 in nil
-                         e2'   -> e2 <-> e2'
-             e' -> e <-> e'
+        A, x : A, xs : ~ List A |-
+        let uxs = unfold xs in
+        let a @ fe = uxs in
+        let f, e = fe in
+        let f' = alias f in
+        let s = demand f in
+        let s' = demand f' in
+        connect s via
+            cell ->
+                let cons = snd cell in
+                connect cons via
+                    x' -> x <-> x'
+                    e2 -> connect s' via
+                        cell2 -> let nil = fst cell2 in nil
+                        e2'   -> e2 <-> e2'
+            e' -> e <-> e'
+
+    It is not so easy to follow, but it is possible to write this correctly
+    with the type holes.
 
   * Named derivations
 
