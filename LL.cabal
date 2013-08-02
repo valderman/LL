@@ -26,5 +26,8 @@ executable erll
                        array ==0.4.*,
                        QuickCheck ==2.6.*,
                        safe,
-                       pretty-show
+                       pretty-show,
+                       filepath,
+                       process,
+                       cmdargs
   build-tools:         alex, happy

@@ -1,4 +1,8 @@
+{-# LANGUAGE DeriveDataTypeable, RecordWildCards #-}
 module Main where
+
+import System.Console.CmdArgs hiding (verbosity,auto)
+import System.Process
 
 import System.Exit
 import System.Environment (getArgs)
@@ -11,7 +15,7 @@ import AbsMx hiding (Deriv)
 
 import Pretty
 import ToLL (desugar)
-import Erlang
+import Erlang as E
 import LL (Deriv(..),eval)
 
 import Control.Monad
@@ -23,15 +27,33 @@ import Text.Show.Pretty
 
 import ErrM
 
+import System.FilePath
+
+data Params = Params
+    { file    :: FilePath
+    , make    :: Bool
+    , compile :: Bool
+    , run     :: Bool
+    , debug   :: Bool
+    }
+  deriving (Data,Typeable)
+
+defParams :: Params
+defParams = Params
+    { file    = ""    &= argPos 0 &= typFile
+    , make    = False &= help "Make .erl file"
+    , compile = False &= help "Compile .erl file"
+    , run     = False &= help "Run .erl file"
+    , debug   = False &= help "Print some debugging information"
+    }
+
 main :: IO ()
 main = do
-    args <- getArgs
-    case args of
-        [] -> run =<< getContents
-        fs -> mapM_ (run <=< readFile) fs
+    params@Params{..} <- cmdArgs defParams
+    runFile params =<< readFile file
 
-run :: String -> IO ()
-run s = case pProg (resolveLayout False (myLexer s)) of
+runFile :: Params -> String -> IO ()
+runFile Params{..} s = case pProg (resolveLayout False (myLexer s)) of
     Bad s -> do
         putStrLn $ "Parse failed:" ++ s ++ "!"
         exitWith (ExitFailure 2)
@@ -40,18 +62,37 @@ run s = case pProg (resolveLayout False (myLexer s)) of
         -- putStrLn (render msg)
         case r of
             Right ds -> do
-                {-
                 forM_ ds $ \ d -> do
-                    -- putStrLn $ ppAttempt $ replace '⊕' '+' $ replace '⊗' '*' $ show d
-                    putStrLn "== Pretty-Printed =="
-                    putStrLn (showDeriv d)
-                    -}
-                prel_str <- readFile "prelude.erl"
-                let prel = parsePrelude prel_str
-                -- putStrLn $ ppAttempt $ show prel
-                putStrLn (preludeCompile prel (last ds))
+                    when debug $ putStrLn $ ppAttempt $ replace '⊕' '+' $ replace '⊗' '*' $ show d
+                    when (not make) $ do
+                        putStrLn "== Pretty-Printed =="
+                        putStrLn (showDeriv d)
+                    when debug $ do
+                        putStrLn "== Erlang Code =="
+                        print (E.compile d)
+
+                when make $ do
+                    prel_str <- readFile "prelude.erl"
+                    let prel  = parsePrelude prel_str
+                        modul = takeBaseName file
+                        erl   = modul <.> "erl"
+                    when debug $ putStrLn $ ppAttempt $ show prel
+                    let erl_str = preludeCompile prel modul (last ds)
+                    when debug $ putStrLn erl_str
+                    putStrLn $ "Writing " ++ erl
+                    writeFile erl erl_str
+                    when compile $ do
+                        void $ systemShow $ "erl -compile " ++ modul
+                        when run $ void $ systemShow $
+                            "erl -pa ./ -run " ++ modul ++ " main -run init stop -noshell"
                 exitSuccess
             Left e  -> print e >> exitFailure
+
+systemShow :: String -> IO ExitCode
+systemShow s = do
+    putStrLn $ "Running " ++ s
+    system s
+
 
 ppAttempt :: String -> String
 ppAttempt s = maybe s valToStr (parseValue s)

@@ -69,13 +69,17 @@ parseBifs = go
 dropSpaces :: String -> String
 dropSpaces = dropWhile (== ' ')
 
-preludeCompile :: Prelude -> Deriv -> String
-preludeCompile Prelude{..} d =
+preludeCompile :: Prelude -> String -> Deriv -> String
+preludeCompile Prelude{..} m d =
     let d'@(Deriv _ vs _) = erlangUnique d
         bifs = getBifs (map fst vs) prel_bifs
         c = Spawn (compileDeriv d')
     in  (unlines
-            [ "-module(compiled)."
+            [ "% Compile with:"
+            , "% erl -compile " ++ m
+            , "% Run with:"
+            , "% erl -pa ./ -run " ++ m ++ " main -run init stop -noshell"
+            , "-module(" ++ m ++ ")."
             , "-export([main/0])."
             ])
         ++ prel_str ++

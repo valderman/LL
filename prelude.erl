@@ -23,7 +23,7 @@ newChannel() ->
                 Go = fun
                     (_,N) when N =:= 0 -> WorkerPid ! exit;
                     (Go,N) ->
-                        io:format("Promote Go ~p~n",[N]),
+                        % io:format("Promote Go ~p~n",[N]),
                         receive
                             % {notify,Note,Pid} -> Pid ! Note, Go(Go,N);
                             % Cannot notify like this: you cannot ask on these
@@ -82,7 +82,7 @@ demand(Ch) ->
     Ch ! {demand,self()},
     receive
         {via,X} ->
-            io:format("Demand received: ~p~n",[X]),
+            % io:format("Demand received: ~p~n",[X]),
             X
     end.
 
