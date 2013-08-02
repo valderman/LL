@@ -19,3 +19,6 @@ cabal-dev
 *.out
 *.vtc
 *.svg
+*bak
+*erl
+*beam
