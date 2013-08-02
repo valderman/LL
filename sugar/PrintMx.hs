@@ -207,7 +207,7 @@ instance Print Seq where
    Fold id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "fold") , prt 0 id , doc (showString "in") , prt 0 seq])
    Unfold id0 id seq -> prPrec i 0 (concatD [doc (showString "let") , prt 0 id0 , doc (showString "=") , doc (showString "unfold") , prt 0 id , doc (showString "in") , prt 0 seq])
    Refer id types ids -> prPrec i 0 (concatD [doc (showString "[") , prt 0 id , doc (showString "|") , prt 0 types , doc (showString ";") , prt 0 ids , doc (showString "]")])
-   Hole  -> prPrec i 0 (concatD [doc (showString "_")])
+   Hole along -> prPrec i 0 (concatD [doc (showString "_") , prt 0 along])
 
 
 

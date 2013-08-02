@@ -94,6 +94,6 @@ data Seq =
  | Fold Id Id Seq
  | Unfold Id Id Seq
  | Refer Id [Type] [Id]
- | Hole
+ | Hole Along
   deriving (Eq,Ord,Show)
 

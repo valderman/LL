@@ -596,7 +596,11 @@ trSeq sq = case sq of
         (s',l,r) <- bindTrSeqMunch x (unfoldTy nm tr) s
         return (Unfold (name x) (length l) s',l ++ [z] ++ r)
 
-    C.Hole -> throw . Hole . M.toList =<< gets st_types
+    C.Hole (along -> xs)
+        | null xs   -> throw . Hole . M.toList =<< gets st_types
+        | otherwise -> do
+            _ <- mapM eat xs
+            return (What "" [0..length xs - 1],xs)
 
     C.Refer (i -> x) tys0 (map i -> xs) -> do
 

@@ -89,7 +89,7 @@ Alias.     Seq ::= "let" Id "=" "alias" Id "in" Seq ;
 Fold.      Seq ::= "let" Id "=" "fold" Id "in" Seq ;
 Unfold.    Seq ::= "let" Id "=" "unfold" Id "in" Seq ;
 Refer.     Seq ::= "[" Id "|" [Type] ";" [Id] "]" ;
-Hole.      Seq ::= "_" ;
+Hole.      Seq ::= "_" Along ;
 
 position token Id (letter)((letter|digit|'-'|'_'|'\'')*) ;
 

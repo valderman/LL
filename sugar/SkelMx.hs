@@ -117,7 +117,7 @@ transSeq x = case x of
   Fold id1 id2 seq3  -> failure x
   Unfold id1 id2 seq3  -> failure x
   Refer id types ids  -> failure x
-  Hole  -> failure x
+  Hole along  -> failure x
 
 
 
