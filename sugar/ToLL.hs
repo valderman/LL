@@ -301,8 +301,9 @@ trType = locally . go
                         Just (t,is) -> do
                             tys <- mapM go ts
                             when (length tys /= length is) $ throw (IncorrectlyAppliedAlias x is tys)
-                            mapM_ insertTyVar (reverse is)
-                            ty <- trType t
+                            ty <- locally $ do
+                                mapM_ insertTyVar (reverse is)
+                                trType t
                             return (apply (tys ++ map var [0..]) ty)
                         Nothing     -> throw (UnboundIdentifier x)
 
@@ -428,9 +429,10 @@ trSeq sq = case sq of
         bind' y ty
         (s',bs) <- trSeq s
         let bs' = delete x (delete y bs)
-            pm :: Permutation
-            pm = either (error "trSeq: TensorSeq malformed context (or identifier escapes?)")
-                    id (getPermutation bs (x:y:bs'))
+
+        pm <- case getPermutation bs (x:y:bs') of
+                Left (xs,ys) -> throw (PermutationError (Just z) xs ys)
+                Right pm -> return pm
 
         report $ hang (idName x <> comma <> idName y <> equals <> idName z <+> colon) 4
              $ hsep (map idName bs)
