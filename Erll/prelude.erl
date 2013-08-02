@@ -93,11 +93,15 @@ readBool(X) ->
     B = newChannel(),
     O = newChannel(),
     tell(BO,{B,O}),
-    Bool = io:get_line(""),
+    Bool = io:get_line("Enter a bool:"),
     T = newChannel(),
     case Bool of
-        "true\n" -> tell(B,{right,T});
-        _        -> tell(B,{left,T})
+        "true\n" ->
+            io:format("You entered true.~n"),
+            tell(B,{right,T});
+        _        ->
+            io:format("You entered false.~n"),
+            tell(B,{left,T})
     end,
     tell(T,{}),
     tell(O,real_world).
@@ -108,12 +112,12 @@ printBool(X) ->
     real_world = ask(I),
     {B,O} = ask(BO),
     case ask(B) of
-        {left,T} ->
-            {} = ask(T),
-            io:format("false~n");
         {right,T} ->
             {} = ask(T),
-            io:format("true~n")
+            io:format("true~n");
+        {left,T} ->
+            {} = ask(T),
+            io:format("false~n")
     end,
     tell(O,real_world).
 
